@@ -102,8 +102,29 @@
             }
         }
         xmlhttp.open("GET", "/timestamp/"
-            +trim(document.getElementById("asctime").innerHTML), true);
+            + trim(document.getElementById("asctime").innerHTML), true);
         xmlhttp.send();
+    }
+
+    function poll()
+    {
+        xmlhttp = createXMLHttpRequest();
+        xmlhttp.onreadystatechange = function()
+        {
+            if (xmlhttp.readyState==4 && xmlhttp.status==200)
+            {
+                document.getElementById("myDiv").innerHTML =
+                    xmlhttp.responseText;
+            }
+        }
+        xmlhttp.open("GET", "/check_update/"
+            + trim(document.getElementById("asctime").innerHTML), true);
+        xmlhttp.send();
+    }
+
+    function init()
+    {
+        timer = setInterval(poll, 500);
     }
 </script>
 </head>
@@ -114,5 +135,6 @@
     <textarea cols="60" rows="5" id="contactus" name="contactus"
         onkeyup="javascript:return ctrlEnter(event);" ></textarea><br/>
     <button type="button" onclick="check_time()">check_time</button><br/>
+    <button type="button" onclick="init()">init</button><br/>
 </body>
 </html>

@@ -211,36 +211,95 @@ class RequestHandler(asynchat.async_chat,
 
 class Server(asyncore.dispatcher):
     """Copied from http_server in medusa"""
-    def __init__ (self, ip, port,handler):
+    def __init__ (self, ip, port, handler):
         self.ip = ip
         self.port = port
         self.handler = handler
-        asyncore.dispatcher.__init__ (self)
-        self.create_socket (socket.AF_INET, socket.SOCK_STREAM)
+        asyncore.dispatcher.__init__(self)
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.set_reuse_addr()
-        self.bind ((ip, port))
+        self.bind((ip, port))
 
         # lower this to 5 if your OS complains
-        self.listen (1024)
+        self.listen(1024)
 
-    def handle_accept (self):
+    def handle_accept(self):
         try:
             conn, addr = self.accept()
         except socket.error:
-            self.log_info ('warning: server accept() threw an exception', 'warning')
+            self.log_info('warning: server accept() threw an exception', 'warning')
             return
         except TypeError:
-            self.log_info ('warning: server accept() threw EWOULDBLOCK', 'warning')
+            self.log_info('warning: server accept() threw EWOULDBLOCK', 'warning')
             return
         # creates an instance of the handler class to handle the request/response
         # on the incoming connexion
-        self.handler(conn,addr,self)
+        self.handler(conn, addr, self)
+
+import time
+
+svr_doc_time = time.time()
+msg = ''
+
+class MyHandler(RequestHandler):
+    def handle_data(self):
+        global svr_doc_time, msg
+        if self.path.startswith('/start_push/'):
+            print 'addr: ', self.client_address
+            self.send_response(200)
+            self.send_header('Content-type', 'multipart/mixed; \
+                boundary="simple boundary"')
+            self.end_headers()
+            cnt = 30
+            while cnt:
+                cnt -= 1
+                time.sleep(0.5)
+                if msg:
+                    self.wfile.write(msg)
+                    break
+        elif self.path.startswith('/send_text/'):
+            # recieve message from client
+            svr_doc_time = time.time()
+            text = self.path
+            text = text.replace('/send_text/', '')
+            msg = text
+            print 'msg: ', msg
+            #msg = Message(text, svr_doc_time)
+            #msg_cache.append(msg)
+            self.send_response(204)
+            self.end_headers()
+        elif self.path.startswith('/check_update/'):
+            # check if upate is required
+            client_doc_time = self.path
+            client_doc_time = client_doc_time.replace('/check_update/', '')
+            client_doc_time = client_doc_time.replace('%20', ' ')
+            print 'TIMESTAMP ', client_doc_time
+            update = 'false';
+            if float(svr_doc_time) > float(client_doc_time):
+                update = 'true';
+            ret = """server time: %s<br/>
+            client time: %s<br/>
+            require update: %s
+            """ % (svr_doc_time, client_doc_time, update)
+            print ret
+            self.send_response(200)
+            self.send_header(u'Content-type', u'text/html')
+            self.end_headers()
+            self.wfile.write(str(time.time()))
+        else:
+            with open('template.html') as hfile:
+                template = hfile.read()
+            template = template % str(svr_doc_time)
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(template)
 
 if __name__=="__main__":
     # launch the server on the specified port
     port = 8081
-    s = Server('', port, RequestHandler)
+    s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
     try:
         asyncore.loop(timeout=2)
