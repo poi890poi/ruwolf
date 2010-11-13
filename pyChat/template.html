@@ -55,7 +55,7 @@
         if(ie){
             if(event.ctrlKey && window.event.keyCode==13){doSomething();}
         }else{
-            if(isKeyTrigger(e,13,true)){update();}
+            if(isKeyTrigger(e,13,true)){send_text();}
         }
     }
 
@@ -72,10 +72,11 @@
         return xmlhttp;
     }
 
-    function update()
+    function send_text()
     {
+        formobj = document.getElementById("contactus")
         xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange=function()
+        xmlhttp.onreadystatechange = function()
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
@@ -83,14 +84,16 @@
                     xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET","checkpoint1", true);
+        xmlhttp.open("GET", "/send_text/"
+            +trim(formobj.value), true);
         xmlhttp.send();
+        formobj.value = "";
     }
 
     function check_time()
     {
         xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange=function()
+        xmlhttp.onreadystatechange = function()
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
@@ -98,7 +101,7 @@
                     xmlhttp.responseText;
             }
         }
-        xmlhttp.open("GET","/timestamp/"
+        xmlhttp.open("GET", "/timestamp/"
             +trim(document.getElementById("asctime").innerHTML), true);
         xmlhttp.send();
     }
@@ -106,11 +109,10 @@
 </head>
 <body>
     Hello, world!<br/>
-    <div id="asctime">asctime</div>
+    <div id="asctime">%s</div>
     <div id="myDiv"><h2>Let AJAX change this text</h2></div>
-    <textarea cols="50" rows="10" id="contactus" name="contactus"
+    <textarea cols="60" rows="5" id="contactus" name="contactus"
         onkeyup="javascript:return ctrlEnter(event);" ></textarea><br/>
-    <button type="button" onclick="update()">update</button><br/>
     <button type="button" onclick="check_time()">check_time</button><br/>
 </body>
 </html>
