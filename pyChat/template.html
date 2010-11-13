@@ -1,0 +1,116 @@
+﻿<html>
+<head>
+<script type="text/javascript">
+    function trim(strText) {
+        // this will get rid of leading spaces
+        while (strText.substring(0,1) == ' ')
+            strText = strText.substring(1, strText.length);
+
+        // this will get rid of trailing spaces
+        while (strText.substring(strText.length-1,strText.length) == ' ')
+            strText = strText.substring(0, strText.length-1);
+
+       return strText;
+    }
+
+    function isKeyTrigger(e,keyCode){
+        var argv = isKeyTrigger.arguments;
+        var argc = isKeyTrigger.arguments.length;
+        var bCtrl = false;
+        if(argc > 2){
+            bCtrl = argv[2];
+        }
+        var bAlt = false;
+        if(argc > 3){
+            bAlt = argv[3];
+        }
+
+        var nav4 = window.Event ? true : false;
+
+        if(typeof e == 'undefined') {
+            e = event;
+        }
+
+        if( bCtrl &&
+            !((typeof e.ctrlKey != 'undefined') ?
+                e.ctrlKey : e.modifiers & Event.CONTROL_MASK > 0)){
+            return false;
+        }
+        if( bAlt &&
+            !((typeof e.altKey != 'undefined') ?
+                e.altKey : e.modifiers & Event.ALT_MASK > 0)){
+            return false;
+        }
+        var whichCode = 0;
+        if (nav4) whichCode = e.which;
+        else if (e.type == "keypress" || e.type == "keydown")
+            whichCode = e.keyCode;
+        else whichCode = e.button;
+
+        return (whichCode == keyCode);
+    }
+
+    function ctrlEnter(e){
+        var ie =navigator.appName=="Microsoft Internet Explorer"?true:false;
+        if(ie){
+            if(event.ctrlKey && window.event.keyCode==13){doSomething();}
+        }else{
+            if(isKeyTrigger(e,13,true)){update();}
+        }
+    }
+
+    function createXMLHttpRequest()
+    {
+        if (window.XMLHttpRequest)
+        {// code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        }
+        else
+        {// code for IE6, IE5
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        return xmlhttp;
+    }
+
+    function update()
+    {
+        xmlhttp = createXMLHttpRequest();
+        xmlhttp.onreadystatechange=function()
+        {
+            if (xmlhttp.readyState==4 && xmlhttp.status==200)
+            {
+                document.getElementById("asctime").innerHTML =
+                    xmlhttp.responseText;
+            }
+        }
+        xmlhttp.open("GET","checkpoint1", true);
+        xmlhttp.send();
+    }
+
+    function check_time()
+    {
+        xmlhttp = createXMLHttpRequest();
+        xmlhttp.onreadystatechange=function()
+        {
+            if (xmlhttp.readyState==4 && xmlhttp.status==200)
+            {
+                document.getElementById("myDiv").innerHTML =
+                    xmlhttp.responseText;
+            }
+        }
+        xmlhttp.open("GET","/timestamp/"
+            +trim(document.getElementById("asctime").innerHTML), true);
+        xmlhttp.send();
+    }
+</script>
+</head>
+<body>
+    Hello, world!<br/>
+    <div id="asctime">asctime</div>
+    <div id="myDiv"><h2>Let AJAX change this text</h2></div>
+    <textarea cols="50" rows="10" id="contactus" name="contactus"
+        onkeyup="javascript:return ctrlEnter(event);" ></textarea><br/>
+    <button type="button" onclick="update()">update</button><br/>
+    <button type="button" onclick="check_time()">check_time</button><br/>
+</body>
+</html>
