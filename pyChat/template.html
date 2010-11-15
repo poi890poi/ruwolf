@@ -1,5 +1,6 @@
 ﻿<html>
 <head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <script type="text/javascript">
     function trim(strText) {
         // this will get rid of leading spaces
@@ -72,6 +73,12 @@
         return xmlhttp;
     }
 
+    function htmlEncode(s)
+    {
+        return s.replace(/&(?!\w+([;\s]|$))/g, "&amp;")
+            .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
     function send_text()
     {
         formobj = document.getElementById("contactus")
@@ -80,13 +87,15 @@
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
-                document.getElementById("asctime").innerHTML =
-                    xmlhttp.responseText;
+                poll();
             }
         }
-        xmlhttp.open("GET", "/send_text/"
-            +trim(formobj.value), true);
-        xmlhttp.send();
+        params = trim(formobj.value);
+        xmlhttp.open("POST", "/send_text/", true);
+        xmlhttp.setRequestHeader("Content-type", "text/html");
+        xmlhttp.setRequestHeader("Content-length", params.length);
+        xmlhttp.setRequestHeader("Connection", "close");
+        xmlhttp.send(params);
         formobj.value = "";
     }
 
@@ -113,8 +122,23 @@
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
-                document.getElementById("myDiv").innerHTML =
-                    xmlhttp.responseText;
+                parsed = xmlhttp.responseText.split(",");
+                for (i=0; i<parsed.length; i++)
+                {
+                    pair = parsed[i].split("=");
+                    if (pair.length==2)
+                    {
+                        if (pair[0]=="asctime")
+                        {
+                            document.getElementById("asctime").innerHTML = pair[1];
+                                xmlhttp.responseText;
+                        }
+                        else if (pair[0]=="msg")
+                        {
+                            document.getElementById("myDiv").innerHTML = pair[1];
+                        }
+                    }
+                }
             }
         }
         xmlhttp.open("GET", "/check_update/"
@@ -122,19 +146,34 @@
         xmlhttp.send();
     }
 
-    function init()
+    function start_push()
     {
-        timer = setInterval(poll, 500);
+        xmlhttp = createXMLHttpRequest();
+        xmlhttp.onreadystatechange = function()
+        {
+            if (xmlhttp.readyState==4 && xmlhttp.status==200)
+            {
+                document.getElementById("myDiv").innerHTML =
+                    xmlhttp.getResponseHeader;
+            }
+        }
+        xmlhttp.open("GET", "/start_push/", true);
+        xmlhttp.send();
+    }
+
+    function init_poll()
+    {
+        poll();
+        timer = setInterval(poll, 1000);
     }
 </script>
 </head>
-<body>
-    Hello, world!<br/>
+<body onload="init_poll()">
     <div id="asctime">%s</div>
-    <div id="myDiv"><h2>Let AJAX change this text</h2></div>
+    <div id="myDiv">%s</div>
     <textarea cols="60" rows="5" id="contactus" name="contactus"
         onkeyup="javascript:return ctrlEnter(event);" ></textarea><br/>
     <button type="button" onclick="check_time()">check_time</button><br/>
-    <button type="button" onclick="init()">init</button><br/>
+    <button type="button" onclick="start_push()">start_push</button><br/>
 </body>
 </html>

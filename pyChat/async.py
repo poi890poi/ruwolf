@@ -238,12 +238,32 @@ class Server(asyncore.dispatcher):
         self.handler(conn, addr, self)
 
 import time
+import cgi
 
 svr_doc_time = time.time()
-msg = ''
+msg = u"""Hello&#44; world!<br/>
+    哈羅，沃爾德！<br/>
+    """
+
+html_escape_table = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    ">": "&gt;",
+    "<": "&lt;",
+    "=": "&#61",
+    ",": "&#44;",
+    }
+
+def html_escape(text):
+    """Produce entities within text."""
+    return "".join(html_escape_table.get(c,c) for c in text)
+
+def get_msg():
+    return msg.encode('utf-8')
 
 class MyHandler(RequestHandler):
-    def handle_data(self):
+    def handle_get(self):
         global svr_doc_time, msg
         if self.path.startswith('/start_push/'):
             print 'addr: ', self.client_address
@@ -251,50 +271,60 @@ class MyHandler(RequestHandler):
             self.send_header('Content-type', 'multipart/mixed; \
                 boundary="simple boundary"')
             self.end_headers()
-            cnt = 30
+            cnt = 1
             while cnt:
                 cnt -= 1
                 time.sleep(0.5)
-                if msg:
-                    self.wfile.write(msg)
-                    break
-        elif self.path.startswith('/send_text/'):
-            # recieve message from client
-            svr_doc_time = time.time()
-            text = self.path
-            text = text.replace('/send_text/', '')
-            msg = text
-            print 'msg: ', msg
-            #msg = Message(text, svr_doc_time)
-            #msg_cache.append(msg)
-            self.send_response(204)
-            self.end_headers()
+                self.wfile.write(str(time.time()))
         elif self.path.startswith('/check_update/'):
             # check if upate is required
             client_doc_time = self.path
             client_doc_time = client_doc_time.replace('/check_update/', '')
             client_doc_time = client_doc_time.replace('%20', ' ')
-            print 'TIMESTAMP ', client_doc_time
-            update = 'false';
+            #print 'TIMESTAMP ', client_doc_time
+            update = False;
             if float(svr_doc_time) > float(client_doc_time):
-                update = 'true';
-            ret = """server time: %s<br/>
-            client time: %s<br/>
-            require update: %s
-            """ % (svr_doc_time, client_doc_time, update)
-            print ret
-            self.send_response(200)
-            self.send_header(u'Content-type', u'text/html')
-            self.end_headers()
-            self.wfile.write(str(time.time()))
+                update = True;
+            if update:
+                ret = 'asctime=%s,msg=%s' % (svr_doc_time, get_msg())
+                self.send_response(200)
+                self.send_header(u'Content-type', u'text/html')
+                self.end_headers()
+                self.wfile.write(ret)
+            else:
+                self.send_response(204)
+                self.end_headers()
         else:
             with open('template.html') as hfile:
                 template = hfile.read()
-            template = template % str(svr_doc_time)
+            template = template % (str(svr_doc_time), get_msg())
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             self.wfile.write(template)
+
+    def handle_post(self):
+        global svr_doc_time, msg
+        print 'path: ', self.path
+        if self.path == '/send_text/':
+            # recieve message from client
+            svr_doc_time = time.time()
+            text = self.rfile.getvalue()
+            text = unicode(text, 'utf-8')
+            text = html_escape(text)
+            msg = text
+            msg = msg.replace('\n', '<br/>')
+            print 'msg: ', msg
+            #msg = Message(text, svr_doc_time)
+            #msg_cache.append(msg)
+            self.send_response(204)
+            self.end_headers()
+
+    def handle_data(self):
+        if self.command == 'GET':
+            self.handle_get()
+        elif self.command == 'POST':
+            self.handle_post()
 
 if __name__=="__main__":
     # launch the server on the specified port
