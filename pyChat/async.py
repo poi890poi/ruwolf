@@ -248,10 +248,19 @@ import os
 import time
 import cgi
 
+class Message():
+    def __init__(self, author, body):
+        self.timestamp = float(str(time.time())) # so the precision matches those in client document
+        self.author = author
+        self.body = body
+
 svr_doc_time = time.time()
-msg = u"""Hello&#44; world!<br/>
+msg_cache = []
+
+msg = Message(u'Project: 2501', u"""Hello&#44; world!<br/>
     哈羅，沃爾德！<br/>
-    """
+    """)
+msg_cache.append(msg)
 
 html_escape_table = {
     "&": "&amp;",
@@ -272,18 +281,34 @@ def get_msg():
 
 class MyHandler(RequestHandler):
     def handle_get(self):
-        global svr_doc_time, msg
+        global svr_doc_time, msg_cache
         if self.path.startswith('/check_update/'):
             # check if upate is required
             client_doc_time = self.path
             client_doc_time = client_doc_time.replace('/check_update/', '')
             client_doc_time = client_doc_time.replace('%20', ' ')
-            #print 'TIMESTAMP ', client_doc_time
-            update = False;
-            if float(svr_doc_time) > float(client_doc_time):
-                update = True;
-            if update:
-                ret = 'asctime=%s,msg=%s' % (svr_doc_time, get_msg())
+            print 'client document time: ', float(client_doc_time)
+            print 'type: ', type(float(client_doc_time))
+
+            # compose return string
+            rethtml = u'';
+            rettime = None;
+            for msg in msg_cache:
+                print 'message time: ', msg.timestamp
+                print 'type: ', type(msg.timestamp)
+                print 'diff: ', msg.timestamp-float(client_doc_time)
+                if msg.timestamp-float(client_doc_time) > 1e-3:
+                    rethtml = rethtml + u'<p>'
+                    rethtml = rethtml + msg.author + u' at ' \
+                        + str(msg.timestamp) + u'<br/>'
+                    rethtml = rethtml + u'<blockquote>'
+                    rethtml = rethtml + msg.body
+                    rethtml = rethtml + u'</blockquote>'
+                    rethtml = rethtml + u'</p>'
+                    rettime = str(msg.timestamp)
+
+            if rettime:
+                ret = 'timestamp=%s,msg=%s' % (rettime, rethtml.encode('utf-8'))
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/html')
                 self.end_headers()
@@ -300,17 +325,27 @@ class MyHandler(RequestHandler):
             RequestHandler.handle_data(self)
 
     def handle_post(self):
-        global svr_doc_time, msg
+        global svr_doc_time, msg_cache
         print 'path: ', self.path
         if self.path == '/send_text/':
             # recieve message from client
             svr_doc_time = time.time()
+
+            # preprocess the message
             text = self.rfile.getvalue()
             text = unicode(text, 'utf-8')
             text = html_escape(text)
-            msg = text
-            msg = msg.replace('\n', '<br/>')
-            print 'msg: ', msg
+            text = text.replace('\n', '<br/>')
+
+            # append message
+            # author is for test only, should replace with user id
+            # still, ip should be saved in message entity
+            author = self.client_address[0] + ':' + str(self.client_address[1])
+            author = unicode(author, 'utf-8')
+            print 'author: ', author
+            msg = Message(author, text)
+            msg_cache.append(msg)
+
             #msg = Message(text, svr_doc_time)
             #msg_cache.append(msg)
             self.send_response(204)
