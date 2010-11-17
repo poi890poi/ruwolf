@@ -287,19 +287,19 @@ class MyHandler(RequestHandler):
             client_doc_time = self.path
             client_doc_time = client_doc_time.replace('/check_update/', '')
             client_doc_time = client_doc_time.replace('%20', ' ')
-            print 'client document time: ', float(client_doc_time)
-            print 'type: ', type(float(client_doc_time))
+            #print 'client document time: ', float(client_doc_time)
+            #print 'type: ', type(float(client_doc_time))
 
             # compose return string
             rethtml = u'';
             rettime = None;
             for msg in msg_cache:
-                print 'message time: ', msg.timestamp
-                print 'type: ', type(msg.timestamp)
-                print 'diff: ', msg.timestamp-float(client_doc_time)
+                #print 'message time: ', msg.timestamp
+                #print 'type: ', type(msg.timestamp)
+                #print 'diff: ', msg.timestamp-float(client_doc_time)
                 if msg.timestamp-float(client_doc_time) > 1e-3:
                     rethtml = rethtml + u'<p>'
-                    rethtml = rethtml + msg.author + u' at ' \
+                    rethtml = rethtml + u'<b>' + msg.author + u'</b> at ' \
                         + str(msg.timestamp) + u'<br/>'
                     rethtml = rethtml + u'<blockquote>'
                     rethtml = rethtml + msg.body
@@ -340,7 +340,7 @@ class MyHandler(RequestHandler):
             # append message
             # author is for test only, should replace with user id
             # still, ip should be saved in message entity
-            author = self.client_address[0] + ':' + str(self.client_address[1])
+            author = self.client_address[0]
             author = unicode(author, 'utf-8')
             print 'author: ', author
             msg = Message(author, text)

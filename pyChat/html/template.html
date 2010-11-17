@@ -2,8 +2,15 @@
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>pyChat</title>
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
 <script type="text/javascript">
     var timestamp = "0";
+
+    $(document).ready(function(){
+        $("p").click(function(){
+        $(this).hide();
+        });
+    });
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -142,6 +149,9 @@
                     }
                 }
             }
+            // scroll to bottom doesn't work
+            //var objDiv = document.getElementById("myDiv");
+            //objDiv.scrollTop = objDiv.scrollHeight;
         }
         xmlhttp.open("GET", "/check_update/"+timestamp, true);
         xmlhttp.send();
@@ -150,11 +160,12 @@
     function init_poll()
     {
         poll();
-        timer = setInterval(poll, 2500);
+        timer = setInterval(poll, 1000);
     }
 </script>
 </head>
 <body onload="init_poll()">
+    <p>Click to hide.</p>
     <img src="pic95264_md.jpg"></img>
     <div id="dbg"></div>
     <div id="myDiv"></div>
