@@ -249,14 +249,18 @@ import time
 import cgi
 import json
 
+svr_doc_time = time.time()
+msg_cache = []
+msg_id = 0
+
 class Message():
     def __init__(self, author, body):
+        global msg_id
+        self.id = msg_id
         self.timestamp = float(str(time.time())) # so the precision matches those in client document
         self.author = author
         self.body = body
-
-svr_doc_time = time.time()
-msg_cache = []
+        msg_id += 1
 
 msg = Message(u'Project: 2501', u"""Hello&#44; world!<br/>
     哈羅，沃爾德！<br/>
@@ -322,32 +326,17 @@ class MyHandler(RequestHandler):
             #print 'type: ', type(float(client_doc_time))
 
             # compose return string
-            rethtml = u'';
-            rettime = None;
-            htmlclass = u'odd'
+            json_serial = []
             for msg in msg_cache:
-                #print 'json: ', json.dumps(msg)
-                #print 'message time: ', msg.timestamp
-                #print 'type: ', type(msg.timestamp)
-                #print 'diff: ', msg.timestamp-float(client_doc_time)
                 if msg.timestamp-float(client_doc_time) > 1e-3:
-                    #rethtml = rethtml + u'<p class="' + htmlclass + u'">'
-                    rethtml = rethtml + u'<p>'
-                    rethtml = rethtml + u'<b>' + msg.author + u'</b> at ' \
-                        + str(msg.timestamp) + u'<br/>'
-                    rethtml = rethtml + u'<blockquote>'
-                    rethtml = rethtml + msg.body
-                    rethtml = rethtml + u'</blockquote>'
-                    rethtml = rethtml + u'</p>'
-                    rettime = str(msg.timestamp)
-                if htmlclass == u'odd':
-                    htmlclass = u'even'
-                else:
-                    htmlclass = u'odd'
+                    msg_touple = (msg.timestamp, msg.author, msg.body, msg.id)
+                    json_serial.append(msg_touple)
 
-            if rettime:
-                ret = 'timestamp=%s,msg=%s' % (rettime, rethtml.encode('utf-8'))
-                print 'msg: ', ret
+            ret = json.dumps(json_serial)
+
+            if ret:
+                print 'json: ', ret
+                print 'type: ', type(ret)
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/html')
                 self.end_headers()

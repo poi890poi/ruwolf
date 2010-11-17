@@ -140,8 +140,20 @@
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
-                parsed = xmlhttp.responseText.split(",");
-                for (i=0; i<parsed.length; i++)
+                var obj = jQuery.parseJSON(xmlhttp.responseText);
+                var tmpstring = new String();
+                var i, N = obj.length;
+                for (i=0; i<N; i++) {
+                    var msg = new String();
+                    msg += "<p>";
+                    msg += "<b>"+obj[i][1]+"</b> at "+obj[i][0]+"<br/>";
+                    msg += "<blockquote>"+obj[i][2]+"</blockquote>";
+                    msg += "</p>";
+                    tmpstring += msg;
+                    timestamp = obj[i][0];
+                }
+                document.getElementById("dbg").innerHTML += tmpstring;
+                /*for (i=0; i<parsed.length; i++)
                 {
                     pair = parsed[i].split("=");
                     if (pair.length==2)
@@ -156,7 +168,7 @@
                             document.getElementById("myDiv").innerHTML += pair[1];
                         }
                     }
-                }
+                }*/
             }
             // scroll to bottom doesn't work
             //var objDiv = document.getElementById("myDiv");
