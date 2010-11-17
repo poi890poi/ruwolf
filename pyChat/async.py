@@ -336,7 +336,6 @@ class MyHandler(RequestHandler):
 
             if ret:
                 print 'json: ', ret
-                print 'type: ', type(ret)
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/html')
                 self.end_headers()
@@ -353,7 +352,7 @@ class MyHandler(RequestHandler):
 
 if __name__=="__main__":
     # launch the server on the specified port
-    port = 8081
+    port = 80
     s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
     try:

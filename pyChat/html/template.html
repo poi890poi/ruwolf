@@ -14,12 +14,6 @@
 <script type="text/javascript">
     var timestamp = "0";
 
-    $(document).ready(function(){
-        $("img").click(function(){
-        $(this).hide();
-        });
-    });
-
     function trim(strText) {
         // this will get rid of leading spaces
         while (strText.substring(0,1) == ' ')
@@ -30,52 +24,6 @@
             strText = strText.substring(0, strText.length-1);
 
        return strText;
-    }
-
-    function isKeyTrigger(e, keyCode) {
-        var argv = isKeyTrigger.arguments;
-        var argc = isKeyTrigger.arguments.length;
-        var bCtrl = false;
-        if (argc > 2){
-            bCtrl = argv[2];
-        }
-        var bAlt = false;
-        if (argc > 3) {
-            bAlt = argv[3];
-        }
-
-        var nav4 = window.Event ? true : false;
-
-        if (typeof e == 'undefined') {
-            e = event;
-        }
-
-        if (bCtrl &&
-            !((typeof e.ctrlKey != 'undefined') ?
-                e.ctrlKey : e.modifiers & Event.CONTROL_MASK > 0)) {
-            return false;
-        }
-        if (bAlt &&
-            !((typeof e.altKey != 'undefined') ?
-                e.altKey : e.modifiers & Event.ALT_MASK > 0)){
-            return false;
-        }
-        var whichCode = 0;
-        if (nav4) whichCode = e.which;
-        else if (e.type == "keypress" || e.type == "keydown")
-            whichCode = e.keyCode;
-        else whichCode = e.button;
-
-        return (whichCode == keyCode);
-    }
-
-    function ctrlEnter(e){
-        var ie = (navigator.appName=="Microsoft Internet Explorer") ? true : false;
-        if (ie){
-            if (event.ctrlKey && window.event.keyCode==13) {send_text();}
-        } else {
-            if (isKeyTrigger(e,13,true)){send_text();}
-        }
     }
 
     function createXMLHttpRequest()
@@ -149,26 +97,10 @@
                     msg += "<b>"+obj[i][1]+"</b> at "+obj[i][0]+"<br/>";
                     msg += "<blockquote>"+obj[i][2]+"</blockquote>";
                     msg += "</p>";
-                    tmpstring += msg;
+                    $("p:first").before(msg);
                     timestamp = obj[i][0];
                 }
-                document.getElementById("dbg").innerHTML += tmpstring;
-                /*for (i=0; i<parsed.length; i++)
-                {
-                    pair = parsed[i].split("=");
-                    if (pair.length==2)
-                    {
-                        if (pair[0]=="timestamp")
-                        {
-                            timestamp = pair[1];
-                            document.getElementById("dbg").innerHTML = pair[1];
-                        }
-                        else if (pair[0]=="msg")
-                        {
-                            document.getElementById("myDiv").innerHTML += pair[1];
-                        }
-                    }
-                }*/
+                //$("#myDiv").attr({scrollTop: $("#myDiv").attr("scrollHeight")});
             }
             // scroll to bottom doesn't work
             //var objDiv = document.getElementById("myDiv");
@@ -185,16 +117,33 @@
     function init_poll()
     {
         poll();
-        timer = setInterval(poll, 1000);
+        timer = setInterval(poll, 500);
     }
 </script>
 </head>
 <body onload="init_poll()">
+    <textarea cols="60" rows="5" id="contactus" name="contactus"></textarea><br/>
     <img src="pic95264_md.jpg"></img>
-    <div id="dbg"></div>
     <div id="myDiv"></div>
-    <textarea cols="60" rows="5" id="contactus" name="contactus"
-        onkeyup="javascript:return ctrlEnter(event);" ></textarea><br/>
-    <button type="button" onclick="check_time()">check_time</button><br/>
+    <p></p>
+    <div id="dbg"></div>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $("img").click(function(){
+            $(this).hide();
+            });
+        });
+
+        $('#contactus').keyup(function(event) {
+            if (event.keyCode == '13') {
+                if (event.ctrlKey) {
+                    var txt = $("textarea#contactus");
+                    txt.val(txt.val()+"\n");
+                } else {
+                    send_text();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

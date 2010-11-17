@@ -1,0 +1,17 @@
+<html>
+<head>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript">
+$(document).ready(function(){
+  $("button").click(function(){
+    $("#after").before("<span>BEFORE</span>");
+  });
+});
+</script>
+</head>
+
+<body>
+<p id="after">AFTER</p>
+<button>Insert span element before each p element</button>
+</body>
+</html>
