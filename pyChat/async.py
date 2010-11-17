@@ -247,6 +247,7 @@ http://code.activestate.com/recipes/440665-asynchronous-http-server/
 import os
 import time
 import cgi
+import json
 
 class Message():
     def __init__(self, author, body):
@@ -281,48 +282,12 @@ def get_msg():
 
 class MyHandler(RequestHandler):
     def handle_get(self):
-        global svr_doc_time, msg_cache
-        if self.path.startswith('/check_update/'):
-            # check if upate is required
-            client_doc_time = self.path
-            client_doc_time = client_doc_time.replace('/check_update/', '')
-            client_doc_time = client_doc_time.replace('%20', ' ')
-            #print 'client document time: ', float(client_doc_time)
-            #print 'type: ', type(float(client_doc_time))
-
-            # compose return string
-            rethtml = u'';
-            rettime = None;
-            for msg in msg_cache:
-                #print 'message time: ', msg.timestamp
-                #print 'type: ', type(msg.timestamp)
-                #print 'diff: ', msg.timestamp-float(client_doc_time)
-                if msg.timestamp-float(client_doc_time) > 1e-3:
-                    rethtml = rethtml + u'<p>'
-                    rethtml = rethtml + u'<b>' + msg.author + u'</b> at ' \
-                        + str(msg.timestamp) + u'<br/>'
-                    rethtml = rethtml + u'<blockquote>'
-                    rethtml = rethtml + msg.body
-                    rethtml = rethtml + u'</blockquote>'
-                    rethtml = rethtml + u'</p>'
-                    rettime = str(msg.timestamp)
-
-            if rettime:
-                ret = 'timestamp=%s,msg=%s' % (rettime, rethtml.encode('utf-8'))
-                self.send_response(200)
-                self.send_header(u'Content-type', u'text/html')
-                self.end_headers()
-                self.wfile.write(ret)
-            else:
-                self.send_response(204)
-                self.end_headers()
-        else:
-            self.path = 'html' + self.path
-            print 'try ', self.path
-            if not os.path.isfile(self.path):
-                self.path = '/html/template.html'
-                print 'else ', self.path
-            RequestHandler.handle_data(self)
+        self.path = 'html' + self.path
+        print 'try ', self.path
+        if not os.path.isfile(self.path):
+            self.path = '/html/template.html'
+            print 'else ', self.path
+        RequestHandler.handle_data(self)
 
     def handle_post(self):
         global svr_doc_time, msg_cache
@@ -350,6 +315,46 @@ class MyHandler(RequestHandler):
             #msg_cache.append(msg)
             self.send_response(204)
             self.end_headers()
+
+        elif self.path == '/check_update/':
+            client_doc_time = self.rfile.getvalue()
+            #print 'client document time: ', float(client_doc_time)
+            #print 'type: ', type(float(client_doc_time))
+
+            # compose return string
+            rethtml = u'';
+            rettime = None;
+            htmlclass = u'odd'
+            for msg in msg_cache:
+                #print 'json: ', json.dumps(msg)
+                #print 'message time: ', msg.timestamp
+                #print 'type: ', type(msg.timestamp)
+                #print 'diff: ', msg.timestamp-float(client_doc_time)
+                if msg.timestamp-float(client_doc_time) > 1e-3:
+                    #rethtml = rethtml + u'<p class="' + htmlclass + u'">'
+                    rethtml = rethtml + u'<p>'
+                    rethtml = rethtml + u'<b>' + msg.author + u'</b> at ' \
+                        + str(msg.timestamp) + u'<br/>'
+                    rethtml = rethtml + u'<blockquote>'
+                    rethtml = rethtml + msg.body
+                    rethtml = rethtml + u'</blockquote>'
+                    rethtml = rethtml + u'</p>'
+                    rettime = str(msg.timestamp)
+                if htmlclass == u'odd':
+                    htmlclass = u'even'
+                else:
+                    htmlclass = u'odd'
+
+            if rettime:
+                ret = 'timestamp=%s,msg=%s' % (rettime, rethtml.encode('utf-8'))
+                print 'msg: ', ret
+                self.send_response(200)
+                self.send_header(u'Content-type', u'text/html')
+                self.end_headers()
+                self.wfile.write(ret)
+            else:
+                self.send_response(204)
+                self.end_headers()
 
     def handle_data(self):
         if self.command == 'GET':
