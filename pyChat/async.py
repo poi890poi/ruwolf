@@ -248,24 +248,10 @@ import os
 import time
 import cgi
 import json
+import sqlite3
+import sys
 
-svr_doc_time = time.time()
-msg_cache = []
-msg_id = 0
-
-class Message():
-    def __init__(self, author, body):
-        global msg_id
-        self.id = msg_id
-        self.timestamp = float(str(time.time())) # so the precision matches those in client document
-        self.author = author
-        self.body = body
-        msg_id += 1
-
-msg = Message(u'Project: 2501', u"""Hello&#44; world!<br/>
-    哈羅，沃爾德！<br/>
-    """)
-msg_cache.append(msg)
+# init variables
 
 html_escape_table = {
     "&": "&amp;",
@@ -275,14 +261,35 @@ html_escape_table = {
     "<": "&lt;",
     "=": "&#61",
     ",": "&#44;",
+    "\n": "<br/>",
     }
+
+# init database
+
+appdata = os.path.join(os.environ['APPDATA'], u'MyPythonApp')
+if not os.path.isdir(appdata):
+    os.mkdir(appdata)
+dbf = os.path.join(appdata, u'pychat.db')
+
+conn = sqlite3.connect(dbf)
+
+dbconn = conn.cursor()
+
+# Create table
+dbconn.execute('''create table if not exists message
+(room integer, timestamp real, json text)''')
+
+def load():
+    dbconn.execute('select * from message')
+    for row in dbconn:
+        print 'row: ', row
+        print type(row)
+
+# class definition
 
 def html_escape(text):
     """Produce entities within text."""
     return "".join(html_escape_table.get(c,c) for c in text)
-
-def get_msg():
-    return msg.encode('utf-8')
 
 class MyHandler(RequestHandler):
     def handle_get(self):
@@ -298,41 +305,63 @@ class MyHandler(RequestHandler):
         print 'path: ', self.path
         if self.path == '/send_text/':
             # recieve message from client
-            svr_doc_time = time.time()
 
             # preprocess the message
-            text = self.rfile.getvalue()
-            text = unicode(text, 'utf-8')
-            text = html_escape(text)
-            text = text.replace('\n', '<br/>')
+            msgbody = unicode(self.rfile.getvalue(), 'utf-8')
+            msgbody = html_escape(msgbody)
+            #msgbody = msgbody.replace('\n', '<br/>')
 
             # append message
-            # author is for test only, should replace with user id
-            # still, ip should be saved in message entity
+            # IP as author is for test only, should replace with user id
+            # still, IP should be saved in message entity
             author = self.client_address[0]
             author = unicode(author, 'utf-8')
-            print 'author: ', author
-            msg = Message(author, text)
-            msg_cache.append(msg)
 
-            #msg = Message(text, svr_doc_time)
-            #msg_cache.append(msg)
+            type = 1 # json type identifier: message
+            timestamp = long(time.time()*1000) # in nanosecond
+            room = 1
+            json_serial = (type, timestamp, author, msgbody)
+            json_string = json.dumps(json_serial)
+            dbconn.execute('insert into message values (?,?,?)', \
+                (room, timestamp, json_string))
+            conn.commit()
+
             self.send_response(204)
             self.end_headers()
 
         elif self.path == '/check_update/':
-            client_doc_time = self.rfile.getvalue()
-            #print 'client document time: ', float(client_doc_time)
+            print 'client document time: ', self.rfile.getvalue()
+            client_doc_time = long(self.rfile.getvalue())
+            print 'client document time: ', client_doc_time
             #print 'type: ', type(float(client_doc_time))
 
-            # compose return string
-            json_serial = []
-            for msg in msg_cache:
-                if msg.timestamp-float(client_doc_time) > 1e-3:
-                    msg_touple = (msg.timestamp, msg.author, msg.body, msg.id)
-                    json_serial.append(msg_touple)
+            # query message
+            ret = None
+            first_line = True
+            room = 1
+            dbconn.execute("""select * from message \
+                where room=? and timestamp>?""", (room, client_doc_time))
+            for row in dbconn:
+                print 'row: ', row
+                if not ret:
+                    ret = '['
+                if not first_line:
+                    ret += ', '
+                ret += row[2]
+                first_line = False
 
-            ret = json.dumps(json_serial)
+            if ret:
+                ret += ']'
+
+
+            #for msg in msg_cache:
+            #    if msg.timestamp-float(client_doc_time) > 1e-3:
+            #        msg_touple = (msg.timestamp, msg.author, msg.body, msg.id)
+            #        json_serial.append(msg_touple)
+
+            #ret = json.dumps(ret_serial)
+
+            print 'ret: ', ret
 
             if ret:
                 print 'json: ', ret
@@ -351,6 +380,8 @@ class MyHandler(RequestHandler):
             self.handle_post()
 
 if __name__=="__main__":
+    load()
+
     # launch the server on the specified port
     port = 80
     s = Server('', port, MyHandler)
@@ -358,4 +389,5 @@ if __name__=="__main__":
     try:
         asyncore.loop(timeout=2)
     except KeyboardInterrupt:
+        dbconn.close()
         print "Crtl+C pressed. Shutting down."

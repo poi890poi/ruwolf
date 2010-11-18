@@ -94,11 +94,11 @@
                 for (i=0; i<N; i++) {
                     var msg = new String();
                     msg += "<p>";
-                    msg += "<b>"+obj[i][1]+"</b> at "+obj[i][0]+"<br/>";
-                    msg += "<blockquote>"+obj[i][2]+"</blockquote>";
+                    msg += "<b>"+obj[i][2]+"</b> at "+obj[i][1]+"<br/>";
+                    msg += "<blockquote>"+obj[i][3]+"</blockquote>";
                     msg += "</p>";
                     $("p:first").before(msg);
-                    timestamp = obj[i][0];
+                    timestamp = obj[i][1];
                 }
                 //$("#myDiv").attr({scrollTop: $("#myDiv").attr("scrollHeight")});
             }
