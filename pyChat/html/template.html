@@ -3,6 +3,9 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>pyChat</title>
 <style type="text/css">
+    body {
+        font-family: helvetica, verdana, arial, sans-serif;
+        font-weight: normal }
     .odd {
         color: black;
         background-color: white }
@@ -12,7 +15,7 @@
 </style>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
 <script type="text/javascript">
-    var timestamp = "0";
+    var timestamp = 0;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -47,7 +50,7 @@
 
     function send_text()
     {
-        formobj = document.getElementById("contactus")
+        formobj = document.getElementById("text_message")
         xmlhttp = createXMLHttpRequest();
         xmlhttp.onreadystatechange = function()
         {
@@ -80,13 +83,14 @@
                 var tmpstring = "<span>";
                 var i, N = obj.length;
                 for (i=0; i<N; i++) {
+                    timestamp = obj[i][1];
+                    var dateobj = new Date(timestamp);
                     var msg = new String();
                     msg += "<p>";
-                    msg += "<b>"+obj[i][2]+"</b> at "+obj[i][1]+"<br/>";
+                    msg += "<b>"+obj[i][2]+"</b> at "+dateobj.toTimeString()+"<br/>";
                     msg += "<blockquote>"+obj[i][3]+"</blockquote>";
                     msg += "</p>";
                     tmpstring += msg;
-                    timestamp = obj[i][1];
                 }
                 tmpstring += "</span>";
                 $("#MessageList").append(tmpstring);
@@ -98,10 +102,10 @@
                 } else {
                     //document.getElementById("dbg").innerHTML = "don't scroll";
                 }
+
+                var dateobj = new Date(timestamp);
+                document.getElementById("dbg").innerHTML = dateobj.toTimeString();
             }
-            // scroll to bottom doesn't work
-            //var objDiv = document.getElementById("MessageList");
-            //objDiv.scrollTop = objDiv.scrollHeight;
         }
         params = timestamp + "";
         xmlhttp.open("POST", "/check_update/", true);
@@ -123,7 +127,7 @@
         <span></span>
     </div>
     <p></p>
-    <textarea cols="80" rows="5" id="contactus" name="contactus" wrap="hard"
+    <textarea cols="80" rows="5" id="text_message" name="text_message" wrap="hard"
         style="width: 650px;"></textarea><br/>
 
     <div id="dbg"></div>
@@ -135,13 +139,11 @@
             });
         });
 
-        $('#contactus').keydown(function(event) {
+        $('#text_message').keydown(function(event) {
             if (event.keyCode == '13') {
                 event.preventDefault();
                 //document.getElementById("dbg").innerHTML = event.originalEvent.type;
                 if (event.ctrlKey) {
-                    //var txt = $("textarea#contactus");
-                    //txt.val(txt.val()+"\n");
                     var val = this.value;
                     if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
                         var start = this.selectionStart;
