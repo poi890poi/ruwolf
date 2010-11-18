@@ -279,12 +279,6 @@ dbconn = conn.cursor()
 dbconn.execute('''create table if not exists message
 (room integer, timestamp real, json text)''')
 
-def load():
-    dbconn.execute('select * from message')
-    for row in dbconn:
-        print 'row: ', row
-        print type(row)
-
 # class definition
 
 def html_escape(text):
@@ -330,7 +324,7 @@ class MyHandler(RequestHandler):
             self.end_headers()
 
         elif self.path == '/check_update/':
-            print 'client document time: ', self.rfile.getvalue()
+            #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())
             print 'client document time: ', client_doc_time
             #print 'type: ', type(float(client_doc_time))
@@ -342,7 +336,7 @@ class MyHandler(RequestHandler):
             dbconn.execute("""select * from message \
                 where room=? and timestamp>?""", (room, client_doc_time))
             for row in dbconn:
-                print 'row: ', row
+                #print 'row: ', row
                 if not ret:
                     ret = '['
                 if not first_line:
@@ -361,7 +355,7 @@ class MyHandler(RequestHandler):
 
             #ret = json.dumps(ret_serial)
 
-            print 'ret: ', ret
+            #print 'ret: ', ret
 
             if ret:
                 print 'json: ', ret
@@ -380,8 +374,6 @@ class MyHandler(RequestHandler):
             self.handle_post()
 
 if __name__=="__main__":
-    load()
-
     # launch the server on the specified port
     port = 80
     s = Server('', port, MyHandler)

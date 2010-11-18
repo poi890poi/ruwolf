@@ -65,21 +65,6 @@
         formobj.value = "";
     }
 
-    function check_time()
-    {
-        xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange = function()
-        {
-            if (xmlhttp.readyState==4 && xmlhttp.status==200)
-            {
-                document.getElementById("myDiv").innerHTML =
-                    xmlhttp.responseText;
-            }
-        }
-        xmlhttp.open("GET", "/timestamp/"+timestamp, true);
-        xmlhttp.send();
-    }
-
     function poll()
     {
         var my_JSON_object = {};
@@ -88,8 +73,11 @@
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
+                var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
+                    $("#MessageList").height()) - $("#MessageList").attr("scrollHeight"));
+
                 var obj = jQuery.parseJSON(xmlhttp.responseText);
-                var tmpstring = new String();
+                var tmpstring = "<span>";
                 var i, N = obj.length;
                 for (i=0; i<N; i++) {
                     var msg = new String();
@@ -97,16 +85,25 @@
                     msg += "<b>"+obj[i][2]+"</b> at "+obj[i][1]+"<br/>";
                     msg += "<blockquote>"+obj[i][3]+"</blockquote>";
                     msg += "</p>";
-                    $("p:first").before(msg);
+                    tmpstring += msg;
                     timestamp = obj[i][1];
                 }
-                //$("#myDiv").attr({scrollTop: $("#myDiv").attr("scrollHeight")});
+                tmpstring += "</span>";
+                $("#MessageList").append(tmpstring);
+
+                // is scroll is at bottom, scroll to bottom
+                if (scr_to_bottom >= 0) {
+                    $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
+                    //document.getElementById("dbg").innerHTML = scr_to_bottom;
+                } else {
+                    //document.getElementById("dbg").innerHTML = "don't scroll";
+                }
             }
             // scroll to bottom doesn't work
-            //var objDiv = document.getElementById("myDiv");
+            //var objDiv = document.getElementById("MessageList");
             //objDiv.scrollTop = objDiv.scrollHeight;
         }
-        params = timestamp;
+        params = timestamp + "";
         xmlhttp.open("POST", "/check_update/", true);
         xmlhttp.setRequestHeader("Content-type", "text/html");
         xmlhttp.setRequestHeader("Content-length", params.length);
@@ -122,11 +119,15 @@
 </script>
 </head>
 <body onload="init_poll()">
-    <textarea cols="60" rows="5" id="contactus" name="contactus"></textarea><br/>
-    <img src="pic95264_md.jpg"></img>
-    <div id="myDiv"></div>
+    <div id="MessageList" style="overflow: auto; overflow-x: hidden; width: 650px; height: 600px;">
+        <span></span>
+    </div>
     <p></p>
+    <textarea cols="80" rows="5" id="contactus" name="contactus" wrap="hard"
+        style="width: 650px;"></textarea><br/>
+
     <div id="dbg"></div>
+    <img src="pic95264_md.jpg"></img>
     <script type="text/javascript">
         $(document).ready(function(){
             $("img").click(function(){
@@ -134,11 +135,25 @@
             });
         });
 
-        $('#contactus').keyup(function(event) {
+        $('#contactus').keydown(function(event) {
             if (event.keyCode == '13') {
+                event.preventDefault();
+                //document.getElementById("dbg").innerHTML = event.originalEvent.type;
                 if (event.ctrlKey) {
-                    var txt = $("textarea#contactus");
-                    txt.val(txt.val()+"\n");
+                    //var txt = $("textarea#contactus");
+                    //txt.val(txt.val()+"\n");
+                    var val = this.value;
+                    if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
+                        var start = this.selectionStart;
+                        this.value = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
+                        this.selectionStart = this.selectionEnd = start + 1;
+                    } else if (document.selection && document.selection.createRange) {
+                        this.focus();
+                        var range = document.selection.createRange();
+                        range.text = "\r\n";
+                        range.collapse(false);
+                        range.select();
+                    }
                 } else {
                     send_text();
                 }
