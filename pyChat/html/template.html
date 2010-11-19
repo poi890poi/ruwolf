@@ -6,12 +6,17 @@
     body {
         font-family: helvetica, verdana, arial, sans-serif;
         font-weight: normal }
-    .odd {
-        color: black;
-        background-color: white }
-    .even {
-        color: black;
-        background-color: azure }
+    table {
+        width: 650px }
+    td {
+        border: 1px solid lightgrey; }
+    td.header {
+        width: 650px; height: 24px;
+        background-color: whitesmoke }
+    td.body {
+        padding-top:8px }
+    b {
+        vertical-align: middle; }
 </style>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
 <script type="text/javascript">
@@ -80,19 +85,19 @@
                     $("#MessageList").height()) - $("#MessageList").attr("scrollHeight"));
 
                 var obj = jQuery.parseJSON(xmlhttp.responseText);
-                var tmpstring = "<span>";
+                var tmpstring = "<table cellspacing='0'>";
                 var i, N = obj.length;
                 for (i=0; i<N; i++) {
                     timestamp = obj[i][1];
                     var dateobj = new Date(timestamp);
                     var msg = new String();
-                    msg += "<p>";
-                    msg += "<b>"+obj[i][2]+"</b> at "+dateobj.toTimeString()+"<br/>";
-                    msg += "<blockquote>"+obj[i][3]+"</blockquote>";
-                    msg += "</p>";
+                    msg += "<tr><td class='header'>";
+                    msg += "<span><b>"+obj[i][2]+"</b> at "+dateobj.toTimeString()+"<br/></span></td></tr>";
+                    msg += "<tr><td class='body'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
+                    msg += "";
                     tmpstring += msg;
                 }
-                tmpstring += "</span>";
+                tmpstring += "</table>";
                 $("#MessageList").append(tmpstring);
 
                 // is scroll is at bottom, scroll to bottom
