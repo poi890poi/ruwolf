@@ -251,6 +251,7 @@ import cgi
 import json
 import sqlite3
 import sys
+import uuid
 
 # init variables
 
@@ -274,12 +275,17 @@ dbf = os.path.join(appdata, u'pychat.db')
 
 conn = sqlite3.connect(dbf)
 
-dbconn = conn.cursor()
+dbcursor = conn.cursor()
 
 # Create table
-dbconn.execute('''create table if not exists message
+dbcursor.execute('''create table if not exists message
 (roomid integer, timestamp integer, privilege integer, username text,
 datetime text, message text, reserved1 integer, reserved2 text)''')
+
+dbcursor.execute('''create table if not exists user
+(username text, password text, sessionkey text, ip text, roomid integer,
+role integer, status integer, privilege integer, displayntable text,
+reserved1 integer, reserved2 text)''')
 
 # class definition
 
@@ -299,7 +305,59 @@ class MyHandler(RequestHandler):
     def handle_post(self):
         global svr_doc_time, msg_cache
         print 'path: ', self.path
-        if self.path == '/send_text/':
+        if self.path == '/login/':
+            login = unicode(self.rfile.getvalue(), 'utf-8')
+            #login = self.rfile.getvalue()
+            login = login.splitlines()
+            print 'login: ', login
+            username = u''
+            password = u''
+            if login[0]:
+                username = login[0]
+            if login[1]:
+                password = login[1]
+            print u'username: ', username
+            print u'password: ', password
+
+            sessionkey = None
+            ip = self.client_address[0]
+            dbcursor.execute("""select * from user where username=?""", (username,))
+            row = dbcursor.fetchone()
+            if row:
+                print 'user exists'
+                print row
+                if row[1] == password:
+                    print 'user login'
+                    sessionkey = str(uuid.uuid4())
+                    dbcursor.execute("""update user set sessionkey=?, ip=? where username=?""", (sessionkey, ip, username))
+                    conn.commit()
+                else:
+                    print 'incorrect password'
+            else:
+                print 'user register'
+                sessionkey = str(uuid.uuid4())
+                roomid = 0
+                role = 0
+                status = 0
+                privilege = 0
+                displayntable = ''
+                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?)', \
+                    (username, password, sessionkey, ip, roomid, \
+                    role, status, privilege, displayntable, 0, ''))
+                conn.commit()
+
+            print 'sessionkey: ', sessionkey
+
+            if sessionkey:
+                self.send_response(200)
+                self.send_header(u'Content-type', u'text/plain')
+                self.end_headers()
+                self.wfile.write(sessionkey)
+            else:
+                self.send_response(306)
+                self.end_headers()
+
+        elif self.path == '/send_text/':
             # recieve message from client
 
             # preprocess the message
@@ -315,7 +373,7 @@ class MyHandler(RequestHandler):
 
             now = time.time()
             type = 1 # json type identifier: message
-            roomid = 1
+            roomid = 0
             timestamp = long(now*1000)
             privilege = 0
             username = author
@@ -323,7 +381,7 @@ class MyHandler(RequestHandler):
             isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
             message = msgbody
 
-            dbconn.execute('insert into message values (?,?,?,?,?,?,?,?)', \
+            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                 (roomid, timestamp, privilege, username, isoformat, message, 0, ''))
             conn.commit()
 
@@ -338,14 +396,14 @@ class MyHandler(RequestHandler):
 
             # query message
             ret = None
-            roomid = 1
+            roomid = 0
             privilege = 0
-            dbconn.execute("""select * from message \
+            dbcursor.execute("""select * from message \
                 where roomid=? and privilege=? and timestamp>?""", \
                 (roomid, privilege, client_doc_time))
             type = 0
             json_serial = []
-            for row in dbconn:
+            for row in dbcursor:
                 timestamp = row[1]
                 username = row[3]
                 isoformat = row[4]
@@ -363,7 +421,7 @@ class MyHandler(RequestHandler):
             if ret:
                 #print 'json: ', ret
                 self.send_response(200)
-                self.send_header(u'Content-type', u'text/html')
+                self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 self.wfile.write(ret)
             else:
