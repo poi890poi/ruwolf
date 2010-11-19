@@ -1,0 +1,8 @@
+roomid
+timestamp
+privilege
+username = row[3]
+datetime = row[4]
+message = row[5]
+reserved1
+reserved2

@@ -246,6 +246,7 @@ http://code.activestate.com/recipes/440665-asynchronous-http-server/
 
 import os
 import time
+import datetime
 import cgi
 import json
 import sqlite3
@@ -277,7 +278,8 @@ dbconn = conn.cursor()
 
 # Create table
 dbconn.execute('''create table if not exists message
-(room integer, timestamp real, json text)''')
+(roomid integer, timestamp integer, privilege integer, username text,
+datetime text, message text, reserved1 integer, reserved2 text)''')
 
 # class definition
 
@@ -311,13 +313,18 @@ class MyHandler(RequestHandler):
             author = self.client_address[0]
             author = unicode(author, 'utf-8')
 
+            now = time.time()
             type = 1 # json type identifier: message
-            timestamp = long(time.time()*1000) # in nanosecond
-            room = 1
-            json_serial = (type, timestamp, author, msgbody)
-            json_string = json.dumps(json_serial)
-            dbconn.execute('insert into message values (?,?,?)', \
-                (room, timestamp, json_string))
+            roomid = 1
+            timestamp = long(now*1000)
+            privilege = 0
+            username = author
+            ct = time.localtime(now)
+            isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+            message = msgbody
+
+            dbconn.execute('insert into message values (?,?,?,?,?,?,?,?)', \
+                (roomid, timestamp, privilege, username, isoformat, message, 0, ''))
             conn.commit()
 
             self.send_response(204)
@@ -331,34 +338,30 @@ class MyHandler(RequestHandler):
 
             # query message
             ret = None
-            first_line = True
-            room = 1
+            roomid = 1
+            privilege = 0
             dbconn.execute("""select * from message \
-                where room=? and timestamp>?""", (room, client_doc_time))
+                where roomid=? and privilege=? and timestamp>?""", \
+                (roomid, privilege, client_doc_time))
+            type = 0
+            json_serial = []
             for row in dbconn:
-                #print 'row: ', row
-                if not ret:
-                    ret = '['
-                if not first_line:
-                    ret += ', '
-                ret += row[2]
-                first_line = False
+                timestamp = row[1]
+                username = row[3]
+                isoformat = row[4]
+                message = row[5]
+                row_serial = (type, username, isoformat, message, timestamp)
+                json_serial.append(row_serial)
 
-            if ret:
-                ret += ']'
-
+            ret = json.dumps(json_serial)
 
             #for msg in msg_cache:
             #    if msg.timestamp-float(client_doc_time) > 1e-3:
             #        msg_touple = (msg.timestamp, msg.author, msg.body, msg.id)
             #        json_serial.append(msg_touple)
 
-            #ret = json.dumps(ret_serial)
-
-            #print 'ret: ', ret
-
             if ret:
-                print 'json: ', ret
+                #print 'json: ', ret
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/html')
                 self.end_headers()

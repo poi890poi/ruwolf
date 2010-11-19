@@ -88,15 +88,17 @@
                 var tmpstring = "<table cellspacing='0'>";
                 var i, N = obj.length;
                 for (i=0; i<N; i++) {
-                    timestamp = obj[i][1];
-                    var dateobj = new Date(timestamp);
-                    var msg = new String();
-                    msg += "<tr><td class='header'>";
-                    msg += "<span><b>"+obj[i][2]+"</b> at "+dateobj.toTimeString()+"<br/></span></td></tr>";
-                    msg += "<tr><td class='body'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
-                    msg += "";
-                    tmpstring += msg;
+                    if (obj[i][0] == 0) {
+                        var msg = new String();
+                        msg += "<tr><td class='header'>";
+                        msg += "<span><b>"+obj[i][1]+"</b> at "+obj[i][2]+"<br/></span></td></tr>";
+                        msg += "<tr><td class='body'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
+                        msg += "";
+                        tmpstring += msg;
+                        if (obj[i][4] > timestamp) timestamp = obj[i][4];
+                    }
                 }
+                document.getElementById("dbg").innerHTML = timestamp;
                 tmpstring += "</table>";
                 $("#MessageList").append(tmpstring);
 
@@ -107,9 +109,6 @@
                 } else {
                     //document.getElementById("dbg").innerHTML = "don't scroll";
                 }
-
-                var dateobj = new Date(timestamp);
-                document.getElementById("dbg").innerHTML = dateobj.toTimeString();
             }
         }
         params = timestamp + "";
