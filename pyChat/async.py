@@ -263,6 +263,7 @@ html_escape_table = {
     "<": "&lt;",
     "=": "&#61",
     ",": "&#44;",
+    " ": "&nbsp;",
     "\n": "<br/>",
     }
 
@@ -429,12 +430,6 @@ class MyHandler(RequestHandler):
                 message = row[5]
                 row_serial = (type, username, isoformat, message, timestamp)
                 json_serial.append(row_serial)
-
-
-            #for msg in msg_cache:
-            #    if msg.timestamp-float(client_doc_time) > 1e-3:
-            #        msg_touple = (msg.timestamp, msg.author, msg.body, msg.id)
-            #        json_serial.append(msg_touple)
 
             if json_serial:
                 ret = json.dumps(json_serial)

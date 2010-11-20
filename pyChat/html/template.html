@@ -6,10 +6,24 @@
     body {
         font-family: helvetica, verdana, arial, sans-serif;
         font-weight: normal }
+    #MessageList {
+        overflow: auto; overflow-x: hidden;
+        width: 648px; height: 600px;
+        border: 1px solid black;
+    }
+    #PostMessage {
+        padding-top: 16px;
+    }
+    #Login {
+        padding-top: 16px;
+    }
+    textarea {
+        width: 650px; height: 80px;
+    }
     #Toolbar {
         position: absolute;
-        left: 680px;
-        top: 0px;
+        left: 680px; top: 16px;
+        border: 1px solid black;
     }
     table {
         width: 650px }
@@ -19,190 +33,61 @@
         width: 650px; height: 24px;
         background-color: whitesmoke }
     td.body {
-        padding-top:8px }
+        padding-top: 8px }
+    img.role {
+        width: 300px; }
     b {
         vertical-align: middle; }
 </style>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<script type="text/javascript" src="jquery.cookie.js"></script>
+<script type="text/javascript" src="http.js"></script>
 <script type="text/javascript">
     var timestamp = 0;
-    var sessionkey = ""
+    var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
 
-    function trim(strText) {
-        // this will get rid of leading spaces
-        while (strText.substring(0,1) == ' ')
-            strText = strText.substring(1, strText.length);
-
-        // this will get rid of trailing spaces
-        while (strText.substring(strText.length-1,strText.length) == ' ')
-            strText = strText.substring(0, strText.length-1);
-
-       return strText;
-    }
-
-    function createXMLHttpRequest()
+    function resizeUI()
     {
-        if (window.XMLHttpRequest)
-        {// code for IE7+, Firefox, Chrome, Opera, Safari
-            xmlhttp = new XMLHttpRequest();
+        var postm = $("#PostMessage").outerHeight();
+        var login = 0;
+        var save = 32;
+        if ($('#Login').is(':visible')) {
+            login = $("#Login").outerHeight();
         }
-        else
-        {// code for IE6, IE5
-            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-        }
-        return xmlhttp;
-    }
-
-    function htmlEncode(s)
-    {
-        return s.replace(/&(?!\w+([;\s]|$))/g, "&amp;")
-            .replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    function send_text()
-    {
-        formobj = document.getElementById("EditMessage")
-        xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange = function()
-        {
-            if (xmlhttp.readyState==4 && xmlhttp.status==204)
-            {
-                poll();
-            }
-        }
-        params = trim(formobj.value);
-        xmlhttp.open("POST", "/send_text/", true);
-        xmlhttp.setRequestHeader("Authorization", sessionkey);
-        xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
-        xmlhttp.send(params);
-        formobj.value = "";
-    }
-
-    function login()
-    {
-        xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange = function()
-        {
-            //alert("returned " + xmlhttp.status);
-            if (xmlhttp.readyState==4 && xmlhttp.status==200)
-            {
-                sessionkey = xmlhttp.responseText;
-                $("#Login").hide();
-            }
-            else if (xmlhttp.readyState==4 && xmlhttp.status==401)
-            {
-                alert("password incorrect");
-                $("#Login").show();
-            }
-        }
-        params = "";
-        params += $("#Username").val();
-        params += "\r\n";
-        params += $("#Password").val();
-        xmlhttp.open("POST", "/login/", true);
-        xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
-        xmlhttp.send(params);
-    }
-
-    function poll()
-    {
-        var my_JSON_object = {};
-        xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange = function()
-        {
-            if (xmlhttp.readyState==4 && xmlhttp.status==200)
-            {
-                var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
-                    $("#MessageList").height()) - $("#MessageList").attr("scrollHeight"));
-
-                var obj = jQuery.parseJSON(xmlhttp.responseText);
-                var tmpstring = "<table cellspacing='0'>";
-                var i, N = obj.length;
-                for (i=0; i<N; i++) {
-                    if (obj[i][0] == 0) {
-                        var msg = new String();
-                        msg += "<tr><td class='header'>";
-                        msg += "<span><b>"+obj[i][1]+"</b> at "+obj[i][2]+"<br/></span></td></tr>";
-                        msg += "<tr><td class='body'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
-                        msg += "";
-                        tmpstring += msg;
-                        if (obj[i][4] > timestamp) timestamp = obj[i][4];
-                    }
-                }
-                tmpstring += "</table>";
-                $("#MessageList").append(tmpstring);
-
-                // is scroll is at bottom, scroll to bottom
-                if (scr_to_bottom >= 0) {
-                    $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
-                    //document.getElementById("dbg").innerHTML = scr_to_bottom;
-                } else {
-                    //document.getElementById("dbg").innerHTML = "don't scroll";
-                }
-            }
-            else if (xmlhttp.readyState==4 && xmlhttp.status==401)
-            {
-                $("#Login").show();
-            }
-        }
-        params = timestamp + "";
-        xmlhttp.open("POST", "/check_update/", true);
-        xmlhttp.setRequestHeader("Authorization", sessionkey);
-        xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
-        xmlhttp.send(params);
-    }
-
-    function init_poll()
-    {
-        poll();
-        timer = setInterval(poll, 500);
+        $("#MessageList").height($(window).height()-postm-login-save);
     }
 </script>
 </head>
-<body onload="init_poll()">
-    <div id="MessageList" style="overflow: auto; overflow-x: hidden; width: 650px; height: 600px;">
+<body>
+    <div id="MessageList">
         <span></span>
     </div>
-
-    <p></p>
-
-    <div id="MainUI">
-        <textarea cols="80" rows="5" id="EditMessage" name="EditMessage" wrap="hard"
-            style="width: 650px;"></textarea><br/>
+    <div id="PostMessage">
+        <textarea id="EditMessage" wrap="hard"></textarea><br/>
     </div>
-    <script type="text/javascript">
-        $('#EditMessage').keydown(function(event) {
-            if (event.keyCode == '13') {
-                event.preventDefault();
-                //document.getElementById("dbg").innerHTML = event.originalEvent.type;
-                if (event.ctrlKey) {
-                    var val = this.value;
-                    if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
-                        var start = this.selectionStart;
-                        this.value = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
-                        this.selectionStart = this.selectionEnd = start + 1;
-                    } else if (document.selection && document.selection.createRange) {
-                        this.focus();
-                        var range = document.selection.createRange();
-                        range.text = "\r\n";
-                        range.collapse(false);
-                        range.select();
+        <script type="text/javascript">
+            $('#EditMessage').keydown(function(event) {
+                if (event.keyCode == '13') {
+                    event.preventDefault();
+                    if (event.ctrlKey) {
+                        var val = this.value;
+                        if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
+                            var start = this.selectionStart;
+                            this.value = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
+                            this.selectionStart = this.selectionEnd = start + 1;
+                        } else if (document.selection && document.selection.createRange) {
+                            this.focus();
+                            var range = document.selection.createRange();
+                            range.text = "\r\n";
+                            range.collapse(false);
+                            range.select();
+                        }
+                    } else {
+                        send_text();
                     }
-                } else {
-                    send_text();
                 }
-            }
-        });
-    </script>
-
-    <p></p>
-
+            });
+        </script>
     <div id="Login">
         <table cellspacing='0'>
         <tr>
@@ -220,29 +105,38 @@
         </tr>
         </table>
     </div>
-    <script type="text/javascript">
-        $('#Password').keydown(function(event) {
-            if (event.keyCode == '13') {
-                event.preventDefault();
-                if (!event.ctrlKey) {
-                    login();
+        <script type="text/javascript">
+            $('#Password').keydown(function(event) {
+                if (event.keyCode == '13') {
+                    event.preventDefault();
+                    if (!event.ctrlKey) {
+                        login();
+                    }
                 }
-            }
-        });
-    </script>
+            });
+        </script>
 
     <div id="Toolbar">
-        <img src="wolf.png"></img>
+        <img class="role" src="wolf.png"></img>
     </div>
-
-    <p></p>
     <div id="dbg"></div>
 
     <script type="text/javascript">
         $(document).ready(function(){
             $("img").click(function(){
-            $(this).hide();
+                $(this).hide();
             });
+
+            resizeUI();
+            var offset = $("#MessageList").offset();
+            offset.left += 680;
+            $("#Toolbar").offset(offset);
+
+            init_poll();
+        });
+
+        $(window).resize(function(){
+            resizeUI();
         });
     </script>
 </body>
