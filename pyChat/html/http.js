@@ -65,13 +65,13 @@
             {
                 sessionkey = xmlhttp.responseText;
                 $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", sessionkey, { expires: 7 });
-                $("#Login").hide();
+                $("#Login").fadeOut();
                 resizeUI();
             }
             else if (xmlhttp.readyState==4 && xmlhttp.status==401)
             {
                 alert("password incorrect");
-                $("#Login").show();
+                $("#Login").fadeIn();
                 resizeUI();
             }
         }
@@ -95,7 +95,7 @@
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
                 var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
-                    $("#MessageList").height()) - $("#MessageList").attr("scrollHeight"));
+                    $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
 
                 var obj = jQuery.parseJSON(xmlhttp.responseText);
                 var tmpstring = "<table cellspacing='0'>";
@@ -104,8 +104,11 @@
                     if (obj[i][0] == 0) {
                         var msg = new String();
                         msg += "<tr><td class='header'>";
-                        msg += "<span><b>"+obj[i][1]+"</b> at "+obj[i][2]+"<br/></span></td></tr>";
-                        msg += "<tr><td class='body'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
+                        msg += "<b>"+obj[i][1]+"</b></td>";
+                        msg += "<td class='time'>"+obj[i][2]+"</td>";
+                        //msg += "<td class='header3'></td>";
+                        msg += "</tr>";
+                        msg += "<tr><td class='body' colspan='2'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
                         msg += "";
                         tmpstring += msg;
                         if (obj[i][4] > timestamp) timestamp = obj[i][4];
@@ -124,12 +127,12 @@
             }
             else if (xmlhttp.readyState==4 && xmlhttp.status==204)
             {
-                $("#Login").hide();
+                $("#Login").fadeOut();
                 resizeUI();
             }
             else if (xmlhttp.readyState==4 && xmlhttp.status==401)
             {
-                $("#Login").show();
+                $("#Login").fadeIn();
                 resizeUI();
             }
         }
