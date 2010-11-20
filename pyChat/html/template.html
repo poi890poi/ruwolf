@@ -6,6 +6,11 @@
     body {
         font-family: helvetica, verdana, arial, sans-serif;
         font-weight: normal }
+    #Toolbar {
+        position: absolute;
+        left: 680px;
+        top: 0px;
+    }
     table {
         width: 650px }
     td {
@@ -84,11 +89,12 @@
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
                 sessionkey = xmlhttp.responseText;
-                alert(sessionkey);
+                $("#Login").hide();
             }
-            else if (xmlhttp.readyState==4 && xmlhttp.status==306)
+            else if (xmlhttp.readyState==4 && xmlhttp.status==401)
             {
                 alert("password incorrect");
+                $("#Login").show();
             }
         }
         params = "";
@@ -100,8 +106,6 @@
         xmlhttp.setRequestHeader("Content-length", params.length);
         xmlhttp.setRequestHeader("Connection", "close");
         xmlhttp.send(params);
-        //$("#Username").val("");
-        //$("#Password").val("");
     }
 
     function poll()
@@ -140,6 +144,10 @@
                     //document.getElementById("dbg").innerHTML = "don't scroll";
                 }
             }
+            else if (xmlhttp.readyState==4 && xmlhttp.status==401)
+            {
+                $("#Login").show();
+            }
         }
         params = timestamp + "";
         xmlhttp.open("POST", "/check_update/", true);
@@ -167,7 +175,7 @@
     <div id="MainUI">
         <textarea cols="80" rows="5" id="EditMessage" name="EditMessage" wrap="hard"
             style="width: 650px;"></textarea><br/>
-    <div id="Login">
+    </div>
     <script type="text/javascript">
         $('#EditMessage').keydown(function(event) {
             if (event.keyCode == '13') {
@@ -198,6 +206,11 @@
     <div id="Login">
         <table cellspacing='0'>
         <tr>
+            <td colspan="2">
+                <b>Please provide login information to get full access.</b>
+            </td>
+        </tr>
+        <tr>
             <td style="width: 120px">Username:</td>
             <td><input id="Username"></input></td>
         </tr>
@@ -218,9 +231,12 @@
         });
     </script>
 
+    <div id="Toolbar">
+        <img src="wolf.png"></img>
+    </div>
+
     <p></p>
     <div id="dbg"></div>
-    <img src="pic95264_md.jpg"></img>
 
     <script type="text/javascript">
         $(document).ready(function(){

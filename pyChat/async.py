@@ -354,7 +354,7 @@ class MyHandler(RequestHandler):
                 self.end_headers()
                 self.wfile.write(sessionkey)
             else:
-                self.send_response(306)
+                self.send_response(401)
                 self.end_headers()
 
         elif self.path == '/send_text/':
@@ -412,7 +412,6 @@ class MyHandler(RequestHandler):
             #print 'type: ', type(float(client_doc_time))
 
             # query message
-            ret = None
             roomid = 0
             privilege = 0
             if auth:
@@ -431,21 +430,24 @@ class MyHandler(RequestHandler):
                 row_serial = (type, username, isoformat, message, timestamp)
                 json_serial.append(row_serial)
 
-            ret = json.dumps(json_serial)
 
             #for msg in msg_cache:
             #    if msg.timestamp-float(client_doc_time) > 1e-3:
             #        msg_touple = (msg.timestamp, msg.author, msg.body, msg.id)
             #        json_serial.append(msg_touple)
 
-            if ret:
-                #print 'json: ', ret
+            if json_serial:
+                ret = json.dumps(json_serial)
+                print 'json: ', ret
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 self.wfile.write(ret)
-            else:
+            elif auth:
                 self.send_response(204)
+                self.end_headers()
+            else:
+                self.send_response(401)
                 self.end_headers()
 
     def handle_data(self):
