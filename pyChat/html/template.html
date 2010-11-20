@@ -67,6 +67,7 @@
         }
         params = trim(formobj.value);
         xmlhttp.open("POST", "/send_text/", true);
+        xmlhttp.setRequestHeader("Authorization", sessionkey);
         xmlhttp.setRequestHeader("Content-type", "text/plain");
         xmlhttp.setRequestHeader("Content-length", params.length);
         xmlhttp.setRequestHeader("Connection", "close");
@@ -128,7 +129,6 @@
                         if (obj[i][4] > timestamp) timestamp = obj[i][4];
                     }
                 }
-                document.getElementById("dbg").innerHTML = timestamp;
                 tmpstring += "</table>";
                 $("#MessageList").append(tmpstring);
 
@@ -143,6 +143,7 @@
         }
         params = timestamp + "";
         xmlhttp.open("POST", "/check_update/", true);
+        xmlhttp.setRequestHeader("Authorization", sessionkey);
         xmlhttp.setRequestHeader("Content-type", "text/plain");
         xmlhttp.setRequestHeader("Content-length", params.length);
         xmlhttp.setRequestHeader("Connection", "close");

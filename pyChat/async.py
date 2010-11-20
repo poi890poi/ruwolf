@@ -358,7 +358,13 @@ class MyHandler(RequestHandler):
                 self.end_headers()
 
         elif self.path == '/send_text/':
-            # recieve message from client
+            # auth
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
 
             # preprocess the message
             msgbody = unicode(self.rfile.getvalue(), 'utf-8')
@@ -378,10 +384,12 @@ class MyHandler(RequestHandler):
             privilege = 0
             username = author
             ct = time.localtime(now)
+            if auth:
+                username = auth[0]
             isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
             message = msgbody
 
-            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
                 (roomid, timestamp, privilege, username, isoformat, message, 0, ''))
             conn.commit()
 
@@ -389,6 +397,15 @@ class MyHandler(RequestHandler):
             self.end_headers()
 
         elif self.path == '/check_update/':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+                print auth
+                #time.sleep(100)
+
             #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())
             print 'client document time: ', client_doc_time
@@ -398,8 +415,11 @@ class MyHandler(RequestHandler):
             ret = None
             roomid = 0
             privilege = 0
+            if auth:
+                roomid = auth[4]
+                privilege = auth[7]
             dbcursor.execute("""select * from message \
-                where roomid=? and privilege=? and timestamp>?""", \
+                where roomid=? and privilege&?=privilege and timestamp>?""", \
                 (roomid, privilege, client_doc_time))
             type = 0
             json_serial = []
