@@ -353,7 +353,8 @@ class MyHandler(RequestHandler):
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
-                self.wfile.write(sessionkey)
+                ret = json.dumps((sessionkey,username))
+                self.wfile.write(ret)
             else:
                 self.send_response(401)
                 self.end_headers()
@@ -433,7 +434,7 @@ class MyHandler(RequestHandler):
 
             if json_serial:
                 ret = json.dumps(json_serial)
-                print 'json: ', ret
+                #print 'json: ', ret
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()

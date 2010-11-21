@@ -42,11 +42,15 @@
         position: absolute;
         width: 300px;
         left: 680px; top: 16px;
-        border: 1px solid black;
+        border: 0px solid black;
     }
     #Toolbar td {
         padding: 0px;
-        border: 1px solid lightgrey; }
+        border: 0px; }
+    #Toolbar td.td_tabs_content {
+        vertical-align: top;
+        padding: 0px;
+        border: 1px solid black; }
     img.role {
         width: 298px; }
 </style>
@@ -57,8 +61,14 @@
 <script type="text/javascript">
     var timestamp = 0;
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
+    //var sessionkey = ""; //for testing
 
-    function resizeUI()
+    function resizeUI(wait)
+    {
+        setTimeout("resizeUIactual();", wait);
+    }
+
+    function resizeUIactual()
     {
         var postm = $("#PostMessage").outerHeight();
         var login = 0;
@@ -130,15 +140,12 @@
         </script>
 
     <div id="Toolbar">
-        <table>
-            <tr><td>
-                Username
-            </td></tr>
-            <tr><td>
-                <img class="role" src="wolf.png"></img>
-            </td></tr>
-            <tr><td>
-                Werewolf. You are a proud member of the wolf clan. Your goal is to eliminate all apples in the township.
+        <table cellspacing="0">
+            <tr><td id="role">
+                <img class="role" src="wolf.png"></img><br/>
+                You are a werewolf. Only wolves know your identitdy.
+                Your goal is to eliminate all apples in the township,
+                without getting caught by the mob. Don't get yourself lynched!<br/><br/>
             </td></tr>
             <tr><td>
                 <div id="tabs_container">
@@ -148,6 +155,8 @@
                         <li><a href="#tab3">Options</a></li>
                     </ul>
                 </div>
+            </td></tr>
+            <tr><td class="td_tabs_content">
                 <div id="tabs_content_container">
                     <div id="tab1" class="tab_content" style="display: block;">
                         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nibh urna, euismod ut ornare non, volutpat vel tortor. Integer laoreet placerat suscipit. Sed sodales scelerisque commodo. Nam porta cursus lectus. Proin nunc erat, gravida a facilisis quis, ornare id lectus. Proin consectetur nibh quis urna gravida mollis.</p>
@@ -156,7 +165,11 @@
                         <p>This tab has icon in it.</p>
                     </div>
                     <div id="tab3" class="tab_content">
-                        <p>Suspendisse blandit velit eget erat suscipit in malesuada odio venenatis.</p>
+                        <p>
+                            <input type="checkbox" name="chkLogout"/> Save credential<br/>
+                            <input type="checkbox" name="chkNotify"/> Sound notify<br/>
+                            <input type="checkbox" name="chkNotify"/> High latency mode<br/>
+                        </p>
                     </div>
                 </div>
             </td></tr>
@@ -167,27 +180,16 @@
 
     <script type="text/javascript">
         $(document).ready(function(){
-            $("img").click(function(){
+            $("#role").click(function(){
                 $(this).hide();
             });
 
             $("#tabs li").click(function() {
-                //  First remove class "active" from currently active tab
                 $("#tabs li").removeClass('active');
-
-                //  Now add class "active" to the selected/clicked tab
                 $(this).addClass("active");
-
-                //  Hide all tab content
                 $(".tab_content").hide();
-
-                //  Here we get the href value of the selected tab
                 var selected_tab = $(this).find("a").attr("href");
-
-                //  Show the selected tab content
                 $(selected_tab).fadeIn();
-
-                //  At the end, we add return false so that the click on the link is not executed
                 return false;
             });
 
@@ -195,13 +197,13 @@
             offset.left += 680;
             $("#Toolbar").offset(offset);
 
-            resizeUI();
+            resizeUI(0);
 
             init_poll();
         });
 
         $(window).resize(function(){
-            resizeUI();
+            resizeUI(500);
         });
     </script>
 </body>

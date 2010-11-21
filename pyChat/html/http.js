@@ -63,16 +63,18 @@
             //alert("returned " + xmlhttp.status);
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
-                sessionkey = xmlhttp.responseText;
+                var obj = jQuery.parseJSON(xmlhttp.responseText);
+                sessionkey = obj[0];
+                document.title = obj[1];
                 $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", sessionkey, { expires: 7 });
                 $("#Login").fadeOut();
-                resizeUI();
+                resizeUI(500);
             }
             else if (xmlhttp.readyState==4 && xmlhttp.status==401)
             {
                 alert("password incorrect");
                 $("#Login").fadeIn();
-                resizeUI();
+                resizeUI(0);
             }
         }
         params = "";
@@ -128,12 +130,12 @@
             else if (xmlhttp.readyState==4 && xmlhttp.status==204)
             {
                 $("#Login").fadeOut();
-                resizeUI();
+                resizeUI(500);
             }
             else if (xmlhttp.readyState==4 && xmlhttp.status==401)
             {
                 $("#Login").fadeIn();
-                resizeUI();
+                resizeUI(0);
             }
         }
         params = timestamp + "";
