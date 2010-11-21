@@ -359,6 +359,19 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
+        elif self.path == '/logout/':
+            sessionkey = self.rfile.getvalue()
+            ip = self.client_address[0]
+            dbcursor.execute("""select * from user where sessionkey=? and ip=?""", (sessionkey,ip))
+            row = dbcursor.fetchone()
+            if row:
+                reset = str(uuid.uuid4())
+                dbcursor.execute("""update user set sessionkey=?, ip=? where sessionkey=?""", (reset, reset, sessionkey))
+                conn.commit()
+
+            self.send_response(401)
+            self.end_headers()
+
         elif self.path == '/send_text/':
             # auth
             auth = None

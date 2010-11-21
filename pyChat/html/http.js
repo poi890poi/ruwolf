@@ -41,12 +41,21 @@
             }
         }
         params = formobj.value;
-        xmlhttp.open("POST", "/send_text/", true);
-        xmlhttp.setRequestHeader("Authorization", sessionkey);
-        xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
-        xmlhttp.send(params);
+        if (trim(params) == "/logout") {
+            xmlhttp.open("POST", "/logout/", true);
+            xmlhttp.setRequestHeader("Authorization", sessionkey);
+            xmlhttp.setRequestHeader("Content-type", "text/plain");
+            xmlhttp.setRequestHeader("Content-length", sessionkey.length);
+            xmlhttp.setRequestHeader("Connection", "close");
+            xmlhttp.send(sessionkey);
+        } else {
+            xmlhttp.open("POST", "/send_text/", true);
+            xmlhttp.setRequestHeader("Authorization", sessionkey);
+            xmlhttp.setRequestHeader("Content-type", "text/plain");
+            xmlhttp.setRequestHeader("Content-length", params.length);
+            xmlhttp.setRequestHeader("Connection", "close");
+            xmlhttp.send(params);
+        }
         formobj.value = "";
     }
 
