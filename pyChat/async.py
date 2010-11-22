@@ -257,7 +257,16 @@ import uuid
 
 INTERVAL_ALIVE = 3 * 1000000
 INTERVAL_DISCON = 15 * 1000000
+INTERVAL_SHORT = 12 * 1000
+INTERVAL_LONG = 60 * 1000
 SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+
+# do later actions
+DLTR_COMMIT_DB = 0b00000001
+
+do_later_short = long(0)
+do_later_long = long(0)
+do_later_mask = 0
 
 html_escape_table = {
     "&": "&amp;",
@@ -306,6 +315,42 @@ def html_escape(text):
     """Produce entities within text."""
     return "".join(html_escape_table.get(c,c) for c in text)
 
+def get_time_norm():
+    return long(time.time()*1000)
+
+def dbg_msg(message):
+    now = time.time()
+    timestamp = long(now*1000)
+    ct = time.localtime(now)
+    isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
+    ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, ''))
+
+def check_dltr_mask(mask_bit):
+    global do_later_mask
+    ret = do_later_mask & mask_bit
+    do_later_mask &= ~mask_bit
+    return ret
+
+def check_do_later():
+    global do_later_short, do_later_long
+    now = get_time_norm()
+    print 'now: ', now
+    print 'do_later_short: ', do_later_short
+    if now > do_later_short:
+        # do something
+        #dbg_msg('short')
+        do_later_short = now + INTERVAL_SHORT
+
+    if now > do_later_long:
+        # do something
+        if check_dltr_mask(DLTR_COMMIT_DB):
+            conn.commit()
+            dbg_msg('commit db')
+
+        #dbg_msg('long')
+        do_later_long = now + INTERVAL_LONG
+
 class MyHandler(RequestHandler):
     def handle_get(self):
         self.path = 'html' + self.path
@@ -316,7 +361,7 @@ class MyHandler(RequestHandler):
         RequestHandler.handle_data(self)
 
     def handle_post(self):
-        global svr_doc_time, msg_cache
+        global svr_doc_time, msg_cache, do_later_mask
         print 'path: ', self.path
         if self.path == '/login/':
             login = unicode(self.rfile.getvalue(), 'utf-8')
@@ -343,7 +388,8 @@ class MyHandler(RequestHandler):
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
                     dbcursor.execute("""update user set sessionkey=?, ip=? where username=?""", (sessionkey, ip, username))
-                    conn.commit()
+                    do_later_mask |= DLTR_COMMIT_DB
+                    #conn.commit()
                 else:
                     print 'incorrect password'
             else:
@@ -354,12 +400,12 @@ class MyHandler(RequestHandler):
                 status = 0
                 privilege = 0
                 displayntable = ''
-                now = time.time()
-                lastactivity = long(now*1000)
+                lastactivity = get_time_norm()
                 dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
                     role, status, privilege, displayntable, lastactivity, 0, ''))
-                conn.commit()
+                do_later_mask |= DLTR_COMMIT_DB
+                #conn.commit()
 
             print 'sessionkey: ', sessionkey
 
@@ -381,7 +427,8 @@ class MyHandler(RequestHandler):
             if row:
                 reset = str(uuid.uuid4())
                 dbcursor.execute("""update user set sessionkey=?, ip=? where sessionkey=?""", (reset, reset, sessionkey))
-                conn.commit()
+                do_later_mask |= DLTR_COMMIT_DB
+                #conn.commit()
 
             self.send_response(401)
             self.end_headers()
@@ -420,7 +467,8 @@ class MyHandler(RequestHandler):
 
             dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
                 (roomid, timestamp, privilege, username, isoformat, message, 0, ''))
-            conn.commit()
+            do_later_mask |= DLTR_COMMIT_DB
+            #conn.commit()
 
             self.send_response(204)
             self.end_headers()
@@ -441,7 +489,7 @@ class MyHandler(RequestHandler):
 #role 5, status 6, privilege 7, displayntable 8,
 #lastactivity 9, reserved1 integer, reserved2 text)''')
 
-                if auth:
+                if False:
                     status = auth[6]
                     lastactivity = auth[9]
                     now = time.time()
@@ -466,11 +514,11 @@ class MyHandler(RequestHandler):
                         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
                             (roomid, timestamp, 0, SYSTEM_USER, isoformat, message, 0, ''))
 
-
                     lastactivity = long(now*1000)
                     print 'lastactivity: ', lastactivity
                     dbcursor.execute("""update user set lastactivity=? \
                         where sessionkey=? and ip=?""", (lastactivity, sessionkey, ip))
+                    do_later_mask |= DLTR_COMMIT_DB
                     #conn.commit()
 
             #print 'client document time: ', self.rfile.getvalue()
@@ -511,6 +559,8 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
+            check_do_later()
+
     def handle_data(self):
         if self.command == 'GET':
             self.handle_get()
@@ -519,6 +569,10 @@ class MyHandler(RequestHandler):
 
 if __name__=="__main__":
     # launch the server on the specified port
+    global do_later_short, do_later_long
+    now = get_time_norm()
+    do_later_short = now + INTERVAL_SHORT
+    do_later_long = now + INTERVAL_LONG
     port = 80
     s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
