@@ -70,6 +70,9 @@
 
     function resizeUIactual()
     {
+        var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
+            $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
+
         var postm = $("#PostMessage").outerHeight();
         var login = 0;
         var save = 32;
@@ -78,6 +81,10 @@
         }
         $("#MessageList").height($(window).height()-postm-login-save);
         $("#Toolbar").height($(window).height()-save);
+
+        if (scr_to_bottom >= 0) {
+            $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
+        }
     }
 </script>
 </head>
