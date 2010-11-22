@@ -255,6 +255,10 @@ import uuid
 
 # init variables
 
+INTERVAL_ALIVE = 3 * 1000000
+INTERVAL_DISCON = 15 * 1000000
+SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+
 html_escape_table = {
     "&": "&amp;",
     '"': "&quot;",
@@ -280,13 +284,21 @@ dbcursor = conn.cursor()
 
 # Create table
 dbcursor.execute('''create table if not exists message
-(roomid integer, timestamp integer, privilege integer, username text,
+(roomid text, timestamp integer, privilege integer, username text,
 datetime text, message text, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists user
-(username text, password text, sessionkey text, ip text, roomid integer,
+(username text, password text, sessionkey text, ip text, roomid text,
 role integer, status integer, privilege integer, displayntable text,
-reserved1 integer, reserved2 text)''')
+lastactivity integer, reserved1 integer, reserved2 text)''')
+
+# System messages are cached in a queue.
+# They are not saved in database.
+# When clients request for new messages. It's sent to clients.
+# Some types of system message have life spans.
+# Such messages are cached in a set. So there's no duplicated entry with same name.
+
+sys_msg = []
 
 # class definition
 
@@ -337,14 +349,16 @@ class MyHandler(RequestHandler):
             else:
                 print 'user register'
                 sessionkey = str(uuid.uuid4())
-                roomid = 0
+                roomid = ''
                 role = 0
                 status = 0
                 privilege = 0
                 displayntable = ''
-                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?)', \
+                now = time.time()
+                lastactivity = long(now*1000)
+                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
-                    role, status, privilege, displayntable, 0, ''))
+                    role, status, privilege, displayntable, lastactivity, 0, ''))
                 conn.commit()
 
             print 'sessionkey: ', sessionkey
@@ -394,7 +408,7 @@ class MyHandler(RequestHandler):
 
             now = time.time()
             type = 1 # json type identifier: message
-            roomid = 0
+            roomid = ''
             timestamp = long(now*1000)
             privilege = 0
             username = author
@@ -415,11 +429,49 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = self.client_address[0]
+
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey,ip))
                 auth = dbcursor.fetchone()
                 print auth
                 #time.sleep(100)
+
+#(username 0, password 1, sessionkey 2, ip 3, roomid 4,
+#role 5, status 6, privilege 7, displayntable 8,
+#lastactivity 9, reserved1 integer, reserved2 text)''')
+
+                if auth:
+                    status = auth[6]
+                    lastactivity = auth[9]
+                    now = time.time()
+                    timestamp = long(now*1000)
+                    newstatus = 0
+                    print 'timestamp: ', timestamp
+                    print 'lastactivity: ', lastactivity
+                    print 'diff: ', (timestamp-lastactivity)
+                    print 'INTERVAL_ALIVE: ', INTERVAL_ALIVE
+                    if 0 < (timestamp-lastactivity) < INTERVAL_ALIVE:
+                        newstatus = 1
+                    if newstatus != status:
+                        # user come alive
+                        dbcursor.execute("""update user set status=? \
+                            where sessionkey=? and ip=?""", (newstatus, sessionkey, ip))
+                        # post a message, only for testing
+                        username = auth[0]
+                        roomid = auth[4]
+                        message = username + ' logged in'
+                        ct = time.localtime(now)
+                        isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+                        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
+                            (roomid, timestamp, 0, SYSTEM_USER, isoformat, message, 0, ''))
+
+
+                    lastactivity = long(now*1000)
+                    print 'lastactivity: ', lastactivity
+                    dbcursor.execute("""update user set lastactivity=? \
+                        where sessionkey=? and ip=?""", (lastactivity, sessionkey, ip))
+                    #conn.commit()
 
             #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())
@@ -427,7 +479,7 @@ class MyHandler(RequestHandler):
             #print 'type: ', type(float(client_doc_time))
 
             # query message
-            roomid = 0
+            roomid = ''
             privilege = 0
             if auth:
                 roomid = auth[4]
