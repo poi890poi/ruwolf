@@ -123,8 +123,20 @@
                             msg += "<tr><td class='body' colspan='2'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
                             msg += "";
                             tmpstring += msg;
-                            if (obj[i][4] > timestamp) timestamp = obj[i][4];
                         }
+                        else if (obj[i][0] == 1) {
+                            // user status
+                            var subobj = jQuery.parseJSON(obj[i][3]);
+                            var msg = new String();
+                            msg += "<tr><td class='header'>";
+                            msg += "<b>"+obj[i][1] + ", " + obj[i][3]+"</b></td>";
+                            msg += "<td class='time'></td>";
+                            msg += "</tr>";
+                            msg += "<tr><td class='body' colspan='2'><blockquote></blockquote></td></tr>";
+                            msg += "";
+                            tmpstring += msg;
+                        }
+                        if (obj[i][4] > timestamp) timestamp = obj[i][4];
                     }
                     tmpstring += "</table>";
                     $("#MessageList").append(tmpstring);

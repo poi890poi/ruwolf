@@ -257,16 +257,37 @@ import uuid
 
 INTERVAL_ALIVE = 3 * 1000000
 INTERVAL_DISCON = 15 * 1000000
-INTERVAL_SHORT = 12 * 1000
-INTERVAL_LONG = 60 * 1000
+INTERVAL_SHORT = 6 * 1000
+INTERVAL_LONG = 30 * 1000
+
+# message types, specified in user column
 SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+GUID_0 = '3e5cdec2-f504-4474-ba0f-2f358c210be8'
+GUID_0 = '7051262e-c2ff-4e69-b2ed-76cb4d01eb9a'
+GUID_0 = '87018045-fd87-4f7c-ad87-94b9c898cdfe'
+GUID_0 = '4b89497a-2bb1-4234-9747-cd7c862479be'
+GUID_0 = '9fe94f24-4e45-4cc6-b030-6363d2e7cc1f'
+GUID_0 = '8f4c6b3e-0aa8-4d41-a550-95a8e7dd04e0'
+GUID_0 = 'a745ee66-6538-48e2-97f1-9eaf32ce5701'
+GUID_0 = '1df5fd0f-06eb-4961-a96e-27e78567eb98'
+GUID_0 = 'ceb7d84e-f5c2-4f9b-9700-a1d3c63c771e'
+GUID_0 = '204c4a4e-5b67-4745-b104-9f6dcf0ad8e4'
+
+# message types
+MSG_USER_STATUS = 1
 
 # do later actions
 DLTR_COMMIT_DB = 0b00000001
 
+# user status
+USR_CONN = 0b00000001
+
 do_later_short = long(0)
 do_later_long = long(0)
 do_later_mask = 0
+
+user_activity = dict()
+user_status = dict()
 
 html_escape_table = {
     "&": "&amp;",
@@ -294,7 +315,7 @@ dbcursor = conn.cursor()
 # Create table
 dbcursor.execute('''create table if not exists message
 (roomid text, timestamp integer, privilege integer, username text,
-datetime text, message text, reserved1 integer, reserved2 text)''')
+datetime text, message text, type integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists user
 (username text, password text, sessionkey text, ip text, roomid text,
@@ -318,13 +339,33 @@ def html_escape(text):
 def get_time_norm():
     return long(time.time()*1000)
 
+def upd_user_status(user):
+    global user_status
+    dbcursor.execute("""delete from message where username=? and type=?""", (user, MSG_USER_STATUS))
+    rec = None
+    dbcursor.execute("""select * from user where username=?""", (user,))
+    rec = dbcursor.fetchone()
+    print 'rec: ', rec
+    #sleep(100)
+    if rec:
+        roomid = rec[4]
+        timestamp = get_time_norm()
+        privilege = 0
+        username = user
+        json_serial = (rec[5], 0)
+        if user in user_status:
+            json_serial = (rec[5], user_status[user])
+        message = json.dumps(json_serial)
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, ''))
+
 def dbg_msg(message):
     now = time.time()
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
-    ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, ''))
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+        ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, ''))
 
 def check_dltr_mask(mask_bit):
     global do_later_mask
@@ -338,8 +379,17 @@ def check_do_later():
     print 'now: ', now
     print 'do_later_short: ', do_later_short
     if now > do_later_short:
-        # do something
         #dbg_msg('short')
+        for user in user_status:
+            if user_status[user] & USR_CONN:
+                # check connected user for discon
+                if user not in user_activity:
+                    user_activity[user] = 0
+                if now - user_activity[user] > INTERVAL_SHORT:
+                    user_status[user] &= ~USR_CONN
+                    upd_user_status(user)
+                    dbg_msg(user+' discon')
+
         do_later_short = now + INTERVAL_SHORT
 
     if now > do_later_long:
@@ -361,7 +411,8 @@ class MyHandler(RequestHandler):
         RequestHandler.handle_data(self)
 
     def handle_post(self):
-        global svr_doc_time, msg_cache, do_later_mask
+        global svr_doc_time, msg_cache, do_later_mask, \
+            user_activity, user_status
         print 'path: ', self.path
         if self.path == '/login/':
             login = unicode(self.rfile.getvalue(), 'utf-8')
@@ -388,8 +439,8 @@ class MyHandler(RequestHandler):
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
                     dbcursor.execute("""update user set sessionkey=?, ip=? where username=?""", (sessionkey, ip, username))
-                    do_later_mask |= DLTR_COMMIT_DB
-                    #conn.commit()
+                    #do_later_mask |= DLTR_COMMIT_DB
+                    conn.commit()
                 else:
                     print 'incorrect password'
             else:
@@ -404,8 +455,8 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
                     role, status, privilege, displayntable, lastactivity, 0, ''))
-                do_later_mask |= DLTR_COMMIT_DB
-                #conn.commit()
+                #do_later_mask |= DLTR_COMMIT_DB
+                conn.commit()
 
             print 'sessionkey: ', sessionkey
 
@@ -427,8 +478,8 @@ class MyHandler(RequestHandler):
             if row:
                 reset = str(uuid.uuid4())
                 dbcursor.execute("""update user set sessionkey=?, ip=? where sessionkey=?""", (reset, reset, sessionkey))
-                do_later_mask |= DLTR_COMMIT_DB
-                #conn.commit()
+                #do_later_mask |= DLTR_COMMIT_DB
+                conn.commit()
 
             self.send_response(401)
             self.end_headers()
@@ -465,8 +516,8 @@ class MyHandler(RequestHandler):
             isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
             message = msgbody
 
-            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
-                (roomid, timestamp, privilege, username, isoformat, message, 0, ''))
+            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+                (roomid, timestamp, privilege, username, isoformat, message, 0, 0, ''))
             do_later_mask |= DLTR_COMMIT_DB
             #conn.commit()
 
@@ -485,41 +536,15 @@ class MyHandler(RequestHandler):
                 print auth
                 #time.sleep(100)
 
-#(username 0, password 1, sessionkey 2, ip 3, roomid 4,
-#role 5, status 6, privilege 7, displayntable 8,
-#lastactivity 9, reserved1 integer, reserved2 text)''')
-
-                if False:
-                    status = auth[6]
-                    lastactivity = auth[9]
-                    now = time.time()
-                    timestamp = long(now*1000)
-                    newstatus = 0
-                    print 'timestamp: ', timestamp
-                    print 'lastactivity: ', lastactivity
-                    print 'diff: ', (timestamp-lastactivity)
-                    print 'INTERVAL_ALIVE: ', INTERVAL_ALIVE
-                    if 0 < (timestamp-lastactivity) < INTERVAL_ALIVE:
-                        newstatus = 1
-                    if newstatus != status:
-                        # user come alive
-                        dbcursor.execute("""update user set status=? \
-                            where sessionkey=? and ip=?""", (newstatus, sessionkey, ip))
-                        # post a message, only for testing
-                        username = auth[0]
-                        roomid = auth[4]
-                        message = username + ' logged in'
-                        ct = time.localtime(now)
-                        isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-                        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?)', \
-                            (roomid, timestamp, 0, SYSTEM_USER, isoformat, message, 0, ''))
-
-                    lastactivity = long(now*1000)
-                    print 'lastactivity: ', lastactivity
-                    dbcursor.execute("""update user set lastactivity=? \
-                        where sessionkey=? and ip=?""", (lastactivity, sessionkey, ip))
-                    do_later_mask |= DLTR_COMMIT_DB
-                    #conn.commit()
+                if auth:
+                    user_activity[auth[0]] = get_time_norm()
+                    if auth[0] not in user_status:
+                        user_status[auth[0]] = 0
+                    if not user_status[auth[0]] & USR_CONN:
+                        # user connected
+                        user_status[auth[0]] |= USR_CONN
+                        upd_user_status(auth[0])
+                        dbg_msg(auth[0]+' connected')
 
             #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())
@@ -535,13 +560,13 @@ class MyHandler(RequestHandler):
             dbcursor.execute("""select * from message \
                 where roomid=? and privilege&?=privilege and timestamp>?""", \
                 (roomid, privilege, client_doc_time))
-            type = 0
             json_serial = []
             for row in dbcursor:
                 timestamp = row[1]
                 username = row[3]
                 isoformat = row[4]
                 message = row[5]
+                type = row[6]
                 row_serial = (type, username, isoformat, message, timestamp)
                 json_serial.append(row_serial)
 

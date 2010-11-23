@@ -1,3 +1,5 @@
+MESSAGE
+
 roomid
 timestamp
 privilege
@@ -6,3 +8,58 @@ datetime = row[4]
 message = row[5]
 reserved1
 reserved2
+
+USER
+
+username text
+password text
+sessionkey text
+ip text
+roomid integer
+role integer
+status integer
+privilege integer
+displayntable text
+reserved1
+reserved2
+
+INTERVAL_ALIVE = 3 * 1000000
+INTERVAL_DISCON = 15 * 1000000
+INTERVAL_SHORT = 6 * 1000
+INTERVAL_LONG = 30 * 1000
+SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+MSG_USER_STATUS = '3e5cdec2-f504-4474-ba0f-2f358c210be8'
+DLTR_COMMIT_DB = 0b00000001
+USR_CONN = 0b00000001
+
+dbcursor.execute('''create table if not exists message
+(roomid text, timestamp integer, privilege integer, username text,
+datetime text, message text, type integer, reserved1 integer, reserved2 text)''')
+
+roomid 0
+timestamp 1
+privilege 2
+username 3
+datetime 4
+message 5
+type 6
+reserved1 7
+reserved2 8
+
+dbcursor.execute('''create table if not exists user
+(username text, password text, sessionkey text, ip text, roomid text,
+role integer, status integer, privilege integer, displayntable text,
+lastactivity integer, reserved1 integer, reserved2 text)''')
+
+username 0
+password 1
+sessionkey 2
+ip 3
+roomid 4,
+role 5
+status 6
+privilege 7
+displayntable 8,
+lastactivity 9
+reserved1 10
+reserved2 11
