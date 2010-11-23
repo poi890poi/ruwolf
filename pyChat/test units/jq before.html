@@ -6,6 +6,9 @@ $(document).ready(function(){
   $("button").click(function(){
     $("#after").before("<span>BEFORE</span>");
   });
+
+    userspan = $("#x"+"1");
+    alert(userspan.length);
 });
 </script>
 </head>
@@ -13,5 +16,19 @@ $(document).ready(function(){
 <body>
 <p id="after">AFTER</p>
 <button>Insert span element before each p element</button>
+
+    <div id="Toolbar">
+        <table cellspacing="0">
+            <tr><td class="td_tabs_content">
+                <div id="tabs_content_container">
+                    <div id="tab1" class="tab_content" style="display: block;">
+                        <span id="x1"></span>
+                    </div>
+                </div>
+            </td></tr>
+        </table>
+    </div>
+
+
 </body>
 </html>

@@ -3,9 +3,11 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>pyChat</title>
 <style type="text/css">
-    body {
+    bodyforenglish {
         font-family: helvetica, verdana, arial, sans-serif;
         font-weight: normal }
+    body {
+        font-family: 細明體; }
     #MessageList {
         overflow: auto; overflow-x: hidden;
         width: 648px; height: 600px;
@@ -19,7 +21,7 @@
         border: 0px; }
     #MessageList td.header {
         width: 400px; height: 24px;
-        padding-left: 6px;
+        padding-left: 3px;
         vertical-align: middle;
         background-color: lightgrey }
     #MessageList td.time {
@@ -51,6 +53,13 @@
         vertical-align: top;
         padding: 0px;
         border: 1px solid black; }
+    #Toolbar div.user {
+        margin-bottom: 2px;
+    }
+    img.usericon {
+        vertical-align: text-bottom;
+        padding-right: 3px;
+    }
     img.role {
         width: 298px; }
 </style>
@@ -59,10 +68,6 @@
 <script type="text/javascript" src="jquery.cookie.js"></script>
 <script type="text/javascript" src="http.js"></script>
 <script type="text/javascript">
-    var timestamp = 0;
-    var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
-    //var sessionkey = ""; //for testing
-
     function resizeUI(wait)
     {
         setTimeout("resizeUIactual();", wait);
@@ -166,7 +171,6 @@
             <tr><td class="td_tabs_content">
                 <div id="tabs_content_container">
                     <div id="tab1" class="tab_content" style="display: block;">
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum nibh urna, euismod ut ornare non, volutpat vel tortor. Integer laoreet placerat suscipit. Sed sodales scelerisque commodo. Nam porta cursus lectus. Proin nunc erat, gravida a facilisis quis, ornare id lectus. Proin consectetur nibh quis urna gravida mollis.</p>
                     </div>
                     <div id="tab2" class="tab_content">
                         <p>This tab has icon in it.</p>

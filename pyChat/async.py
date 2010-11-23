@@ -257,8 +257,9 @@ import uuid
 
 INTERVAL_ALIVE = 3 * 1000000
 INTERVAL_DISCON = 15 * 1000000
-INTERVAL_SHORT = 6 * 1000
+INTERVAL_SHORT = 3 * 1000
 INTERVAL_LONG = 30 * 1000
+TIME_MAX = long(9999999999999)
 
 # message types, specified in user column
 SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
@@ -275,6 +276,8 @@ GUID_0 = '204c4a4e-5b67-4745-b104-9f6dcf0ad8e4'
 
 # message types
 MSG_USER_STATUS = 1
+MSG_ROOM = 2
+MSG_USERQUIT = 3
 
 # do later actions
 DLTR_COMMIT_DB = 0b00000001
@@ -322,6 +325,10 @@ dbcursor.execute('''create table if not exists user
 role integer, status integer, privilege integer, displayntable text,
 lastactivity integer, reserved1 integer, reserved2 text)''')
 
+dbcursor.execute('''create table if not exists room
+(username text, roomid text, description text, ruleset integer, options integer,
+phase integer, timeout integer, reserved1 integer, reserved2 text)''')
+
 # System messages are cached in a queue.
 # They are not saved in database.
 # When clients request for new messages. It's sent to clients.
@@ -338,6 +345,9 @@ def html_escape(text):
 
 def get_time_norm():
     return long(time.time()*1000)
+
+def change_room(username, roomid, oroomid):
+    pass
 
 def upd_user_status(user):
     global user_status
@@ -358,6 +368,14 @@ def upd_user_status(user):
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, ''))
+
+def msg_command(roomid, type, argument):
+    now = time.time()
+    timestamp = long(now*1000)
+    ct = time.localtime(now)
+    isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, 0, SYSTEM_USER, isoformat, argument, type, 0, ''))
 
 def dbg_msg(message):
     now = time.time()
@@ -396,7 +414,7 @@ def check_do_later():
         # do something
         if check_dltr_mask(DLTR_COMMIT_DB):
             conn.commit()
-            dbg_msg('commit db')
+            #dbg_msg('commit db')
 
         #dbg_msg('long')
         do_later_long = now + INTERVAL_LONG
@@ -484,6 +502,87 @@ class MyHandler(RequestHandler):
             self.send_response(401)
             self.end_headers()
 
+        elif self.path == '/host/':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                roomid = str(uuid.uuid4())
+                description = unicode(self.rfile.getvalue(), 'utf-8')
+                description = html_escape(description)
+                if not description:
+                    description = roomid
+                ruleset = 0
+                options = 0
+                phase = 0
+                timeout = TIME_MAX
+                dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?)', \
+                    (auth[0], roomid, description, ruleset, options, phase, timeout, 0, ''))
+                dbcursor.execute("""update user set roomid=? where username=?""", (roomid, auth[0]))
+                dbg_msg(auth[0]+' is hosting a new game '+description)
+
+                timestamp = get_time_norm()
+                privilege = 0
+                username = roomid
+                json_serial = (description, ruleset, options, phase, auth[0])
+                message = json.dumps(json_serial)
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+                    ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
+
+                upd_user_status(auth[0])
+                do_later_mask |= DLTR_COMMIT_DB
+
+                self.send_response(205)
+                self.end_headers()
+            else:
+                self.send_response(401)
+                self.end_headers()
+
+        elif self.path == '/quit/':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                msg_command(auth[4], MSG_USERQUIT, auth[0])
+                dbcursor.execute("""update user set roomid=? where username=?""", ('', auth[0]))
+                upd_user_status(auth[0])
+                do_later_mask |= DLTR_COMMIT_DB
+
+                self.send_response(205)
+                self.end_headers()
+            else:
+                self.send_response(401)
+                self.end_headers()
+
+        elif self.path == '/join/':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                roomid = self.rfile.getvalue()
+                msg_command(auth[4], MSG_USERQUIT, auth[0])
+                dbcursor.execute("""update user set roomid=? where username=?""", (roomid, auth[0]))
+                upd_user_status(auth[0])
+                do_later_mask |= DLTR_COMMIT_DB
+
+                self.send_response(205)
+                self.end_headers()
+            else:
+                self.send_response(401)
+                self.end_headers()
+
         elif self.path == '/send_text/':
             # auth
             auth = None
@@ -513,6 +612,7 @@ class MyHandler(RequestHandler):
             ct = time.localtime(now)
             if auth:
                 username = auth[0]
+                roomid = auth[4]
             isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
             message = msgbody
 
@@ -523,6 +623,46 @@ class MyHandler(RequestHandler):
 
             self.send_response(204)
             self.end_headers()
+
+        elif self.path == '/list/':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                ip = self.client_address[0]
+
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,ip))
+                auth = dbcursor.fetchone()
+
+            # query message
+            roomid = ''
+            privilege = 0
+            if auth:
+                roomid = auth[4]
+                privilege = auth[7]
+            dbcursor.execute("""select * from message where type=?""", (MSG_ROOM,))
+            json_serial = []
+            for row in dbcursor:
+                timestamp = TIME_MAX
+                username = row[3]
+                isoformat = row[4]
+                message = row[5]
+                type = row[6]
+                row_serial = (type, username, isoformat, message, timestamp)
+                json_serial.append(row_serial)
+
+            if json_serial:
+                ret = json.dumps(json_serial)
+                self.send_response(200)
+                self.send_header(u'Content-type', u'text/plain')
+                self.end_headers()
+                self.wfile.write(ret)
+            elif auth:
+                self.send_response(204)
+                self.end_headers()
+            else:
+                self.send_response(401)
+                self.end_headers()
 
         elif self.path == '/check_update/':
             auth = None
@@ -594,7 +734,6 @@ class MyHandler(RequestHandler):
 
 if __name__=="__main__":
     # launch the server on the specified port
-    global do_later_short, do_later_long
     now = get_time_norm()
     do_later_short = now + INTERVAL_SHORT
     do_later_long = now + INTERVAL_LONG

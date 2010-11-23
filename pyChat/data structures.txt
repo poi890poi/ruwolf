@@ -23,6 +23,16 @@ displayntable text
 reserved1
 reserved2
 
+ROOM
+
+username text
+roomid text
+description text
+ruleset integer
+options integer
+phase integer
+timeout integer
+
 INTERVAL_ALIVE = 3 * 1000000
 INTERVAL_DISCON = 15 * 1000000
 INTERVAL_SHORT = 6 * 1000
