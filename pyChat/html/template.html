@@ -22,6 +22,10 @@
         padding: 6px 6px 15px 6px;
         border-top: 1px dashed #999999;
     }
+    #MessageList td.system {
+        padding: 20px 50px;
+        background: #cccccc;
+    }
     #MessageList td.lead {
         width: 125px;
         padding-right: 15px;
@@ -59,6 +63,23 @@
     }
     img.role {
         width: 298px; }
+
+    div.contextmenu {
+        padding: 4px;
+        position: absolute;
+		width: 180px;
+        background: #dddddd;
+        border: 3px double #999999;
+        display: none;
+    }
+    div.menuitem {
+        cursor: pointer;
+        padding: 4px 16px;
+    }
+    div.menuhover {
+        color: white;
+        background: royalblue;
+    }
 </style>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
@@ -183,9 +204,25 @@
         </table>
     </div>
 
+    <div class="contextmenu" id="MenuGeneral">
+        <div class="menuitem" id="MnuHelp">Help</div>
+        <div class="menuitem">About</div>
+        <hr/>
+        <div class="menuitem" id="MnuQuit">Leave Game</div>
+        <div class="menuitem" id="MnuLogout">Logout</div>
+    </div>
+
     <div id="dbg"></div>
 
     <script type="text/javascript">
+    	function invokemenu(obj, e) {
+    		//id = obj.attr('id');
+    		var menu = $("#menu");
+    		menu.css("left", e.pageX+"px");
+    		menu.css("top", e.pageY+"px");
+    		setTimeout("$('#menu').show();", 60);
+    	}
+
         $(document).ready(function(){
             $("#role").click(function(){
                 $(this).hide();
@@ -199,6 +236,39 @@
                 $(selected_tab).fadeIn();
                 return false;
             });
+
+    		$(document).bind("contextmenu", function(e) {
+                if (event.ctrlKey) {
+                    return true;
+                }
+        		var menu = $("#MenuGeneral");
+        		menu.css("left", e.pageX+"px");
+        		menu.css("top", e.pageY+"px");
+        		setTimeout("$('#MenuGeneral').show();", 60);
+    			return false;
+    		});
+    		$(".menuitem").mouseover(function (e) {
+    	        $(this).addClass("menuhover");
+    		});
+    		$(".menuitem").mouseout(function (e) {
+    	        $(this).removeClass("menuhover");
+    		});
+            $(document).click(function(e) {
+        		$(".contextmenu").hide();
+            });
+
+            $("#MnuHelp").click(function(e) {
+        		$(".contextmenu").hide();
+            });
+            $("#MnuQuit").click(function(e) {
+        		$(".contextmenu").hide();
+                send_text("/quit");
+            });
+            $("#MnuLogout").click(function(e) {
+        		$(".contextmenu").hide();
+                send_text("/logout");
+            });
+
 
             var offset = $("#MessageList").offset();
             offset.left += 680;

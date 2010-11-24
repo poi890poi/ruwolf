@@ -39,9 +39,13 @@
             .replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    function send_text()
+    function send_text(params)
     {
-        var formobj = document.getElementById("EditMessage")
+        if (!params)
+        {
+            params = $("#EditMessage").val();
+            $("#EditMessage").val("");
+        }
         var xmlhttp = createXMLHttpRequest();
         xmlhttp.onreadystatechange = function()
         {
@@ -55,21 +59,16 @@
                 location.reload();
             }
         }
-        var params = formobj.value;
         var trimmed = trim(params);
         if (trimmed == "/logout") {
             xmlhttp.open("POST", "/logout/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
-            xmlhttp.setRequestHeader("Content-length", sessionkey.length);
-            xmlhttp.setRequestHeader("Connection", "close");
             xmlhttp.send(sessionkey);
         } else if (trimmed == "/quit") {
             xmlhttp.open("POST", "/quit/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
-            xmlhttp.setRequestHeader("Content-length", sessionkey.length);
-            xmlhttp.setRequestHeader("Connection", "close");
             xmlhttp.send(sessionkey);
         } else if (trimmed.substring(0, 6) == "/host ") {
             var arg = trimmed.split(" ", 2);
@@ -78,8 +77,6 @@
             xmlhttp.open("POST", "/host/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
-            xmlhttp.setRequestHeader("Content-length", description.length);
-            xmlhttp.setRequestHeader("Connection", "close");
             xmlhttp.send(description);
         } else if (trimmed.substring(0, 6) == "/join ") {
             var arg = trimmed.split(" ", 2);
@@ -88,18 +85,13 @@
             xmlhttp.open("POST", "/join/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
-            xmlhttp.setRequestHeader("Content-length", roomid.length);
-            xmlhttp.setRequestHeader("Connection", "close");
             xmlhttp.send(roomid);
         } else {
             xmlhttp.open("POST", "/send_text/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
-            xmlhttp.setRequestHeader("Content-length", params.length);
-            xmlhttp.setRequestHeader("Connection", "close");
             xmlhttp.send(params);
         }
-        formobj.value = "";
     }
 
     function logout()
@@ -116,7 +108,7 @@
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
                 var obj = jQuery.parseJSON(xmlhttp.responseText);
-                var sessionkey = obj[0];
+                sessionkey = obj[0];
                 document.title = obj[1];
                 $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", sessionkey, { expires: 7 });
                 $("#Login").fadeOut();
@@ -135,8 +127,6 @@
         params += $("#Password").val();
         xmlhttp.open("POST", "/login/", true);
         xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
         xmlhttp.send(params);
     }
 
@@ -221,7 +211,7 @@
                             roomhtml += "</div>";
 
                             var msg = new String();
-                            msg += "<tr><td colspan='2'>";
+                            msg += "<tr><td colspan='2' class='system'>";
                             msg += roomhtml + "</td></tr>";
 
                             tmpstring += msg;
@@ -245,9 +235,6 @@
                     // is scroll is at bottom, scroll to bottom
                     if (scr_to_bottom >= 0) {
                         $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
-                        //document.getElementById("dbg").innerHTML = scr_to_bottom;
-                    } else {
-                        //document.getElementById("dbg").innerHTML = "don't scroll";
                     }
                 }
                 else if (xmlhttp.status==204)
@@ -268,8 +255,6 @@
         xmlhttp.open("POST", "/check_update/", true);
         xmlhttp.setRequestHeader("Authorization", sessionkey);
         xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
         xmlhttp.send(params);
     }
 

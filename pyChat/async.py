@@ -255,10 +255,9 @@ import uuid
 
 # init variables
 
-INTERVAL_ALIVE = 3 * 1000000
-INTERVAL_DISCON = 15 * 1000000
 INTERVAL_SHORT = 3 * 1000
 INTERVAL_LONG = 30 * 1000
+INTERVAL_DROPUSER = 12 * 60 * 1000
 TIME_MAX = long(9999999999999)
 
 # message types, specified in user column
