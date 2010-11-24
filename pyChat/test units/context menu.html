@@ -1,0 +1,97 @@
+<html>
+
+<head>
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Code using $ as usual goes here.
+		$(".bmenu").click(function (e) {
+	        invokemenu($(this), e);
+			return false;
+		});
+
+		$(document).bind("contextmenu", function(e) {
+	        alert("r-click");
+			return false;
+		});
+
+		$(".bmenu").bind("contextmenu", function(e) {
+	        invokemenu($(this), e);
+			return false;
+		});
+
+		$(".menuitem").mouseover(function (e) {
+	        $(this).addClass("hover");
+		});
+		$(".menuitem").mouseout(function (e) {
+	        $(this).removeClass("hover");
+		});
+	});
+
+    $(document).click(function(e) {
+		//alert("document");
+		$("#menu").hide();
+    });
+
+	function invokemenu(obj, e) {
+		id = obj.attr('id');
+		//alert("menu");
+		var menu = $("#menu");
+		var item1 = $("#item1");
+		item1.unbind("click");
+		item1.click(function (e) {
+			// cannot do this here for it will be added multiple times
+	        alert("item1 " + id);
+		});
+		menu.css("left", e.pageX+"px");
+		menu.css("top", e.pageY+"px");
+		setTimeout("$('#menu').show();", 60);
+
+	}
+</script>
+<style type="text/css">
+    #menu {
+        padding: 3px;
+        position: absolute;
+        left: 100px; top: 50px;
+		width: 150;
+        background: white;
+        border: 1px solid lightgrey;
+        display: none;
+    }
+    #menu div {
+        padding: 3px 12px;
+    }
+    #menu div.hover {
+        color: white;
+        background: royalblue;
+    }
+    .il {
+        display: inline;
+    }
+</style>
+</head>
+
+<body>
+    <div id="menu">
+        <div id="item1" class="menuitem">Item1</div>
+        <div id="item2" class="menuitem">Item2</div>
+        <div id="item3" class="menuitem">Item3</div>
+        <div id="item4" class="menuitem">Item4</div>
+    </div>
+
+    <div class="bmenu" id="B1">
+       BLOCK1
+    </div>
+
+    <div class="bmenu" id="B2">
+       BLOCK2
+    </div>
+
+    <div>
+        <div class="il">ABC</div>
+        <div class="il">DEF</div>
+    </div>
+</body>
+
+</html>

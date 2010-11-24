@@ -1,0 +1,63 @@
+<html>
+<head>
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<style type="text/css">
+    body {
+        font-family: ²Ó©úÅé; }
+
+    #MessageList {
+        overflow: auto; overflow-x: hidden;
+        width: 648px; height: 600px;
+        border: 1px solid black;
+    }
+    #MessageList table {
+        table-layout: fixed;
+        width: 638px;
+    }
+    #MessageList td {
+        padding: 6px 6px 18px 6px;
+        border-top: 1px dashed #999999;
+    }
+    #MessageList td.lead {
+        width: 120px;
+        padding-right: 20px;
+    }
+</style>
+</head>
+<body>
+<div id="MessageList">
+    <table cellspacing="0">
+        <tr>
+            <td class="lead"><b>ABC</b></td>
+            <td>How much wood could a woodchuck chuck if a woodchuck could chuck wood?</td>
+        </tr>
+        <tr>
+            <td class="lead"><b>ABC</b></td>
+            <td>How much wood could a woodchuck chuck if a woodchuck could chuck wood?</td>
+        </tr>
+    </table>
+</div>
+
+    <script type="text/javascript">
+        $(document).ready(function(){
+            var inhtml = '<table cellspacing="0">';
+            inhtml += '<tr><td class="lead"><b>ABC</b></td>';
+            inhtml += '<td>How much wood could a woodchuck chuck if a woodchuck could chuck wood?</td></tr></table>';
+
+            var cnt = 100;
+            while (cnt) {
+                $("#MessageList").append(inhtml);
+                cnt--;
+            }
+
+            var strText1 = "anjke238789";
+            var strText2 = "amo=-;[.[kfo";
+            var strText3 = "§â­÷huer";
+            alert(!/\W/.test(strText1));
+            alert(!/\W/.test(strText2));
+            alert(!/\W/.test(strText3));
+        });
+    </script>
+
+</body>
+</html>
