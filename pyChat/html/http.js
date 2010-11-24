@@ -244,8 +244,9 @@
                     		$(".contextmenu").hide();
                     		var join = $("#MnuJoin");
                     		join.unbind("click");
+                            var roomid = $(this).attr('id');
                     		join.click(function (e) {
-                                send_text("/join " + $(this).attr('id'));
+                                send_text("/join " + roomid);
                     		});
                     		var menu = $("#MenuContainerRoom");
                     		menu.css("left", e.pageX+"px");
