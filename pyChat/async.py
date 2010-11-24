@@ -300,7 +300,7 @@ html_escape_table = {
     "<": "&lt;",
     "=": "&#61",
     ",": "&#44;",
-    " ": "&nbsp;",
+    #" ": "&nbsp;", # this causes line break problem
     "\n": "<br/>",
     }
 
