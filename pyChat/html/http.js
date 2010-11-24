@@ -150,6 +150,7 @@
                 {
                     var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
                         $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
+                    var bind_joinroom = false;
 
                     var obj = jQuery.parseJSON(xmlhttp.responseText);
                     var tmpstring = "<table cellspacing='0'>";
@@ -160,8 +161,8 @@
                             var msg = new String();
                             msg += "<tr><td class='lead'>";
                             var username = obj[i][1];
-                            if (username.length > 11) {
-                                username = username.substring(0, 8);
+                            if (username.length > 12) {
+                                username = username.substring(0, 9);
                                 username += "...";
                             }
                             msg += "<b>" + username + "</b></td>";
@@ -194,25 +195,33 @@
                                 $("#tab1").append(userspan);
                             }
 
-                            var msg = new String();
+                            /*var msg = new String();
                             msg += "<tr><td colspan='2'>";
                             msg += "<b>"+obj[i][1] + ", " + obj[i][3]+"</b></td>";
                             msg += "</tr>";
-                            tmpstring += msg;
+                            tmpstring += msg;*/
                         }
                         else if (obj[i][0] == 2) {
                             // room (description, ruleset, options, phase, host)
+                            bind_joinroom = true;
+
                             var subobj = jQuery.parseJSON(obj[i][3]);
 
-                            var roomhtml = new String();
                             roomid = obj[i][1];
-                            roomhtml += "<div class='joinroom' id='" + roomid + "'>";
+
+                            /*var roomhtml = new String();
+                            roomhtml += "<div class='joinroom clkable' id='" + roomid + "'>";
                             roomhtml += subobj[0] + " hosted by " + subobj[4];
                             roomhtml += "</div>";
 
                             var msg = new String();
                             msg += "<tr><td colspan='2' class='system'>";
-                            msg += roomhtml + "</td></tr>";
+                            msg += roomhtml + "</td></tr>";*/
+
+                            var msg = new String();
+                            msg += "<tr><td colspan='2' class='system joinroom clkable' id='" + roomid + "'><b>";
+                            msg += subobj[0] + " hosted by " + subobj[4];
+                            msg += "</b></td></tr>";
 
                             tmpstring += msg;
                         }
@@ -228,9 +237,24 @@
                     tmpstring += "</table>";
                     $("#MessageList").append(tmpstring);
 
-                    $(".joinroom").click(function(){
-                        join_room($(this).attr("id"));
-                    });
+                    if (bind_joinroom)
+                    {
+                        //$(".joinroom").bind("contextmenu", function(e) { // contextmenu override doesn't work in firefox
+                        $(".joinroom").click(function(e) {
+                    		$(".contextmenu").hide();
+                    		var join = $("#MnuJoin");
+                    		join.unbind("click");
+                    		join.click(function (e) {
+                                send_text("/join " + $(this).attr('id'));
+                    		});
+                    		var menu = $("#MenuContainerRoom");
+                    		menu.css("left", e.pageX+"px");
+                    		menu.css("top", e.pageY+"px");
+                    		setTimeout("$('#MenuContainerRoom').show();", 60);
+                            return false;
+                        });
+                        bind_joinroom = false;
+                    }
 
                     // is scroll is at bottom, scroll to bottom
                     if (scr_to_bottom >= 0) {

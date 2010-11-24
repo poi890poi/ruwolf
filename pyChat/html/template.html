@@ -80,6 +80,9 @@
         color: white;
         background: royalblue;
     }
+    .clkable {
+        cursor: pointer;
+    }
 </style>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
@@ -204,7 +207,7 @@
         </table>
     </div>
 
-    <div class="contextmenu" id="MenuGeneral">
+    <div class="contextmenu" id="MenuContainerGeneral">
         <div class="menuitem" id="MnuHelp">Help</div>
         <div class="menuitem">About</div>
         <hr/>
@@ -212,17 +215,13 @@
         <div class="menuitem" id="MnuLogout">Logout</div>
     </div>
 
+    <div class="contextmenu" id="MenuContainerRoom">
+        <div class="menuitem" id="MnuJoin">Join</div>
+    </div>
+
     <div id="dbg"></div>
 
     <script type="text/javascript">
-    	function invokemenu(obj, e) {
-    		//id = obj.attr('id');
-    		var menu = $("#menu");
-    		menu.css("left", e.pageX+"px");
-    		menu.css("top", e.pageY+"px");
-    		setTimeout("$('#menu').show();", 60);
-    	}
-
         $(document).ready(function(){
             $("#role").click(function(){
                 $(this).hide();
@@ -237,16 +236,22 @@
                 return false;
             });
 
-    		$(document).bind("contextmenu", function(e) {
-                if (event.ctrlKey) {
+            $(document)[0].oncontextmenu = function() {return false;}
+            $(document).mousedown(function(e){
+                if( e.button == 2 ) {
+            		$(".contextmenu").hide();
+                    if (e.ctrlKey) {
+                        return true;
+                    }
+            		var menu = $("#MenuContainerGeneral");
+            		menu.css("left", e.pageX+"px");
+            		menu.css("top", e.pageY+"px");
+            		setTimeout("$('#MenuContainerGeneral').show();", 60);
+        			return false;
+                } else {
                     return true;
                 }
-        		var menu = $("#MenuGeneral");
-        		menu.css("left", e.pageX+"px");
-        		menu.css("top", e.pageY+"px");
-        		setTimeout("$('#MenuGeneral').show();", 60);
-    			return false;
-    		});
+            });
     		$(".menuitem").mouseover(function (e) {
     	        $(this).addClass("menuhover");
     		});
@@ -268,7 +273,6 @@
         		$(".contextmenu").hide();
                 send_text("/logout");
             });
-
 
             var offset = $("#MessageList").offset();
             offset.left += 680;

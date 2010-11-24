@@ -39,6 +39,14 @@
 </div>
 
     <script type="text/javascript">
+        function test(arg)
+        {
+            if (!arg)
+            {
+                alert("not defined");
+            }
+        }
+
         $(document).ready(function(){
             var inhtml = '<table cellspacing="0">';
             inhtml += '<tr><td class="lead"><b>ABC</b></td>';
@@ -53,9 +61,10 @@
             var strText1 = "anjke238789";
             var strText2 = "amo=-;[.[kfo";
             var strText3 = "§â­÷huer";
-            alert(!/\W/.test(strText1));
-            alert(!/\W/.test(strText2));
-            alert(!/\W/.test(strText3));
+            //alert(!/\W/.test(strText1));
+            //alert(!/\W/.test(strText2));
+            //alert(!/\W/.test(strText3));
+            test();
         });
     </script>
 
