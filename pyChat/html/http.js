@@ -2,6 +2,7 @@
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
     //var sessionkey = ""; //for testing
     var user_status = new Array();
+    var polling = false;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -12,11 +13,15 @@
         while (strText.substring(strText.length-1,strText.length) == ' ')
             strText = strText.substring(0, strText.length-1);
 
-       return strText;
+        // replace multiple spaces with single one
+        strText = strText.replace(/ {2,}/g,' ');
+
+        return strText;
     }
 
     function createXMLHttpRequest()
     {
+        var xmlhttp;
         if (window.XMLHttpRequest)
         {// code for IE7+, Firefox, Chrome, Opera, Safari
             xmlhttp = new XMLHttpRequest();
@@ -36,21 +41,22 @@
 
     function send_text()
     {
-        formobj = document.getElementById("EditMessage")
-        xmlhttp = createXMLHttpRequest();
+        var formobj = document.getElementById("EditMessage")
+        var xmlhttp = createXMLHttpRequest();
         xmlhttp.onreadystatechange = function()
         {
             if (xmlhttp.readyState==4 && xmlhttp.status==204)
             {
                 poll();
+                // may cause double fetch problem if polling is already sent
             }
             else if (xmlhttp.readyState==4 && xmlhttp.status==205)
             {
                 location.reload();
             }
         }
-        params = formobj.value;
-        trimmed = trim(params);
+        var params = formobj.value;
+        var trimmed = trim(params);
         if (trimmed == "/logout") {
             xmlhttp.open("POST", "/logout/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
@@ -58,8 +64,6 @@
             xmlhttp.setRequestHeader("Content-length", sessionkey.length);
             xmlhttp.setRequestHeader("Connection", "close");
             xmlhttp.send(sessionkey);
-        } else if (trimmed == "/list") {
-            list_room();
         } else if (trimmed == "/quit") {
             xmlhttp.open("POST", "/quit/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
@@ -69,7 +73,7 @@
             xmlhttp.send(sessionkey);
         } else if (trimmed.substring(0, 6) == "/host ") {
             var arg = trimmed.split(" ", 2);
-            description = "";
+            var description = "";
             if (arg[1]) {description = arg[1];}
             xmlhttp.open("POST", "/host/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
@@ -79,7 +83,7 @@
             xmlhttp.send(description);
         } else if (trimmed.substring(0, 6) == "/join ") {
             var arg = trimmed.split(" ", 2);
-            roomid = "";
+            var roomid = "";
             if (arg[1]) {roomid = arg[1];}
             xmlhttp.open("POST", "/join/", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
@@ -105,14 +109,14 @@
 
     function login()
     {
-        xmlhttp = createXMLHttpRequest();
+        var xmlhttp = createXMLHttpRequest();
         xmlhttp.onreadystatechange = function()
         {
             //alert("returned " + xmlhttp.status);
             if (xmlhttp.readyState==4 && xmlhttp.status==200)
             {
                 var obj = jQuery.parseJSON(xmlhttp.responseText);
-                sessionkey = obj[0];
+                var sessionkey = obj[0];
                 document.title = obj[1];
                 $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", sessionkey, { expires: 7 });
                 $("#Login").fadeOut();
@@ -125,7 +129,7 @@
                 resizeUI(0);
             }
         }
-        params = "";
+        var params = "";
         params += $("#Username").val();
         params += "\r\n";
         params += $("#Password").val();
@@ -140,83 +144,18 @@
         $("#EditMessage").val("/join "+roomid);
     }
 
-    function list_room()
-    {
-        var my_JSON_object = {};
-        xmlhttp = createXMLHttpRequest();
-        xmlhttp.onreadystatechange = function()
-        {
-            if (xmlhttp.readyState==4) {
-                if (xmlhttp.status==200)
-                {
-                    var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
-                        $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
-
-                    var obj = jQuery.parseJSON(xmlhttp.responseText);
-                    var tmpstring = "<table cellspacing='0'>";
-                    var i, N = obj.length;
-                    for (i=0; i<N; i++) {
-                        if (obj[i][0] == 2) {
-                            // room (description, ruleset, options, phase, host)
-                            var subobj = jQuery.parseJSON(obj[i][3]);
-
-                            var roomhtml = new String();
-                            roomid = "'" + obj[i][1] + "'"
-                            roomhtml += "<div class='room' onlick='join(" + roomid + ");'>";
-                            roomhtml += subobj[0] + " hosted by " + subobj[4];
-                            roomhtml += "</div>";
-
-                            var msg = new String();
-                            msg += "<tr><td class='header'>";
-                            msg += roomhtml + "</td>";
-                            msg += "<td class='time'></td>";
-                            msg += "</tr>";
-                            msg += "<tr><td class='body' colspan='2'></td></tr>";
-
-                            alert(msg);
-
-                            tmpstring += msg;
-                        }
-                    }
-                    tmpstring += "</table>";
-                    $("#MessageList").append(tmpstring);
-
-                    // is scroll is at bottom, scroll to bottom
-                    if (scr_to_bottom >= 0) {
-                        $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
-                        //document.getElementById("dbg").innerHTML = scr_to_bottom;
-                    } else {
-                        //document.getElementById("dbg").innerHTML = "don't scroll";
-                    }
-                }
-                else if (xmlhttp.status==204)
-                {
-                    $("#Login").fadeOut();
-                    resizeUI(500);
-                }
-                else if (xmlhttp.status==401)
-                {
-                    $("#Login").fadeIn();
-                    resizeUI(0);
-                }
-            }
-        }
-        params = timestamp + "";
-        xmlhttp.open("POST", "/list/", true);
-        xmlhttp.setRequestHeader("Authorization", sessionkey);
-        xmlhttp.setRequestHeader("Content-type", "text/plain");
-        xmlhttp.setRequestHeader("Content-length", params.length);
-        xmlhttp.setRequestHeader("Connection", "close");
-        xmlhttp.send(params);
-    }
-
     function poll()
     {
+        if (polling == true) {
+            return;
+        }
+        polling = true;
         var my_JSON_object = {};
-        xmlhttp = createXMLHttpRequest();
+        var xmlhttp = createXMLHttpRequest();
         xmlhttp.onreadystatechange = function()
         {
             if (xmlhttp.readyState==4) {
+                polling = false;
                 if (xmlhttp.status==200)
                 {
                     var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
@@ -229,19 +168,14 @@
                         if (obj[i][0] == 0) {
                             //user message (type, username, isoformat, message, timestamp)
                             var msg = new String();
-                            msg += "<tr><td class='header'>";
-                            //userspan = $("#3B06037A"+obj[i][1]);
-                            //if (userspan.length) {
-                            //    msg += userspan.html() + "</td>";;
-                            //}
-                            //else
-                            {
-                                msg += "<b>"+obj[i][1]+"</b></td>";
+                            msg += "<tr><td class='lead'>";
+                            var username = obj[i][1];
+                            if (username.length > 11) {
+                                username = username.substring(0, 8);
+                                username += "...";
                             }
-                            msg += "<td class='time'>"+obj[i][2]+"</td>";
-                            //msg += "<td class='header3'></td>";
-                            msg += "</tr>";
-                            msg += "<tr><td class='body' colspan='2'><blockquote>"+obj[i][3]+"</blockquote></td></tr>";
+                            msg += "<b>" + username + "</b></td>";
+                            msg += "<td>" + obj[i][3] + "</td></tr>";
                             tmpstring += msg;
                         }
                         else if (obj[i][0] == 1) {
@@ -271,11 +205,9 @@
                             }
 
                             var msg = new String();
-                            msg += "<tr><td class='header'>";
+                            msg += "<tr><td colspan='2'>";
                             msg += "<b>"+obj[i][1] + ", " + obj[i][3]+"</b></td>";
-                            msg += "<td class='time'></td>";
                             msg += "</tr>";
-                            msg += "<tr><td class='body' colspan='2'></td></tr>";
                             tmpstring += msg;
                         }
                         else if (obj[i][0] == 2) {
@@ -289,11 +221,8 @@
                             roomhtml += "</div>";
 
                             var msg = new String();
-                            msg += "<tr><td class='header'>";
-                            msg += roomhtml + "</td>";
-                            msg += "<td class='time'></td>";
-                            msg += "</tr>";
-                            msg += "<tr><td class='body' colspan='2'></td></tr>";
+                            msg += "<tr><td colspan='2'>";
+                            msg += roomhtml + "</td></tr>";
 
                             tmpstring += msg;
                         }
@@ -332,10 +261,10 @@
                     resizeUI(0);
                 }
 
-                timer = setTimeout(poll, 500);
+                var timer = setTimeout(poll, 500);
             }
         }
-        params = timestamp + "";
+        var params = timestamp + "";
         xmlhttp.open("POST", "/check_update/", true);
         xmlhttp.setRequestHeader("Authorization", sessionkey);
         xmlhttp.setRequestHeader("Content-type", "text/plain");

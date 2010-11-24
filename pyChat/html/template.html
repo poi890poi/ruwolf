@@ -8,6 +8,7 @@
         font-weight: normal }
     body {
         font-family: 細明體; }
+
     #MessageList {
         overflow: auto; overflow-x: hidden;
         width: 648px; height: 600px;
@@ -15,21 +16,17 @@
     }
     #MessageList table {
         table-layout: fixed;
-        width: 650px }
+        width: 638px;
+    }
     #MessageList td {
-        padding: 0px;
-        border: 0px; }
-    #MessageList td.header {
-        width: 400px; height: 24px;
-        padding-left: 3px;
-        vertical-align: middle;
-        background-color: lightgrey }
-    #MessageList td.time {
-        text-align: right;
-        padding-right: 30px;
-        background-color: lightgrey }
-    #MessageList td.body {
-        padding-top: 9px }
+        padding: 6px 6px 15px 6px;
+        border-top: 1px dashed #999999;
+    }
+    #MessageList td.lead {
+        width: 125px;
+        padding-right: 15px;
+    }
+
     #PostMessage {
         padding-top: 16px;
     }
@@ -95,7 +92,6 @@
 </head>
 <body>
     <div id="MessageList">
-        <span></span>
     </div>
     <div id="PostMessage">
         <textarea id="EditMessage" wrap="hard"></textarea><br/>
