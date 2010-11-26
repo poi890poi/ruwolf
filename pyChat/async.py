@@ -277,12 +277,18 @@ GUID_0 = '204c4a4e-5b67-4745-b104-9f6dcf0ad8e4'
 MSG_USER_STATUS = 1
 MSG_ROOM = 2
 MSG_USERQUIT = 3
+MSG_USR_STA_PRIVATE = 4
+MSG_USR_STA_ALIGNMENT = 5
+
+# user status
+USR_CONN = 0b00000001
+USR_LYNCH_VOTE = 0b00000010
+
+# roles
 
 # do later actions
 DLTR_COMMIT_DB = 0b00000001
 
-# user status
-USR_CONN = 0b00000001
 
 do_later_short = long(0)
 do_later_long = long(0)
@@ -527,7 +533,8 @@ class MyHandler(RequestHandler):
                 timestamp = get_time_norm()
                 privilege = 0
                 username = roomid
-                json_serial = (description, ruleset, options, phase, auth[0])
+                participant = 1
+                json_serial = (description, ruleset, options, phase, auth[0], roomid, participant)
                 message = json.dumps(json_serial)
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
@@ -623,46 +630,6 @@ class MyHandler(RequestHandler):
             self.send_response(204)
             self.end_headers()
 
-        elif self.path == '/list/':
-            auth = None
-            if 'Authorization' in self.headers:
-                sessionkey = self.headers['Authorization']
-                ip = self.client_address[0]
-
-                dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,ip))
-                auth = dbcursor.fetchone()
-
-            # query message
-            roomid = ''
-            privilege = 0
-            if auth:
-                roomid = auth[4]
-                privilege = auth[7]
-            dbcursor.execute("""select * from message where type=?""", (MSG_ROOM,))
-            json_serial = []
-            for row in dbcursor:
-                timestamp = TIME_MAX
-                username = row[3]
-                isoformat = row[4]
-                message = row[5]
-                type = row[6]
-                row_serial = (type, username, isoformat, message, timestamp)
-                json_serial.append(row_serial)
-
-            if json_serial:
-                ret = json.dumps(json_serial)
-                self.send_response(200)
-                self.send_header(u'Content-type', u'text/plain')
-                self.end_headers()
-                self.wfile.write(ret)
-            elif auth:
-                self.send_response(204)
-                self.end_headers()
-            else:
-                self.send_response(401)
-                self.end_headers()
-
         elif self.path == '/check_update/':
             auth = None
             if 'Authorization' in self.headers:
@@ -742,5 +709,6 @@ if __name__=="__main__":
     try:
         asyncore.loop(timeout=2)
     except KeyboardInterrupt:
+        conn.commit()
         dbconn.close()
         print "Crtl+C pressed. Shutting down."

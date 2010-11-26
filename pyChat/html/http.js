@@ -19,6 +19,14 @@
         return strText;
     }
 
+    function layoutSafeStr(strText)
+    {
+        if (strText.length > 12) {
+            return strText.substring(0, 9) + "...";
+        }
+        return strText;
+    }
+
     function createXMLHttpRequest()
     {
         var xmlhttp;
@@ -150,7 +158,6 @@
                 {
                     var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
                         $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
-                    var bind_joinroom = false;
 
                     var obj = jQuery.parseJSON(xmlhttp.responseText);
                     var tmpstring = "<table cellspacing='0'>";
@@ -160,11 +167,7 @@
                             //user message (type, username, isoformat, message, timestamp)
                             var msg = new String();
                             msg += "<tr><td class='lead'>";
-                            var username = obj[i][1];
-                            if (username.length > 12) {
-                                username = username.substring(0, 9);
-                                username += "...";
-                            }
+                            var username = layoutSafeStr(obj[i][1]);
                             msg += "<b>" + username + "</b></td>";
                             msg += "<td>" + obj[i][3] + "</td></tr>";
                             tmpstring += msg;
@@ -180,7 +183,7 @@
                                 userhtml += "<img class='usericon' src='dead.png'></img>";
                             }
                             userhtml += "<b>";
-                            userhtml += obj[i][1];
+                            userhtml += layoutSafeStr(obj[i][1]);
                             userhtml += "</b>";
 
                             userspan = $("#3B06037A"+obj[i][1]);
@@ -191,39 +194,35 @@
                             else
                             {
                                 userspan = new String();
-                                userspan += "<div id='3B06037A" + obj[i][1] + "' class='user'>" + userhtml + "</div>";
+                                userspan += "<div id='3B06037A" + obj[i][1] + "' class=''>" + userhtml + "</div>";
                                 $("#tab1").append(userspan);
                             }
-
-                            /*var msg = new String();
-                            msg += "<tr><td colspan='2'>";
-                            msg += "<b>"+obj[i][1] + ", " + obj[i][3]+"</b></td>";
-                            msg += "</tr>";
-                            tmpstring += msg;*/
                         }
                         else if (obj[i][0] == 2) {
-                            // room (description, ruleset, options, phase, host)
-                            bind_joinroom = true;
-
+                            // room (description, ruleset, options, phase, host, roomid, participant)
                             var subobj = jQuery.parseJSON(obj[i][3]);
+                            if (subobj.length == 7)
+                            {
+                                roomid = obj[i][1];
 
-                            roomid = obj[i][1];
+                                var roomhtml = new String();
 
-                            /*var roomhtml = new String();
-                            roomhtml += "<div class='joinroom clkable' id='" + roomid + "'>";
-                            roomhtml += subobj[0] + " hosted by " + subobj[4];
-                            roomhtml += "</div>";
+                                roomhtml += "<b>";
+                                roomhtml += subobj[0];
+                                roomhtml += "</b>";
 
-                            var msg = new String();
-                            msg += "<tr><td colspan='2' class='system'>";
-                            msg += roomhtml + "</td></tr>";*/
-
-                            var msg = new String();
-                            msg += "<tr><td colspan='2' class='system joinroom clkable' id='" + roomid + "'><b>";
-                            msg += subobj[0] + " hosted by " + subobj[4];
-                            msg += "</b></td></tr>";
-
-                            tmpstring += msg;
+                                roomspan = $("#81D995F6"+roomid);
+                                if (roomspan.length) {
+                                    roomspan.html(roomhtml);
+                                }
+                                else
+                                {
+                                    roomspan = new String();
+                                    roomspan += "<div id='81D995F6" + roomid + "' class='clk_room clkable' data-json='" + obj[i][3] + "'>"
+                                    roomspan += roomhtml + "</div>";
+                                    $("#tab1").append(roomspan);
+                                }
+                            }
                         }
                         else if (obj[i][0] == 3) {
                             // user quit, obj[i][3] = username
@@ -236,26 +235,6 @@
                     }
                     tmpstring += "</table>";
                     $("#MessageList").append(tmpstring);
-
-                    if (bind_joinroom)
-                    {
-                        //$(".joinroom").bind("contextmenu", function(e) { // contextmenu override doesn't work in firefox
-                        $(".joinroom").click(function(e) {
-                    		$(".contextmenu").hide();
-                    		var join = $("#MnuJoin");
-                    		join.unbind("click");
-                            var roomid = $(this).attr('id');
-                    		join.click(function (e) {
-                                send_text("/join " + roomid);
-                    		});
-                    		var menu = $("#MenuContainerRoom");
-                    		menu.css("left", e.pageX+"px");
-                    		menu.css("top", e.pageY+"px");
-                    		setTimeout("$('#MenuContainerRoom').show();", 60);
-                            return false;
-                        });
-                        bind_joinroom = false;
-                    }
 
                     // is scroll is at bottom, scroll to bottom
                     if (scr_to_bottom >= 0) {

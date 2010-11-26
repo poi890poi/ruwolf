@@ -26,6 +26,8 @@
 		$(".menuitem").mouseout(function (e) {
 	        $(this).removeClass("hover");
 		});
+
+        $("#dialog").dialog();
 	});
 
     $(document).click(function(e) {
@@ -93,6 +95,8 @@
         <div class="il">ABC</div>
         <div class="il">DEF</div>
     </div>
+
+    <div id="dialog" title="Dialog Title">I'm in a dialog</div>
 </body>
 
 </html>

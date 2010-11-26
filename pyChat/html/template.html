@@ -54,7 +54,7 @@
         vertical-align: top;
         padding: 0px;
         border: 1px solid black; }
-    #Toolbar div.user {
+    #Toolbar div {
         margin-bottom: 2px;
     }
     img.usericon {
@@ -67,9 +67,11 @@
     div.contextmenu {
         padding: 4px;
         position: absolute;
-		width: 180px;
-        background: #dddddd;
-        border: 3px double #999999;
+		width: 200px;
+        background: #eeeeee;
+        border: 2px solid #777777;
+        border-top: 2px solid #dddddd;
+        border-left: 2px solid #dddddd;
         display: none;
     }
     div.menuitem {
@@ -210,6 +212,7 @@
     <div class="contextmenu" id="MenuContainerGeneral">
         <div class="menuitem" id="MnuHelp">Help</div>
         <div class="menuitem">About</div>
+        <div class="menuitem" id="MnuHost">Host a New Game</div>
         <hr/>
         <div class="menuitem" id="MnuQuit">Leave Game</div>
         <div class="menuitem" id="MnuLogout">Logout</div>
@@ -222,7 +225,7 @@
     <div id="dbg"></div>
 
     <script type="text/javascript">
-        $(document).ready(function(){
+        $(window).load(function(){
             $("#role").click(function(){
                 $(this).hide();
             });
@@ -246,7 +249,7 @@
             		var menu = $("#MenuContainerGeneral");
             		menu.css("left", e.pageX+"px");
             		menu.css("top", e.pageY+"px");
-            		setTimeout("$('#MenuContainerGeneral').show();", 60);
+            		setTimeout("$('#MenuContainerGeneral').show();", 120);
         			return false;
                 } else {
                     return true;
@@ -272,6 +275,32 @@
             $("#MnuLogout").click(function(e) {
         		$(".contextmenu").hide();
                 send_text("/logout");
+            });
+            $("#MnuHost").click(function(e) {
+        		$(".contextmenu").hide();
+                //var description = prompt("Please enter a brief description."); // doesn't work in IE
+                var description = "I_want_to_play_a_game.";
+                send_text("/host " + description);
+            });
+
+            $("#Toolbar div.clk_room").live("click", function(e) {
+        		$(".contextmenu").hide();
+
+                // room (description, ruleset, options, phase, host, roomid, participant)
+                var data_json = jQuery.parseJSON($(this).attr('data-json'));
+                var roomid = data_json[5];
+
+        		var join = $("#MnuJoin");
+                join.html("Join " + layoutSafeStr(data_json[0]) + "(" + data_json[6] + ")");
+        		join.unbind("click");
+        		join.click(function (e) {
+                    send_text("/join " + roomid);
+        		});
+        		var menu = $("#MenuContainerRoom");
+        		menu.css("left", e.pageX+"px");
+        		menu.css("top", e.pageY+"px");
+        		setTimeout("$('#MenuContainerRoom').show();", 120);
+                return false;
             });
 
             var offset = $("#MessageList").offset();
