@@ -291,7 +291,7 @@
                 var roomid = data_json[5];
 
         		var join = $("#MnuJoin");
-                join.html("Join " + layoutSafeStr(data_json[0]) + "(" + data_json[6] + ")");
+                join.html("Join <b>" + layoutSafeStr(data_json[0]) + "</b>");
         		join.unbind("click");
         		join.click(function (e) {
                     send_text("/join " + roomid);

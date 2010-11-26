@@ -253,6 +253,10 @@ import sqlite3
 import sys
 import uuid
 
+import logging
+LOG_FILENAME = 'debug.log'
+logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
+
 # init variables
 
 INTERVAL_SHORT = 3 * 1000
@@ -281,14 +285,58 @@ MSG_USR_STA_PRIVATE = 4
 MSG_USR_STA_ALIGNMENT = 5
 
 # user status
-USR_CONN = 0b00000001
-USR_LYNCH_VOTE = 0b00000010
+USR_CONN = 0x00000001
+USR_SURVIVE = 0x00000002
+
+USR_PRESERVE = 0x00000004
+USR_PRESERVE = 0x00000008
+USR_PRESERVE = 0x00000010
+USR_PRESERVE = 0x00000020
+USR_PRESERVE = 0x00000040
+USR_PRESERVE = 0x00000080
+
+USR_VOTE_LYNCH = 0x00000100
+USR_VOTE_CASTING = 0x00000200
+
+USR_PRESERVE = 0x00000400
+USR_PRESERVE = 0x00000800
+
+USR_VOTE_BITE = 0x00001000
+USR_NA_BLOCK = 0x00002000
+USR_NA_DETECT = 0x00004000
+USR_NA_PROTECT = 0x00008000
+USR_NA_AUTOPSY = 0x000010000
+USR_NA_CUPID = 0x000020000
+
+USR_PRESERVE = 0x000040000
+USR_PRESERVE = 0x000080000
+
 
 # roles
+ROLE_VILLAGER = 0x00000000
+ROLE_SEER = 0x00000001
+ROLE_HEALER = 0x00000002
+ROLE_HUNTER = 0x00000004
+ROLE_PRESERVE = 0x00000008
+
+ROLE_CUPID = 0x00000010
+ROLE_LOVER = 0x00000020
+ROLE_PRESERVE = 0x00000040
+ROLE_PRESERVE = 0x00000080
+
+ROLE_WOLF = 0x00000100
+ROLE_BLOCKER = 0x00000200
+ROLE_ALPHA_WOLF = 0x00000400
+ROLE_MADMAN = 0x00000800
+ROLE_JUNIOR_WOLF = 0x00001000
+ROLE_PRESERVE = 0x00002000
+ROLE_PRESERVE = 0x00004000
+ROLE_PRESERVE = 0x00008000
+
+ROLE_ALIGNMENT_SHIFT = 24
 
 # do later actions
 DLTR_COMMIT_DB = 0b00000001
-
 
 do_later_short = long(0)
 do_later_long = long(0)
@@ -351,8 +399,27 @@ def html_escape(text):
 def get_time_norm():
     return long(time.time()*1000)
 
-def change_room(username, roomid, oroomid):
-    pass
+def upd_room(roomid):
+
+    dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
+    dbcursor.execute("""select count(*) from user where roomid=?""", (roomid,))
+    sqlcount = dbcursor.fetchall()
+    user_count = sqlcount[0][0]
+    if user_count == -1: user_count = 0
+    rec = None
+    dbcursor.execute("""select * from room where roomid=?""", (roomid,))
+    rec = dbcursor.fetchone()
+    logging.debug('user_count, room: '+roomid+', count: '+str(user_count))
+    if rec:
+        timestamp = get_time_norm()
+        privilege = 0
+        username = roomid
+        participant = user_count
+        json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, participant)
+        message = json.dumps(json_serial)
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+            ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
+        logging.debug('upd_room, room: '+roomid+', json: '+message)
 
 def upd_user_status(user):
     global user_status
@@ -361,7 +428,6 @@ def upd_user_status(user):
     dbcursor.execute("""select * from user where username=?""", (user,))
     rec = dbcursor.fetchone()
     print 'rec: ', rec
-    #sleep(100)
     if rec:
         roomid = rec[4]
         timestamp = get_time_norm()
@@ -373,6 +439,7 @@ def upd_user_status(user):
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, ''))
+        logging.debug('upd_user_status, user: '+user+', json: '+message)
 
 def msg_command(roomid, type, argument):
     now = time.time()
@@ -402,7 +469,6 @@ def check_do_later():
     print 'now: ', now
     print 'do_later_short: ', do_later_short
     if now > do_later_short:
-        #dbg_msg('short')
         for user in user_status:
             if user_status[user] & USR_CONN:
                 # check connected user for discon
@@ -411,7 +477,7 @@ def check_do_later():
                 if now - user_activity[user] > INTERVAL_SHORT:
                     user_status[user] &= ~USR_CONN
                     upd_user_status(user)
-                    dbg_msg(user+' discon')
+                    logging.debug('user discon, user: '+user)
 
         do_later_short = now + INTERVAL_SHORT
 
@@ -419,9 +485,8 @@ def check_do_later():
         # do something
         if check_dltr_mask(DLTR_COMMIT_DB):
             conn.commit()
-            #dbg_msg('commit db')
+            logging.debug('commit database')
 
-        #dbg_msg('long')
         do_later_long = now + INTERVAL_LONG
 
 class MyHandler(RequestHandler):
@@ -528,7 +593,6 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?)', \
                     (auth[0], roomid, description, ruleset, options, phase, timeout, 0, ''))
                 dbcursor.execute("""update user set roomid=? where username=?""", (roomid, auth[0]))
-                dbg_msg(auth[0]+' is hosting a new game '+description)
 
                 timestamp = get_time_norm()
                 privilege = 0
@@ -562,6 +626,9 @@ class MyHandler(RequestHandler):
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
+                logging.debug('/quit/, username: '+auth[0]+', roomid: '+auth[4])
+                upd_room(auth[4])
+
                 self.send_response(205)
                 self.end_headers()
             else:
@@ -582,6 +649,9 @@ class MyHandler(RequestHandler):
                 dbcursor.execute("""update user set roomid=? where username=?""", (roomid, auth[0]))
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
+
+                logging.debug('/join/, username: '+auth[0]+', roomid: '+roomid)
+                upd_room(roomid)
 
                 self.send_response(205)
                 self.end_headers()
@@ -650,7 +720,7 @@ class MyHandler(RequestHandler):
                         # user connected
                         user_status[auth[0]] |= USR_CONN
                         upd_user_status(auth[0])
-                        dbg_msg(auth[0]+' connected')
+                        logging.debug('user connected, user: '+auth[0])
 
             #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())

@@ -73,3 +73,34 @@ displayntable 8,
 lastactivity 9
 reserved1 10
 reserved2 11
+
+dbcursor.execute('''create table if not exists room
+(username text, roomid text, description text, ruleset integer, options integer,
+phase integer, timeout integer, reserved1 integer, reserved2 text)''')
+
+username 0
+roomid 1
+description 2
+ruleset 3
+options 4,
+phase 5
+timeout 6
+
+USR_CONN = 		0x00000001
+USR_SURVIVE =	 	0x00000002
+USR_PRESERVE1 =		0x00000004
+USR_PRESERVE2 = 	0x00000008
+USR_PRESERVE3 = 	0x00000010
+USR_PRESERVE4 = 	0x00000020
+USR_PRESERVE5 =	 	0x00000040
+USR_PRESERVE6 =	 	0x00000080
+USR_VOTE_LYNCH = 	0x00000100
+USR_VOTE_CASTING = 	0x00000200
+USR_PRESERVE7 = 	0x00000400
+USR_PRESERVE7 = 	0x00000800
+USR_VOTE_BITE = 	0x00001000
+USR_NA_BLOCK = 		0x00002000
+USR_NA_HEAL = 		0x00004000
+USR_NA_PROTECT = 	0x00008000
+USR_NA_DETECT = 	0x00010000
+USR_NA_DETECTX = 	0x00020000

@@ -160,7 +160,8 @@
                         $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
 
                     var obj = jQuery.parseJSON(xmlhttp.responseText);
-                    var tmpstring = "<table cellspacing='0'>";
+                    var msgappend = "";
+                    var lstappend = "";
                     var i, N = obj.length;
                     for (i=0; i<N; i++) {
                         if (obj[i][0] == 0) {
@@ -170,7 +171,7 @@
                             var username = layoutSafeStr(obj[i][1]);
                             msg += "<b>" + username + "</b></td>";
                             msg += "<td>" + obj[i][3] + "</td></tr>";
-                            tmpstring += msg;
+                            msgappend += msg;
                         }
                         else if (obj[i][0] == 1) {
                             // user status (roomid, user_status[user])
@@ -195,7 +196,7 @@
                             {
                                 userspan = new String();
                                 userspan += "<div id='3B06037A" + obj[i][1] + "' class=''>" + userhtml + "</div>";
-                                $("#tab1").append(userspan);
+                                lstappend += userspan;
                             }
                         }
                         else if (obj[i][0] == 2) {
@@ -209,18 +210,22 @@
 
                                 roomhtml += "<b>";
                                 roomhtml += subobj[0];
+                                roomhtml += "(";
+                                roomhtml += subobj[6];
+                                roomhtml += ")";
                                 roomhtml += "</b>";
 
                                 roomspan = $("#81D995F6"+roomid);
                                 if (roomspan.length) {
                                     roomspan.html(roomhtml);
+                                    roomspan.attr('data-json', obj[i][3]);
                                 }
                                 else
                                 {
                                     roomspan = new String();
                                     roomspan += "<div id='81D995F6" + roomid + "' class='clk_room clkable' data-json='" + obj[i][3] + "'>"
                                     roomspan += roomhtml + "</div>";
-                                    $("#tab1").append(roomspan);
+                                    lstappend += roomspan;
                                 }
                             }
                         }
@@ -233,8 +238,18 @@
                         }
                         if (obj[i][4] > timestamp) timestamp = obj[i][4];
                     }
-                    tmpstring += "</table>";
-                    $("#MessageList").append(tmpstring);
+
+                    if (msgappend) {
+                        msgappend = "<table cellspacing='0'>" + msgappend;
+                        msgappend += "</table>";
+                        $("#MessageList").append(msgappend);
+                    }
+
+                    if (lstappend) {
+                        lstappend = "<div>" + lstappend;
+                        lstappend += "</div>";
+                        $("#tab1").append(lstappend);
+                    }
 
                     // is scroll is at bottom, scroll to bottom
                     if (scr_to_bottom >= 0) {
