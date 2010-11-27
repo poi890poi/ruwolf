@@ -285,10 +285,13 @@ MSG_USR_STA_PRIVATE = 4
 MSG_USR_STA_ALIGNMENT = 5
 
 # user status
+USR_PUBLIC_MASK = 0x000000ff
+USR_PRIVATE_MASK = 0x00ffff00
+
 USR_CONN = 0x00000001
 USR_SURVIVE = 0x00000002
+USR_HOST = 0x00000004
 
-USR_PRESERVE = 0x00000004
 USR_PRESERVE = 0x00000008
 USR_PRESERVE = 0x00000010
 USR_PRESERVE = 0x00000020
@@ -310,7 +313,6 @@ USR_NA_CUPID = 0x000020000
 
 USR_PRESERVE = 0x000040000
 USR_PRESERVE = 0x000080000
-
 
 # roles
 ROLE_VILLAGER = 0x00000000
@@ -334,6 +336,10 @@ ROLE_PRESERVE = 0x00004000
 ROLE_PRESERVE = 0x00008000
 
 ROLE_ALIGNMENT_SHIFT = 24
+
+# privileges
+
+PVG_PRIVATE = 0xffffffff
 
 # do later actions
 DLTR_COMMIT_DB = 0b00000001
@@ -423,23 +429,52 @@ def upd_room(roomid):
 
 def upd_user_status(user):
     global user_status
-    dbcursor.execute("""delete from message where username=? and type=?""", (user, MSG_USER_STATUS))
+    dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
+        (user, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
     rec = None
     dbcursor.execute("""select * from user where username=?""", (user,))
     rec = dbcursor.fetchone()
     print 'rec: ', rec
     if rec:
         roomid = rec[4]
+        role = rec[5]
         timestamp = get_time_norm()
         privilege = 0
         username = user
-        json_serial = (rec[5], 0)
+        json_serial = (0, 0)
+        status = 0
         if user in user_status:
-            json_serial = (rec[5], user_status[user])
+            status = user_status[user]
+
+        json_serial = (roomid, status&USR_PUBLIC_MASK, 0)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, ''))
-        logging.debug('upd_user_status, user: '+user+', json: '+message)
+        logging.debug('upd_user_status, public, user: '+user+', json: '+message)
+
+        # settings for testing only
+        alignment = 0x1
+        alignment <<= ROLE_ALIGNMENT_SHIFT
+        role = ROLE_WOLF | ROLE_BLOCKER
+        privilege = alignment
+
+        json_serial = (roomid, status, role)
+        message = json.dumps(json_serial)
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, ''))
+        logging.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+str(privilege))
+
+        #dbcursor.execute("""select count(*) from room where username=?""", (user,))
+        #sqlcount = dbcursor.fetchall()
+        #host = sqlcount[0][0]
+        #if host == -1: host = 0
+        #if host: status |= USR_HOST
+
+        json_serial = (roomid, status, role)
+        message = json.dumps(json_serial)
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, ''))
+        logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+str(PVG_PRIVATE))
 
 def msg_command(roomid, type, argument):
     now = time.time()
@@ -603,6 +638,7 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
 
+                user_status[auth[0]] |= USR_HOST
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -730,20 +766,23 @@ class MyHandler(RequestHandler):
             # query message
             roomid = ''
             privilege = 0
+            username = ''
             if auth:
+                username = auth[0]
                 roomid = auth[4]
                 privilege = auth[7]
+
             dbcursor.execute("""select * from message \
-                where roomid=? and privilege&?=privilege and timestamp>?""", \
-                (roomid, privilege, client_doc_time))
+                where timestamp>? and roomid=? and ((privilege&?=privilege) or (type=? and username=?))""", \
+                (client_doc_time, roomid, privilege, MSG_USR_STA_PRIVATE, username))
             json_serial = []
             for row in dbcursor:
                 timestamp = row[1]
-                username = row[3]
+                author = row[3]
                 isoformat = row[4]
                 message = row[5]
                 type = row[6]
-                row_serial = (type, username, isoformat, message, timestamp)
+                row_serial = (type, author, isoformat, message, timestamp)
                 json_serial.append(row_serial)
 
             if json_serial:

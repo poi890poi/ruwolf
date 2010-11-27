@@ -47,23 +47,25 @@
         left: 680px; top: 16px;
         border: 0px solid black;
     }
-    #Toolbar td {
-        padding: 0px;
-        border: 0px; }
-    #Toolbar td.td_tabs_content {
+    #Toolbar #tabs_content_container {
+        overflow: auto; overflow-x: hidden;
         vertical-align: top;
-        padding: 0px;
+        width: 298px;
         border: 1px solid black; }
-    #Toolbar div {
+    #Toolbar #tabs_content_container div {
         margin-bottom: 2px;
+    }
+    #Toolbar #tabs_content_container .tab_content {
+        padding: 6px 9px;
+        display: none;
     }
     img.usericon {
         vertical-align: text-bottom;
         padding-right: 3px;
     }
     img.role {
-        width: 298px; }
-
+        width: 298px;
+    }
     div.contextmenu {
         padding: 4px;
         position: absolute;
@@ -77,6 +79,10 @@
     div.menuitem {
         cursor: pointer;
         padding: 4px 16px;
+    }
+    div.menudisable {
+        padding: 4px 16px;
+        color: #cccccc;
     }
     div.menuhover {
         color: white;
@@ -101,14 +107,27 @@
         var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
             $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
 
+        var seth = 0;
         var postm = $("#PostMessage").outerHeight();
         var login = 0;
         var save = 32;
         if ($('#Login').is(':visible')) {
             login = $("#Login").outerHeight();
         }
-        $("#MessageList").height($(window).height()-postm-login-save);
-        $("#Toolbar").height($(window).height()-save);
+        seth = $(window).height() - postm - login - save;
+        if (seth < 200 ) seth = 200;
+        $("#MessageList").height(seth);
+        //$("#Toolbar").height($(window).height()-save);
+
+        var tbc = $("#tabs_container").outerHeight();
+        var role = 0;
+        var save = 32;
+        if ($('#role').is(':visible')) {
+            role = $("#role").outerHeight();
+        }
+        seth = $(window).height() - tbc - role - save;
+        if (seth < 200 ) seth = 200;
+        $("#tabs_content_container").height(seth);
 
         if (scr_to_bottom >= 0) {
             $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
@@ -174,48 +193,50 @@
         </script>
 
     <div id="Toolbar">
-        <table cellspacing="0">
-            <tr><td id="role">
-                <img class="role" src="wolf.png"></img><br/>
-                You are a werewolf. Only wolves know your identity.
-                Your goal is to eliminate all apples in the township,
-                without getting caught by the mob. Don't get yourself lynched!<br/><br/>
-            </td></tr>
-            <tr><td>
-                <div id="tabs_container">
-                    <ul id="tabs">
-                        <li class="active"><a href="#tab1">Players</a></li>
-                        <li><a class="icon_accept" href="#tab2">Memo</a></li>
-                        <li><a href="#tab3">Options</a></li>
-                    </ul>
-                </div>
-            </td></tr>
-            <tr><td class="td_tabs_content">
-                <div id="tabs_content_container">
-                    <div id="tab1" class="tab_content" style="display: block;">
-                    </div>
-                    <div id="tab2" class="tab_content">
-                        <p>This tab has icon in it.</p>
-                    </div>
-                    <div id="tab3" class="tab_content">
-                        <p>
-                            <input type="checkbox" name="chkLogout"/> Save credential<br/>
-                            <input type="checkbox" name="chkNotify"/> Sound notify<br/>
-                            <input type="checkbox" name="chkNotify"/> High latency mode<br/>
-                        </p>
-                    </div>
-                </div>
-            </td></tr>
-        </table>
+        <div id="tabs_container">
+            <ul id="tabs">
+                <li class="active"><a href="#tab1">Players</a></li>
+                <li><a class="icon_accept" href="#tab2">Memo</a></li>
+                <li><a href="#tab3">Options</a></li>
+            </ul>
+        </div>
+        <div id="tabs_content_container">
+            <div id="tab1" class="tab_content" style="display: block;">
+            </div>
+            <div id="tab2" class="tab_content">
+                <p>This tab has icon in it.</p>
+            </div>
+            <div id="tab3" class="tab_content">
+                <p>
+                    <input type="checkbox" name="chkLogout"/> Save credential<br/>
+                    <input type="checkbox" name="chkNotify"/> Sound notify<br/>
+                    <input type="checkbox" name="chkNotify"/> High latency mode<br/>
+                </p>
+            </div>
+        </div>
+        <div id="role">
+            <img class="role" src="wolf.png"></img><br/>
+            You are a werewolf. Only wolves know your identity.
+            Your goal is to eliminate all apples in the township,
+            without getting caught by the mob. Don't get yourself lynched!<br/><br/>
+        </div>
     </div>
 
     <div class="contextmenu" id="MenuContainerGeneral">
         <div class="menuitem" id="MnuHelp">Help</div>
         <div class="menuitem">About</div>
-        <div class="menuitem" id="MnuHost">Host a New Game</div>
+        <div class="menuitem" id="MnuHost">Host Game</div>
         <hr/>
         <div class="menuitem" id="MnuQuit">Leave Game</div>
         <div class="menuitem" id="MnuLogout">Logout</div>
+    </div>
+
+    <div class="contextmenu" id="MenuContainerHost">
+        <div class="menuitem" id="MnuHostHelp">Help</div>
+        <hr/>
+        <div class="menuitem" id="MnuReadyCheck">Ready Check</div>
+        <hr/>
+        <div class="menuitem" id="MnuDrop">Drop Game</div>
     </div>
 
     <div class="contextmenu" id="MenuContainerRoom">
@@ -228,6 +249,7 @@
         $(window).load(function(){
             $("#role").click(function(){
                 $(this).hide();
+                resizeUI(0);
             });
 
             $("#tabs li").click(function() {
@@ -246,19 +268,42 @@
                     if (e.ctrlKey) {
                         return true;
                     }
-            		var menu = $("#MenuContainerGeneral");
-            		menu.css("left", e.pageX+"px");
-            		menu.css("top", e.pageY+"px");
-            		setTimeout("$('#MenuContainerGeneral').show();", 120);
-        			return false;
+
+                    //alert(userjson);
+                    var subobj = jQuery.parseJSON(userjson);
+                    if (subobj[0]) { // is in room
+                        $("#MnuLogout").removeClass("menuitem");
+                        $("#MnuHost").removeClass("menuitem");
+                        $("#MnuLogout").addClass("menudisable");
+                        $("#MnuHost").addClass("menudisable");
+                    } else {
+                        $("#MnuLogout").removeClass("menudisable");
+                        $("#MnuHost").removeClass("menudisable");
+                        $("#MnuLogout").addClass("menuitem");
+                        $("#MnuHost").addClass("menuitem");
+                    }
+
+                    if (subobj[1] & 4) { // is host
+                		var menu = $("#MenuContainerHost");
+                		menu.css("left", e.pageX+"px");
+                		menu.css("top", e.pageY+"px");
+                		setTimeout("$('#MenuContainerHost').show();", 120);
+            			return false;
+                    } else {
+                		var menu = $("#MenuContainerGeneral");
+                		menu.css("left", e.pageX+"px");
+                		menu.css("top", e.pageY+"px");
+                		setTimeout("$('#MenuContainerGeneral').show();", 120);
+            			return false;
+                    }
                 } else {
                     return true;
                 }
             });
-    		$(".menuitem").mouseover(function (e) {
+    		$(".menuitem").live("mouseover", function (e) {
     	        $(this).addClass("menuhover");
     		});
-    		$(".menuitem").mouseout(function (e) {
+    		$(".menuitem").live("mouseout", function (e) {
     	        $(this).removeClass("menuhover");
     		});
             $(document).click(function(e) {
@@ -272,11 +317,13 @@
         		$(".contextmenu").hide();
                 send_text("/quit");
             });
-            $("#MnuLogout").click(function(e) {
+            $("#MnuLogout").live("click", function(e) {
+                if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
                 send_text("/logout");
             });
-            $("#MnuHost").click(function(e) {
+            $("#MnuHost").live("click", function(e) {
+                if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
                 //var description = prompt("Please enter a brief description."); // doesn't work in IE
                 var description = "I_want_to_play_a_game.";

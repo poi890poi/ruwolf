@@ -38,11 +38,6 @@
     padding-left: 32px;
 }
 
-#tabs_content_container {
-    border: 0px;
-    padding: 6px 9px;
-    width: 276px;
-}
 .tab_content {
     display: none;
 }

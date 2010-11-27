@@ -3,6 +3,7 @@
     //var sessionkey = ""; //for testing
     var user_status = new Array();
     var polling = false;
+    var userjson;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -156,12 +157,18 @@
                 polling = false;
                 if (xmlhttp.status==200)
                 {
+
+var dtobj = new Date();
+var start = dtobj.getTime();
+
                     var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
                         $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
 
                     var obj = jQuery.parseJSON(xmlhttp.responseText);
                     var msgappend = "";
                     var lstappend = "";
+                    var tbdom = $("#tab1");
+
                     var i, N = obj.length;
                     for (i=0; i<N; i++) {
                         if (obj[i][0] == 0) {
@@ -173,13 +180,21 @@
                             msg += "<td>" + obj[i][3] + "</td></tr>";
                             msgappend += msg;
                         }
-                        else if (obj[i][0] == 1) {
-                            // user status (roomid, user_status[user])
+                        else if (obj[i][0] == 1 || obj[i][0] == 4 || obj[i][0] == 5) {
+                            if (obj[i][0] == 4) {
+                                userjson = obj[i][3];
+                            }
+
+                            // user status (roomid, user_status[user], role)
                             var subobj = jQuery.parseJSON(obj[i][3]);
 
                             var userhtml = new String();
                             if (subobj[1] & 1) {
-                                userhtml += "<img class='usericon' src='villager.png'></img>";
+                                if (subobj[2]) {
+                                    userhtml += "<img class='usericon' src='rolewolf.png'></img>";
+                                } else {
+                                    userhtml += "<img class='usericon' src='villager.png'></img>";
+                                }
                             } else {
                                 userhtml += "<img class='usericon' src='dead.png'></img>";
                             }
@@ -187,16 +202,17 @@
                             userhtml += layoutSafeStr(obj[i][1]);
                             userhtml += "</b>";
 
-                            userspan = $("#3B06037A"+obj[i][1]);
+                            userspan = tbdom.find("#3B06037A"+obj[i][1]);
                             //alert("#3B06037A"+obj[i][1] + ", " + userspan.length);
                             if (userspan.length) {
                                 userspan.html(userhtml);
-                            }
-                            else
-                            {
+                                userspan.attr('data-json', obj[i][3]);
+                            } else {
                                 userspan = new String();
-                                userspan += "<div id='3B06037A" + obj[i][1] + "' class=''>" + userhtml + "</div>";
-                                lstappend += userspan;
+                                userspan += "<div id='3B06037A" + obj[i][1] + "' class='clk_user clkable' data-json='" + obj[i][3] + "'>"
+                                userspan += userhtml + "</div>";
+                                tbdom.append(userspan);
+                                //lstappend += userspan;
                             }
                         }
                         else if (obj[i][0] == 2) {
@@ -207,6 +223,10 @@
                                 roomid = obj[i][1];
 
                                 var roomhtml = new String();
+                                if (true) {
+                                    roomhtml += "<img class='usericon' src='roomopen.png'></img>";
+                                } else {
+                                }
 
                                 roomhtml += "<b>";
                                 roomhtml += subobj[0];
@@ -215,13 +235,11 @@
                                 roomhtml += ")";
                                 roomhtml += "</b>";
 
-                                roomspan = $("#81D995F6"+roomid);
+                                roomspan = tbdom.find("#81D995F6"+roomid);
                                 if (roomspan.length) {
                                     roomspan.html(roomhtml);
                                     roomspan.attr('data-json', obj[i][3]);
-                                }
-                                else
-                                {
+                                } else {
                                     roomspan = new String();
                                     roomspan += "<div id='81D995F6" + roomid + "' class='clk_room clkable' data-json='" + obj[i][3] + "'>"
                                     roomspan += roomhtml + "</div>";
@@ -255,6 +273,10 @@
                     if (scr_to_bottom >= 0) {
                         $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
                     }
+
+dtobj = new Date();
+//alert(dtobj.getTime()-start);
+
                 }
                 else if (xmlhttp.status==204)
                 {
