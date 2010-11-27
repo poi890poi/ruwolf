@@ -293,8 +293,8 @@ USR_PRIVATE_MASK = 0x00ffff00
 
 USR_CONN = 0x00000001
 USR_SURVIVE = 0x00000002
+USR_HOST = 0x00000004
 
-USR_PRESERVE = 0x00000004
 USR_PRESERVE = 0x00000008
 USR_PRESERVE = 0x00000010
 USR_PRESERVE = 0x00000020
@@ -641,6 +641,8 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
 
+                user_status[auth[0]] |= USR_HOST
+
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -675,6 +677,7 @@ class MyHandler(RequestHandler):
 
                         dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
                             ('', ~PVG_ROOMCHAT, username))
+                        user_status[username] &= ~USR_HOST
                         upd_user_status(username)
 
                         do_later_mask |= DLTR_COMMIT_DB

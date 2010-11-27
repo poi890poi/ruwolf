@@ -194,7 +194,10 @@ var start = dtobj.getTime();
                             var subobj = jQuery.parseJSON(obj[i][3]);
 
                             var userhtml = new String();
-                            if (subobj[1] & 1) {
+                            //alert(obj[i][3]);
+                            if (subobj[1] & 4) { // host
+                                userhtml += "<img class='usericon' src='mod.png'></img>";
+                            } else if (subobj[1] & 1) { // survive
                                 if (subobj[2]) {
                                     userhtml += "<img class='usericon' src='rolewolf.png'></img>";
                                 } else {
