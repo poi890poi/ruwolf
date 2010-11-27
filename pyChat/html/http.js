@@ -3,7 +3,8 @@
     //var sessionkey = ""; //for testing
     var user_status = new Array();
     var polling = false;
-    var userjson;
+    var userjson = "[]";
+    var roomjson = "[]";
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -69,13 +70,17 @@
             }
         }
         var trimmed = trim(params);
-        if (trimmed == "/logout") {
-            xmlhttp.open("POST", "/logout/", true);
-            xmlhttp.setRequestHeader("Authorization", sessionkey);
-            xmlhttp.setRequestHeader("Content-type", "text/plain");
-            xmlhttp.send(sessionkey);
-        } else if (trimmed == "/quit") {
-            xmlhttp.open("POST", "/quit/", true);
+
+        if (trimmed == "/logout" || trimmed == "/quit")
+        {
+            roomjson = "[]";
+        }
+
+        if (trimmed == "/logout" ||
+            trimmed == "/quit" ||
+            trimmed == "/ready" ||
+            trimmed == "/drop") {
+            xmlhttp.open("POST", trimmed, true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
             xmlhttp.send(sessionkey);
@@ -83,7 +88,7 @@
             var arg = trimmed.split(" ", 2);
             var description = "";
             if (arg[1]) {description = arg[1];}
-            xmlhttp.open("POST", "/host/", true);
+            xmlhttp.open("POST", "/host", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
             xmlhttp.send(description);
@@ -91,12 +96,12 @@
             var arg = trimmed.split(" ", 2);
             var roomid = "";
             if (arg[1]) {roomid = arg[1];}
-            xmlhttp.open("POST", "/join/", true);
+            xmlhttp.open("POST", "/join", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
             xmlhttp.send(roomid);
         } else {
-            xmlhttp.open("POST", "/send_text/", true);
+            xmlhttp.open("POST", "/send_text", true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
             xmlhttp.send(params);
@@ -134,7 +139,7 @@
         params += $("#Username").val();
         params += "\r\n";
         params += $("#Password").val();
-        xmlhttp.open("POST", "/login/", true);
+        xmlhttp.open("POST", "/login", true);
         xmlhttp.setRequestHeader("Content-type", "text/plain");
         xmlhttp.send(params);
     }
@@ -185,7 +190,7 @@ var start = dtobj.getTime();
                                 userjson = obj[i][3];
                             }
 
-                            // user status (roomid, user_status[user], role)
+                            // user status (roomid, user_status[user], role, username)
                             var subobj = jQuery.parseJSON(obj[i][3]);
 
                             var userhtml = new String();
@@ -247,12 +252,32 @@ var start = dtobj.getTime();
                                 }
                             }
                         }
+                        else if (obj[i][0] == 8) {
+                            // room (description, ruleset, options, phase, host, roomid, participant)
+                            var subobj = jQuery.parseJSON(obj[i][3]);
+                            if (subobj.length == 7)
+                            {
+                                roomjson = obj[i][3];
+                            }
+                        }
                         else if (obj[i][0] == 3) {
                             // user quit, obj[i][3] = username
                             userspan = $("#3B06037A"+obj[i][3]);
                             if (userspan.length) {
                                 userspan.remove();
                             }
+                        }
+                        else if (obj[i][0] == 6) {
+                            // gamedrop, to lobby, obj[i][3] = roomid
+                            userspan = $("#81D995F6"+obj[i][3]);
+                            if (userspan.length) {
+                                userspan.remove();
+                            }
+                        }
+                        else if (obj[i][0] == 7) {
+                            alert("The game is dropped by host.");
+                            // gamedrop, to room, obj[i][3] = roomid
+                            send_text("/quit");
                         }
                         if (obj[i][4] > timestamp) timestamp = obj[i][4];
                     }
@@ -280,20 +305,24 @@ dtobj = new Date();
                 }
                 else if (xmlhttp.status==204)
                 {
-                    $("#Login").fadeOut();
-                    resizeUI(500);
+                    if ($('#Login').is(':visible')) {
+                        $("#Login").fadeOut();
+                        resizeUI(500);
+                    }
                 }
                 else if (xmlhttp.status==401)
                 {
-                    $("#Login").fadeIn();
-                    resizeUI(0);
+                    if (!$('#Login').is(':visible')) {
+                        $("#Login").fadeIn();
+                        resizeUI(0);
+                    }
                 }
 
                 var timer = setTimeout(poll, 500);
             }
         }
         var params = timestamp + "";
-        xmlhttp.open("POST", "/check_update/", true);
+        xmlhttp.open("POST", "/check_update", true);
         xmlhttp.setRequestHeader("Authorization", sessionkey);
         xmlhttp.setRequestHeader("Content-type", "text/plain");
         xmlhttp.send(params);

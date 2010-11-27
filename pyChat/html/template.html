@@ -269,9 +269,10 @@
                         return true;
                     }
 
+                    // user status (roomid, user_status[user], role, username)
                     //alert(userjson);
-                    var subobj = jQuery.parseJSON(userjson);
-                    if (subobj[0]) { // is in room
+                    var userobj = jQuery.parseJSON(userjson);
+                    if (userobj[0]) { // is in room
                         $("#MnuLogout").removeClass("menuitem");
                         $("#MnuHost").removeClass("menuitem");
                         $("#MnuLogout").addClass("menudisable");
@@ -283,7 +284,18 @@
                         $("#MnuHost").addClass("menuitem");
                     }
 
-                    if (subobj[1] & 4) { // is host
+                    // room (description, ruleset, options, phase, host, roomid, participant)
+                    //alert(roomjson);
+                    var roomobj = jQuery.parseJSON(roomjson);
+                    var ishost = false;
+                    if (roomobj.length >=5 && userobj.length >= 4)
+                    {
+                        if (roomobj[4] == userobj[3]) {
+                            ishost = true;
+                        }
+                    }
+
+                    if (ishost) {
                 		var menu = $("#MenuContainerHost");
                 		menu.css("left", e.pageX+"px");
                 		menu.css("top", e.pageY+"px");
@@ -328,6 +340,14 @@
                 //var description = prompt("Please enter a brief description."); // doesn't work in IE
                 var description = "I_want_to_play_a_game.";
                 send_text("/host " + description);
+            });
+            $("#MnuReadyCheck").click(function(e) {
+        		$(".contextmenu").hide();
+                send_text("/ready");
+            });
+            $("#MnuDrop").click(function(e) {
+        		$(".contextmenu").hide();
+                send_text("/drop");
             });
 
             $("#Toolbar div.clk_room").live("click", function(e) {

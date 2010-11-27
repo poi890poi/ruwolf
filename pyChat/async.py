@@ -283,6 +283,9 @@ MSG_ROOM = 2
 MSG_USERQUIT = 3
 MSG_USR_STA_PRIVATE = 4
 MSG_USR_STA_ALIGNMENT = 5
+MSG_GAMEDROP = 6
+MSG_GAMEDROP_P = 7
+MSG_ROOM_DETAIL = 8
 
 # user status
 USR_PUBLIC_MASK = 0x000000ff
@@ -290,8 +293,8 @@ USR_PRIVATE_MASK = 0x00ffff00
 
 USR_CONN = 0x00000001
 USR_SURVIVE = 0x00000002
-USR_HOST = 0x00000004
 
+USR_PRESERVE = 0x00000004
 USR_PRESERVE = 0x00000008
 USR_PRESERVE = 0x00000010
 USR_PRESERVE = 0x00000020
@@ -406,7 +409,6 @@ def get_time_norm():
     return long(time.time()*1000)
 
 def upd_room(roomid):
-
     dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
     dbcursor.execute("""select count(*) from user where roomid=?""", (roomid,))
     sqlcount = dbcursor.fetchall()
@@ -427,6 +429,9 @@ def upd_room(roomid):
             ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
         logging.debug('upd_room, room: '+roomid+', json: '+message)
 
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, ''))
+
 def upd_user_status(user):
     global user_status
     dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
@@ -441,12 +446,12 @@ def upd_user_status(user):
         timestamp = get_time_norm()
         privilege = 0
         username = user
-        json_serial = (0, 0)
+        json_serial = (0, 0, 0, '')
         status = 0
         if user in user_status:
             status = user_status[user]
 
-        json_serial = (roomid, status&USR_PUBLIC_MASK, 0)
+        json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, ''))
@@ -458,23 +463,19 @@ def upd_user_status(user):
         role = ROLE_WOLF | ROLE_BLOCKER
         privilege = alignment
 
-        json_serial = (roomid, status, role)
+        json_serial = (roomid, status, role, user)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, ''))
         logging.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+str(privilege))
 
-        #dbcursor.execute("""select count(*) from room where username=?""", (user,))
-        #sqlcount = dbcursor.fetchall()
-        #host = sqlcount[0][0]
-        #if host == -1: host = 0
-        #if host: status |= USR_HOST
-
-        json_serial = (roomid, status, role)
+        json_serial = (roomid, status, role, user)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, ''))
         logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+str(PVG_PRIVATE))
+
+        dbcursor.execute("""update user set status=? where username=?""", (status, user))
 
 def msg_command(roomid, type, argument):
     now = time.time()
@@ -537,7 +538,7 @@ class MyHandler(RequestHandler):
         global svr_doc_time, msg_cache, do_later_mask, \
             user_activity, user_status
         print 'path: ', self.path
-        if self.path == '/login/':
+        if self.path == '/login':
             login = unicode(self.rfile.getvalue(), 'utf-8')
             #login = self.rfile.getvalue()
             login = login.splitlines()
@@ -593,7 +594,7 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
-        elif self.path == '/logout/':
+        elif self.path == '/logout':
             sessionkey = self.rfile.getvalue()
             ip = self.client_address[0]
             dbcursor.execute("""select * from user where sessionkey=? and ip=?""", (sessionkey,ip))
@@ -607,7 +608,7 @@ class MyHandler(RequestHandler):
             self.send_response(401)
             self.end_headers()
 
-        elif self.path == '/host/':
+        elif self.path == '/host':
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
@@ -638,7 +639,6 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
 
-                user_status[auth[0]] |= USR_HOST
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -648,7 +648,44 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
-        elif self.path == '/quit/':
+        elif self.path == '/drop':
+            auth = None
+            room = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                username = auth[0]
+                roomid = auth[4]
+                status = user_status[username]
+
+                dbcursor.execute("""select * from room where roomid=?""", \
+                    (roomid, ))
+                room = dbcursor.fetchone()
+
+                if room:
+                    if room[0] == username:
+                        dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
+                        dbcursor.execute("""delete from room where roomid=?""", (roomid, ))
+
+                        dbcursor.execute("""update user set roomid=? where username=?""", ('', username))
+                        upd_user_status(username)
+
+                        do_later_mask |= DLTR_COMMIT_DB
+
+                        msg_command(roomid, MSG_GAMEDROP_P, roomid)
+                        msg_command('', MSG_GAMEDROP, roomid)
+
+                        self.send_response(205)
+                        self.end_headers()
+
+        elif self.path == '/ready':
+            pass
+
+        elif self.path == '/quit':
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
@@ -671,7 +708,7 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
-        elif self.path == '/join/':
+        elif self.path == '/join':
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
@@ -695,7 +732,7 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
-        elif self.path == '/send_text/':
+        elif self.path == '/send_text':
             # auth
             auth = None
             if 'Authorization' in self.headers:
@@ -736,7 +773,7 @@ class MyHandler(RequestHandler):
             self.send_response(204)
             self.end_headers()
 
-        elif self.path == '/check_update/':
+        elif self.path == '/check_update':
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
