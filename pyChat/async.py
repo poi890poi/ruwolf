@@ -341,6 +341,7 @@ ROLE_PRESERVE = 0x00008000
 ROLE_ALIGNMENT_SHIFT = 24
 
 # privileges
+PVG_ROOMCHAT = 0x00000001
 
 PVG_PRIVATE = 0xffffffff
 
@@ -628,7 +629,8 @@ class MyHandler(RequestHandler):
                 timeout = TIME_MAX
                 dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?)', \
                     (auth[0], roomid, description, ruleset, options, phase, timeout, 0, ''))
-                dbcursor.execute("""update user set roomid=? where username=?""", (roomid, auth[0]))
+                dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
+                    (roomid, PVG_ROOMCHAT, auth[0]))
 
                 timestamp = get_time_norm()
                 privilege = 0
@@ -671,7 +673,8 @@ class MyHandler(RequestHandler):
                         dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
                         dbcursor.execute("""delete from room where roomid=?""", (roomid, ))
 
-                        dbcursor.execute("""update user set roomid=? where username=?""", ('', username))
+                        dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
+                            ('', ~PVG_ROOMCHAT, username))
                         upd_user_status(username)
 
                         do_later_mask |= DLTR_COMMIT_DB
@@ -683,7 +686,32 @@ class MyHandler(RequestHandler):
                         self.end_headers()
 
         elif self.path == '/ready':
-            pass
+            auth = None
+            room = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                username = auth[0]
+                roomid = auth[4]
+                status = user_status[username]
+
+                dbcursor.execute("""select * from room where roomid=?""", \
+                    (roomid, ))
+                room = dbcursor.fetchone()
+
+                if room:
+                    if room[0] == username:
+                        dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
+
+                        upd_room(roomid)
+                        do_later_mask |= DLTR_COMMIT_DB
+
+            self.send_response(204)
+            self.end_headers()
 
         elif self.path == '/quit':
             auth = None
@@ -695,7 +723,8 @@ class MyHandler(RequestHandler):
 
             if auth:
                 msg_command(auth[4], MSG_USERQUIT, auth[0])
-                dbcursor.execute("""update user set roomid=? where username=?""", ('', auth[0]))
+                dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
+                    ('', ~PVG_ROOMCHAT, auth[0]))
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -716,19 +745,30 @@ class MyHandler(RequestHandler):
                     sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
                 auth = dbcursor.fetchone()
 
+            rejected = True
             if auth:
                 roomid = self.rfile.getvalue()
-                msg_command(auth[4], MSG_USERQUIT, auth[0])
-                dbcursor.execute("""update user set roomid=? where username=?""", (roomid, auth[0]))
-                upd_user_status(auth[0])
-                do_later_mask |= DLTR_COMMIT_DB
 
-                logging.debug('/join/, username: '+auth[0]+', roomid: '+roomid)
-                upd_room(roomid)
+                dbcursor.execute("""select * from room where roomid=?""", \
+                    (roomid, ))
+                room = dbcursor.fetchone()
 
-                self.send_response(205)
-                self.end_headers()
-            else:
+                if room:
+                    if room[5] == 0:
+                        msg_command(auth[4], MSG_USERQUIT, auth[0])
+                        dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
+                            (roomid, PVG_ROOMCHAT, auth[0]))
+                        upd_user_status(auth[0])
+                        do_later_mask |= DLTR_COMMIT_DB
+
+                        logging.debug('/join/, username: '+auth[0]+', roomid: '+roomid)
+                        upd_room(roomid)
+
+                        rejected = False
+                        self.send_response(205)
+                        self.end_headers()
+
+            if rejected:
                 self.send_response(401)
                 self.end_headers()
 
@@ -762,6 +802,8 @@ class MyHandler(RequestHandler):
             if auth:
                 username = auth[0]
                 roomid = auth[4]
+                if roomid:
+                    privilege |= PVG_ROOMCHAT
             isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
             message = msgbody
 

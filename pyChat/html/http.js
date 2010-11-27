@@ -228,9 +228,10 @@ var start = dtobj.getTime();
                                 roomid = obj[i][1];
 
                                 var roomhtml = new String();
-                                if (true) {
+                                if (subobj[3] == 0) { // recruiting
                                     roomhtml += "<img class='usericon' src='roomopen.png'></img>";
-                                } else {
+                                } else { // commencing
+                                    roomhtml += "<img class='usericon' src='roomclosed.png'></img>";
                                 }
 
                                 roomhtml += "<b>";

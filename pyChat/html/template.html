@@ -357,6 +357,12 @@
                 var data_json = jQuery.parseJSON($(this).attr('data-json'));
                 var roomid = data_json[5];
 
+                if (data_json[3] > 0)
+                {
+                    // not in recruiting
+                    return true;
+                }
+
         		var join = $("#MnuJoin");
                 join.html("Join <b>" + layoutSafeStr(data_json[0]) + "</b>");
         		join.unbind("click");
