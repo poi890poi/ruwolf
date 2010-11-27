@@ -1,0 +1,37 @@
+<html>
+
+<head>
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        var dtobj = new Date();
+        var start = dtobj.getTime();
+        var htm = "<div data-x='.'/>";
+        var obj = $(htm);
+        var toappend = obj.attr("data-x");
+        var count = 500;
+        var txt = "";
+        while (count)
+        {
+            //obj.append(toappend);
+            txt += "<div id='";
+            txt += count;
+            txt += "'/>";
+            count--;
+        }
+        //$("#menu").append(obj);
+        $("#menu").append(txt);
+        dtobj = new Date();
+        alert(dtobj.getTime()-start);
+	});
+</script>
+<style type="text/css">
+</style>
+</head>
+
+<body>
+    <div id="menu">
+    </div>
+</body>
+
+</html>
