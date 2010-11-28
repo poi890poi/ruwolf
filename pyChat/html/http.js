@@ -69,6 +69,9 @@
             {
                 location.reload();
             }
+            else if (xmlhttp.readyState==4 && xmlhttp.status==401)
+            {
+            }
         }
         var trimmed = trim(params);
 
@@ -124,11 +127,12 @@
             xmlhttp.setRequestHeader("Content-type", "text/plain");
             xmlhttp.send(params);
         }
-    }
 
-    function logout()
-    {
-        $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", "", { expires: -1 });
+        if (trimmed == "/logout") {
+            $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", "", { expires: -1 });
+            sessionkey = "";
+            userjson = "[]";
+        }
     }
 
     function login()

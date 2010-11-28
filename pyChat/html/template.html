@@ -282,6 +282,11 @@
                     // user status (roomid, user_status[user], role, username)
                     //alert(userjson);
                     var userobj = jQuery.parseJSON(userjson);
+                    if (userobj.length < 4)
+                    {
+                        return true;
+                    }
+
                     if (userobj[0]) { // is in room
                         $("#MnuLogout").removeClass("menuitem")
                             .addClass("menudisable");
@@ -345,9 +350,11 @@
             });
 
             $("#MnuHelp").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
             });
             $("#MnuQuit").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
                 send_text("/quit");
             });
@@ -364,10 +371,12 @@
                 send_text("/host " + description);
             });
             $("#MnuReadyCheck").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
                 send_text("/ready");
             });
             $("#MnuDrop").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
                 send_text("/drop");
             });
@@ -377,6 +386,10 @@
 
                 // user status (roomid, user_status[user], role, username)
                 var userobj = jQuery.parseJSON(userjson);
+                if (userobj.length < 4)
+                {
+                    return true;
+                }
                 var target = jQuery.parseJSON($(this).attr('data-json'));
                 var username = target[3];
 
@@ -410,6 +423,11 @@
 
                 //alert($(this).attr("data-json"));
                 // room (description, ruleset, options, phase, host, roomid, participant)
+                if (!sessionkey)
+                {
+                    return true;
+                }
+
                 var data_json = jQuery.parseJSON($(this).attr("data-json"));
                 var roomid = data_json[5];
 
