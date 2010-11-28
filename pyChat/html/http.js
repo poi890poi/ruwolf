@@ -80,6 +80,7 @@
         if (trimmed == "/logout" ||
             trimmed == "/quit" ||
             trimmed == "/ready" ||
+            trimmed == "/drop_confirm" ||
             trimmed == "/drop") {
             xmlhttp.open("POST", trimmed, true);
             xmlhttp.setRequestHeader("Authorization", sessionkey);
@@ -93,6 +94,22 @@
             xmlhttp.setRequestHeader("Authorization", sessionkey);
             xmlhttp.setRequestHeader("Content-type", "text/plain");
             xmlhttp.send(description);
+        } else if (trimmed.substring(0, 10) == "/vote_rdy ") {
+            var arg = trimmed.split(" ", 2);
+            var target = "";
+            if (arg[1]) {target = arg[1];}
+            xmlhttp.open("POST", "/vote_rdy", true);
+            xmlhttp.setRequestHeader("Authorization", sessionkey);
+            xmlhttp.setRequestHeader("Content-type", "text/plain");
+            xmlhttp.send(target);
+        } else if (trimmed.substring(0, 6) == "/kick ") {
+            var arg = trimmed.split(" ", 2);
+            var target = "";
+            if (arg[1]) {target = arg[1];}
+            xmlhttp.open("POST", "/kick", true);
+            xmlhttp.setRequestHeader("Authorization", sessionkey);
+            xmlhttp.setRequestHeader("Content-type", "text/plain");
+            xmlhttp.send(target);
         } else if (trimmed.substring(0, 6) == "/join ") {
             var arg = trimmed.split(" ", 2);
             var roomid = "";
@@ -193,19 +210,26 @@ var start = dtobj.getTime();
                             }
                         }
                         else if (obj[i][0] == 1 || obj[i][0] == 4 || obj[i][0] == 5) {
-                            if (obj[i][0] == 4) { // user status private
-                                userjson = obj[i][3];
-                            }
-
                             // user status (roomid, user_status[user], role, username)
                             var subobj = jQuery.parseJSON(obj[i][3]);
 
+                            if (obj[i][0] == 4) { // user status private
+                                if (subobj[1] & 16) { // kicked, USR_KICKED
+                                    alert("You are dropped by host.");
+                                    send_text("/drop_confirm");
+                                    location.reload();
+                                }
+                                userjson = obj[i][3];
+                            }
+
                             var userhtml = new String();
                             //alert(obj[i][3]);
-                            if (subobj[1] & 4) { // host
-                                userhtml += "<img class='usericon' src='mod.png'></img>";
-                            } else if (subobj[1] & 1) { // connection alive
-                                if (subobj[2]) {
+                            if (subobj[1] & 1) { // connection alive
+                                if (subobj[1] & 8) { // waiting for ready check
+                                    userhtml += "<img class='usericon' src='wait.png'></img>";
+                                } else if (subobj[1] & 4) { // host
+                                    userhtml += "<img class='usericon' src='mod.png'></img>";
+                                } else if (subobj[2]) { // for test only
                                     userhtml += "<img class='usericon' src='rolewolf.png'></img>";
                                 } else {
                                     userhtml += "<img class='usericon' src='villager.png'></img>";
@@ -253,11 +277,14 @@ var start = dtobj.getTime();
                                 roomhtml += ")";
                                 roomhtml += "</b>";
 
+                                //alert(roomhtml);
+
                                 roomspan = tbdom.find("#81D995F6"+roomid);
                                 if (roomspan.length) {
                                     roomspan.html(roomhtml);
                                     roomspan.attr('data-json', obj[i][3]);
                                 } else {
+                                    //alert(obj[i][3]);
                                     roomspan = new String();
                                     roomspan += "<div id='81D995F6" + roomid + "' class='clk_room clkable' data-json='" + obj[i][3] + "'>"
                                     roomspan += roomhtml + "</div>";

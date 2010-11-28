@@ -295,9 +295,9 @@ USR_PRIVATE_MASK = 0x00ffff00
 USR_CONN = 0x00000001
 USR_SURVIVE = 0x00000002
 USR_HOST = 0x00000004
+USR_RDYCHK = 0x00000008
+USR_KICKED = 0x00000010
 
-USR_PRESERVE = 0x00000008
-USR_PRESERVE = 0x00000010
 USR_PRESERVE = 0x00000020
 USR_PRESERVE = 0x00000040
 USR_PRESERVE = 0x00000080
@@ -317,6 +317,10 @@ USR_NA_CUPID = 0x000020000
 
 USR_PRESERVE = 0x000040000
 USR_PRESERVE = 0x000080000
+
+USR_VOTE_MASK = USR_RDYCHK | USR_VOTE_LYNCH | USR_VOTE_CASTING | \
+    USR_VOTE_BITE | USR_NA_BLOCK | USR_NA_DETECT | USR_NA_PROTECT | \
+    USR_NA_AUTOPSY | USR_NA_CUPID
 
 # roles
 ROLE_VILLAGER = 0x00000000
@@ -412,7 +416,7 @@ def get_time_norm():
 
 def upd_room(roomid):
     dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
-    dbcursor.execute("""select count(*) from user where roomid=?""", (roomid,))
+    dbcursor.execute("""select count(*) from user where roomid=? and status&?""", (roomid, USR_CONN))
     sqlcount = dbcursor.fetchall()
     user_count = sqlcount[0][0]
     if user_count == -1: user_count = 0
@@ -453,6 +457,16 @@ def upd_user_status(user):
         if user in user_status:
             status = user_status[user]
 
+        # check if the user is a host
+        status &= ~USR_HOST
+        dbcursor.execute("""select * from room where roomid=?""", (roomid, ))
+        room = dbcursor.fetchone()
+        if room:
+            if room[0] == username:
+                status |= USR_HOST
+
+        logging.debug('user_status: '+str(hex(status)))
+
         json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
@@ -478,6 +492,7 @@ def upd_user_status(user):
         logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+str(PVG_PRIVATE))
 
         dbcursor.execute("""update user set status=? where username=?""", (status, user))
+        user_status[user] = status
 
 def msg_command(roomid, type, argument):
     now = time.time()
@@ -643,13 +658,14 @@ class MyHandler(RequestHandler):
             if auth:
                 roomid = str(uuid.uuid4())
                 description = unicode(self.rfile.getvalue(), 'utf-8')
-                description = html_escape(description)
                 if description == '[rnd]':
                     with open('gamename.txt') as hfile:
                         lst = hfile.readlines()
                         description = random.choice(lst).decode('utf-8')
+                        description = description.replace('\n', '')
                 if not description:
                     description = roomid
+                description = html_escape(description)
                 ruleset = 0
                 options = 0
                 phase = 0
@@ -669,11 +685,12 @@ class MyHandler(RequestHandler):
                     ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
 
                 logging.debug('/host, room: '+roomid+', host: '+auth[0])
-                user_status[auth[0]] |= USR_HOST
+                #user_status[auth[0]] |= USR_HOST
 
                 upd_room(roomid)
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
+                msg_command('', MSG_USERQUIT, auth[0])
 
                 self.send_response(205)
                 self.end_headers()
@@ -706,13 +723,13 @@ class MyHandler(RequestHandler):
 
                         dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
                             ('', ~PVG_ROOMCHAT, username))
-                        user_status[username] &= ~USR_HOST
+                        #user_status[username] &= ~USR_HOST
                         upd_user_status(username)
-
-                        do_later_mask |= DLTR_COMMIT_DB
 
                         msg_command(roomid, MSG_GAMEDROP_P, roomid)
                         msg_command('', MSG_GAMEDROP, roomid)
+
+                        do_later_mask |= DLTR_COMMIT_DB
 
                         self.send_response(205)
                         self.end_headers()
@@ -729,7 +746,6 @@ class MyHandler(RequestHandler):
             if auth:
                 username = auth[0]
                 roomid = auth[4]
-                status = user_status[username]
 
                 dbcursor.execute("""select * from room where roomid=?""", \
                     (roomid, ))
@@ -738,8 +754,20 @@ class MyHandler(RequestHandler):
                 if room:
                     if room[0] == username:
                         if room[5] == 0:
+                            """Enter phase 1(ready check). The match starts after everyone votes for someone.
+                            This is to make sure everyone knows how the game proceeds.
+                            """
                             dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
-                            sys_msg('Vote for the moderator to start the match.', roomid)
+
+                            dbcursor.execute("""select * from user where
+                                roomid=?""", (roomid, ))
+                            userlist = dbcursor.fetchall()
+                            for row in userlist:
+                                logging.debug('issue a USR_RDYCHK vote to user: '+row[0])
+                                user_status[row[0]] |= USR_RDYCHK
+                                upd_user_status(row[0])
+
+                            sys_msg('Vote for someone to start the match.', roomid)
                         else:
                             dbcursor.execute("""update room set phase=0 where roomid=?""", (roomid, ))
 
@@ -748,6 +776,88 @@ class MyHandler(RequestHandler):
 
             self.send_response(204)
             self.end_headers()
+
+        elif self.path == '/vote_rdy':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                username = auth[0]
+                roomid = auth[4]
+
+                dbcursor.execute("""select * from room where roomid=?""", \
+                    (roomid, ))
+                room = dbcursor.fetchone()
+
+                if room:
+                    if user_status[username] & USR_VOTE_MASK:
+                        targetname = self.rfile.getvalue().decode('utf-8')
+                        dbcursor.execute("""select * from user where username=?""", (targetname, ))
+                        target = dbcursor.fetchone()
+
+                        sys_msg(username+' voted for '+targetname, roomid)
+
+                        user_status[username] &= ~USR_VOTE_MASK
+                        upd_user_status(username)
+
+                self.send_response(204)
+                self.end_headers()
+
+        elif self.path == '/kick':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                username = auth[0]
+                roomid = auth[4]
+                if user_status[username] & USR_HOST:
+                    targetname = self.rfile.getvalue().decode('utf-8')
+                    dbcursor.execute("""select * from user where
+                        username=? and roomid=?""", (targetname, roomid))
+                    target = dbcursor.fetchone()
+                    if target:
+                        dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
+                            ('', ~PVG_ROOMCHAT, targetname))
+                        user_status[targetname] |= USR_KICKED
+                        upd_user_status(targetname)
+                        upd_room(roomid)
+
+                        msg_command(roomid, MSG_USERQUIT, targetname)
+
+                        do_later_mask |= DLTR_COMMIT_DB
+
+                        logging.debug('/kick/, username: '+targetname+', roomid: '+roomid)
+
+                self.send_response(204)
+                self.end_headers()
+
+        elif self.path == '/drop_confirm':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                username = auth[0]
+                user_status[username] &= ~USR_KICKED
+                upd_user_status(username)
+                do_later_mask |= DLTR_COMMIT_DB
+
+                self.send_response(204)
+                self.end_headers()
+            else:
+                self.send_response(401)
+                self.end_headers()
 
         elif self.path == '/quit':
             auth = None
@@ -875,7 +985,7 @@ class MyHandler(RequestHandler):
 
             #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())
-            print 'client document time: ', client_doc_time
+            #print 'client document time: ', client_doc_time
             #print 'type: ', type(float(client_doc_time))
 
             # query message
@@ -903,7 +1013,7 @@ class MyHandler(RequestHandler):
             if json_serial:
                 ret = json.dumps(json_serial)
 
-                logging.debug('/check_update, username: '+username+', content: '+ret)
+                #logging.debug('/check_update, username: '+username+', content: '+ret)
 
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')

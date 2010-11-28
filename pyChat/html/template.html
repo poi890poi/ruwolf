@@ -69,7 +69,7 @@
     div.contextmenu {
         padding: 4px;
         position: absolute;
-		width: 200px;
+		width: 220px;
         background: #eeeeee;
         border: 2px solid #777777;
         border-top: 2px solid #dddddd;
@@ -78,10 +78,10 @@
     }
     div.menuitem {
         cursor: pointer;
-        padding: 4px 16px;
+        padding: 4px 26px;
     }
     div.menudisable {
-        padding: 4px 16px;
+        padding: 4px 26px;
         color: #cccccc;
     }
     div.menuhover {
@@ -234,9 +234,19 @@
     <div class="contextmenu" id="MenuContainerHost">
         <div class="menuitem" id="MnuHostHelp">Help</div>
         <hr/>
-        <div class="menuitem" id="MnuReadyCheck">Close</div>
+        <div class="menuitem" id="MnuReadyCheck">Close Game</div>
         <hr/>
         <div class="menuitem" id="MnuDrop">Drop Game</div>
+    </div>
+
+    <div class="contextmenu" id="MenuContainerTarget">
+        <div class="menuitem" id="MnuTarget">Vote</div>
+    </div>
+
+    <div class="contextmenu" id="MenuContainerDoubleTarget">
+        <div class="menuitem" id="MnuTarget1">Vote</div>
+        <hr/>
+        <div class="menuitem" id="MnuTarget2">Vote</div>
     </div>
 
     <div class="contextmenu" id="MenuContainerRoom">
@@ -305,9 +315,9 @@
                     if (ishost) {
                 		var menu = $("#MenuContainerHost");
                         if (roomobj[3] > 0) {
-                            $("#MnuReadyCheck").html("Open");
+                            $("#MnuReadyCheck").html("Open Game");
                         } else {
-                            $("#MnuReadyCheck").html("Close");
+                            $("#MnuReadyCheck").html("Close Game");
                         }
                 		menu.css("left", e.pageX+"px");
                 		menu.css("top", e.pageY+"px");
@@ -362,11 +372,45 @@
                 send_text("/drop");
             });
 
+            $("#Toolbar div.clk_user").live("click", function(e) {
+        		$(".contextmenu").hide();
+
+                // user status (roomid, user_status[user], role, username)
+                var userobj = jQuery.parseJSON(userjson);
+                var target = jQuery.parseJSON($(this).attr('data-json'));
+                var username = target[3];
+
+                if (userobj[1] & 8) { // vote for ready, USR_RDYCHK
+            		var join = $("#MnuTarget");
+                    join.html("Vote for <b>" + layoutSafeStr(username) + "</b>");
+            		join.unbind("click");
+            		join.click(function (e) {
+                        send_text("/vote_rdy " + username);
+            		});
+                } else if (userobj[1] & 4) { // game host, USR_HOST
+            		var join = $("#MnuTarget");
+                    join.html("Kick <b>" + layoutSafeStr(username) + "</b>");
+            		join.unbind("click");
+            		join.click(function (e) {
+                        send_text("/kick " + username);
+            		});
+                } else {
+                    return true;
+                }
+
+        		var menu = $("#MenuContainerTarget");
+        		menu.css("left", e.pageX+"px");
+        		menu.css("top", e.pageY+"px");
+        		setTimeout("$('#MenuContainerTarget').show();", 120);
+                return false;
+            });
+
             $("#Toolbar div.clk_room").live("click", function(e) {
         		$(".contextmenu").hide();
 
+                //alert($(this).attr("data-json"));
                 // room (description, ruleset, options, phase, host, roomid, participant)
-                var data_json = jQuery.parseJSON($(this).attr('data-json'));
+                var data_json = jQuery.parseJSON($(this).attr("data-json"));
                 var roomid = data_json[5];
 
                 if (data_json[3] > 0)
