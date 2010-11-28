@@ -252,6 +252,7 @@ import json
 import sqlite3
 import sys
 import uuid
+import random
 
 import logging
 LOG_FILENAME = 'debug.log'
@@ -494,6 +495,14 @@ def dbg_msg(message):
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
         ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, ''))
 
+def sys_msg(message, roomid):
+    now = time.time()
+    timestamp = long(now*1000)
+    ct = time.localtime(now)
+    isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, ''))
+
 def check_dltr_mask(mask_bit):
     global do_later_mask
     ret = do_later_mask & mask_bit
@@ -538,7 +547,10 @@ class MyHandler(RequestHandler):
     def handle_post(self):
         global svr_doc_time, msg_cache, do_later_mask, \
             user_activity, user_status
-        print 'path: ', self.path
+
+        if self.path != '/check_update':
+            logging.debug('post, command: '+self.path+', ip: '+self.client_address[0]+', value: '+self.rfile.getvalue())
+
         if self.path == '/login':
             login = unicode(self.rfile.getvalue(), 'utf-8')
             #login = self.rfile.getvalue()
@@ -632,6 +644,10 @@ class MyHandler(RequestHandler):
                 roomid = str(uuid.uuid4())
                 description = unicode(self.rfile.getvalue(), 'utf-8')
                 description = html_escape(description)
+                if description == '[rnd]':
+                    with open('gamename.txt') as hfile:
+                        lst = hfile.readlines()
+                        description = random.choice(lst).decode('utf-8')
                 if not description:
                     description = roomid
                 ruleset = 0
@@ -652,8 +668,10 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
 
+                logging.debug('/host, room: '+roomid+', host: '+auth[0])
                 user_status[auth[0]] |= USR_HOST
 
+                upd_room(roomid)
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -719,7 +737,11 @@ class MyHandler(RequestHandler):
 
                 if room:
                     if room[0] == username:
-                        dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
+                        if room[5] == 0:
+                            dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
+                            sys_msg('Vote for the moderator to start the match.', roomid)
+                        else:
+                            dbcursor.execute("""update room set phase=0 where roomid=?""", (roomid, ))
 
                         upd_room(roomid)
                         do_later_mask |= DLTR_COMMIT_DB
@@ -880,7 +902,9 @@ class MyHandler(RequestHandler):
 
             if json_serial:
                 ret = json.dumps(json_serial)
-                #print 'json: ', ret
+
+                logging.debug('/check_update, username: '+username+', content: '+ret)
+
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()

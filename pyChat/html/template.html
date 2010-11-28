@@ -234,7 +234,7 @@
     <div class="contextmenu" id="MenuContainerHost">
         <div class="menuitem" id="MnuHostHelp">Help</div>
         <hr/>
-        <div class="menuitem" id="MnuReadyCheck">Ready Check</div>
+        <div class="menuitem" id="MnuReadyCheck">Close</div>
         <hr/>
         <div class="menuitem" id="MnuDrop">Drop Game</div>
     </div>
@@ -273,15 +273,15 @@
                     //alert(userjson);
                     var userobj = jQuery.parseJSON(userjson);
                     if (userobj[0]) { // is in room
-                        $("#MnuLogout").removeClass("menuitem");
-                        $("#MnuHost").removeClass("menuitem");
-                        $("#MnuLogout").addClass("menudisable");
-                        $("#MnuHost").addClass("menudisable");
+                        $("#MnuLogout").removeClass("menuitem")
+                            .addClass("menudisable");
+                        $("#MnuHost").removeClass("menuitem")
+                            .addClass("menudisable");
                     } else {
-                        $("#MnuLogout").removeClass("menudisable");
-                        $("#MnuHost").removeClass("menudisable");
-                        $("#MnuLogout").addClass("menuitem");
-                        $("#MnuHost").addClass("menuitem");
+                        $("#MnuLogout").removeClass("menudisable")
+                            .addClass("menuitem");
+                        $("#MnuHost").removeClass("menudisable")
+                            .addClass("menuitem");
                     }
 
                     // room (description, ruleset, options, phase, host, roomid, participant)
@@ -290,6 +290,13 @@
                     var ishost = false;
                     if (roomobj.length >=5 && userobj.length >= 4)
                     {
+                        if (roomobj[3] > 0) {
+                            $("#MnuQuit").removeClass("menuitem")
+                                .addClass("menudisable");
+                        } else {
+                            $("#MnuQuit").addClass("menuitem")
+                                .removeClass("menudisable");
+                        }
                         if (roomobj[4] == userobj[3]) {
                             ishost = true;
                         }
@@ -297,6 +304,11 @@
 
                     if (ishost) {
                 		var menu = $("#MenuContainerHost");
+                        if (roomobj[3] > 0) {
+                            $("#MnuReadyCheck").html("Open");
+                        } else {
+                            $("#MnuReadyCheck").html("Close");
+                        }
                 		menu.css("left", e.pageX+"px");
                 		menu.css("top", e.pageY+"px");
                 		setTimeout("$('#MenuContainerHost').show();", 120);
@@ -338,7 +350,7 @@
                 if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
                 //var description = prompt("Please enter a brief description."); // doesn't work in IE
-                var description = "I_want_to_play_a_game.";
+                var description = "[rnd]";
                 send_text("/host " + description);
             });
             $("#MnuReadyCheck").click(function(e) {

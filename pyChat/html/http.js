@@ -5,6 +5,7 @@
     var polling = false;
     var userjson = "[]";
     var roomjson = "[]";
+    var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -179,11 +180,17 @@ var start = dtobj.getTime();
                         if (obj[i][0] == 0) {
                             //user message (type, username, isoformat, message, timestamp)
                             var msg = new String();
-                            msg += "<tr><td class='lead'>";
-                            var username = layoutSafeStr(obj[i][1]);
-                            msg += "<b>" + username + "</b></td>";
-                            msg += "<td>" + obj[i][3] + "</td></tr>";
-                            msgappend += msg;
+                            if (obj[i][1] == SYSTEM_USER) {
+                                msg += "<tr><td colspan='2' class='system'>";
+                                msg += obj[i][3] + "</td></tr>";
+                                msgappend += msg;
+                            } else {
+                                msg += "<tr><td class='lead'>";
+                                var username = layoutSafeStr(obj[i][1]);
+                                msg += "<b>" + username + "</b></td>";
+                                msg += "<td>" + obj[i][3] + "</td></tr>";
+                                msgappend += msg;
+                            }
                         }
                         else if (obj[i][0] == 1 || obj[i][0] == 4 || obj[i][0] == 5) {
                             if (obj[i][0] == 4) { // user status private
