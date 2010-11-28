@@ -555,15 +555,21 @@ class MyHandler(RequestHandler):
 
             sessionkey = None
             ip = self.client_address[0]
+
+            dbcursor.execute("""select * from user where ip=?""", (ip,))
+            conflict = dbcursor.fetchone()
+            if conflict:
+                logging.debug('double login, ip: '+ip+', user: '+username)
+
             dbcursor.execute("""select * from user where username=?""", (username,))
-            row = dbcursor.fetchone()
-            if row:
+            auth = dbcursor.fetchone()
+            if auth:
                 print 'user exists'
-                print row
-                if row[1] == password:
+                print auth
+                if auth[1] == password:
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
-                    dbcursor.execute("""update user set sessionkey=?, ip=? where username=?""", (sessionkey, ip, username))
+                    dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where username=?""", (sessionkey, ip, '', username))
                     #do_later_mask |= DLTR_COMMIT_DB
                     conn.commit()
                 else:
@@ -599,12 +605,17 @@ class MyHandler(RequestHandler):
             sessionkey = self.rfile.getvalue()
             ip = self.client_address[0]
             dbcursor.execute("""select * from user where sessionkey=? and ip=?""", (sessionkey,ip))
-            row = dbcursor.fetchone()
-            if row:
+            auth = dbcursor.fetchone()
+            if auth:
+                username = auth[0]
+                user_status.pop(username)
                 reset = str(uuid.uuid4())
-                dbcursor.execute("""update user set sessionkey=?, ip=? where sessionkey=?""", (reset, reset, sessionkey))
+                dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where sessionkey=?""", (reset, reset, '', sessionkey))
+                dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
+                    (username, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
                 #do_later_mask |= DLTR_COMMIT_DB
                 conn.commit()
+                msg_command(auth[4], MSG_USERQUIT, username)
 
             self.send_response(401)
             self.end_headers()
@@ -894,6 +905,11 @@ if __name__=="__main__":
     now = get_time_norm()
     do_later_short = now + INTERVAL_SHORT
     do_later_long = now + INTERVAL_LONG
+
+    # clear temp states
+    dbcursor.execute("""delete from message where type=? or type=? or type=?""", \
+        (MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
+
     port = 80
     s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
