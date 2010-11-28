@@ -226,16 +226,16 @@ var start = dtobj.getTime();
                             //alert(obj[i][3]);
                             if (subobj[1] & 1) { // connection alive
                                 if (subobj[1] & 8) { // waiting for ready check
-                                    userhtml += "<img class='usericon' src='wait.png'></img>";
+                                    userhtml += "<img class='usericon' src='images/wait.png'></img>";
                                 } else if (subobj[1] & 4) { // host
-                                    userhtml += "<img class='usericon' src='mod.png'></img>";
+                                    userhtml += "<img class='usericon' src='images/mod.png'></img>";
                                 } else if (subobj[2]) { // for test only
-                                    userhtml += "<img class='usericon' src='rolewolf.png'></img>";
+                                    userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
                                 } else {
-                                    userhtml += "<img class='usericon' src='villager.png'></img>";
+                                    userhtml += "<img class='usericon' src='images/villager.png'></img>";
                                 }
                             } else {
-                                userhtml += "<img class='usericon' src='dead.png'></img>";
+                                userhtml += "<img class='usericon' src='images/dead.png'></img>";
                             }
                             if (obj[i][0] == 4) userhtml += "<u>";
                             userhtml += "<b>";
@@ -265,9 +265,9 @@ var start = dtobj.getTime();
 
                                 var roomhtml = new String();
                                 if (subobj[3] == 0) { // recruiting
-                                    roomhtml += "<img class='usericon' src='roomopen.png'></img>";
+                                    roomhtml += "<img class='usericon' src='images/roomopen.png'></img>";
                                 } else { // commencing
-                                    roomhtml += "<img class='usericon' src='roomclosed.png'></img>";
+                                    roomhtml += "<img class='usericon' src='images/roomclosed.png'></img>";
                                 }
 
                                 roomhtml += "<b>";
