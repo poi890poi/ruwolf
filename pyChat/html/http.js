@@ -186,7 +186,7 @@ var start = dtobj.getTime();
                             msgappend += msg;
                         }
                         else if (obj[i][0] == 1 || obj[i][0] == 4 || obj[i][0] == 5) {
-                            if (obj[i][0] == 4) {
+                            if (obj[i][0] == 4) { // user status private
                                 userjson = obj[i][3];
                             }
 
@@ -197,7 +197,7 @@ var start = dtobj.getTime();
                             //alert(obj[i][3]);
                             if (subobj[1] & 4) { // host
                                 userhtml += "<img class='usericon' src='mod.png'></img>";
-                            } else if (subobj[1] & 1) { // survive
+                            } else if (subobj[1] & 1) { // connection alive
                                 if (subobj[2]) {
                                     userhtml += "<img class='usericon' src='rolewolf.png'></img>";
                                 } else {
@@ -206,9 +206,11 @@ var start = dtobj.getTime();
                             } else {
                                 userhtml += "<img class='usericon' src='dead.png'></img>";
                             }
+                            if (obj[i][0] == 4) userhtml += "<u>";
                             userhtml += "<b>";
                             userhtml += layoutSafeStr(obj[i][1]);
                             userhtml += "</b>";
+                            if (obj[i][0] == 4) userhtml += "</u>";
 
                             userspan = tbdom.find("#3B06037A"+obj[i][1]);
                             //alert("#3B06037A"+obj[i][1] + ", " + userspan.length);
