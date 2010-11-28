@@ -387,7 +387,7 @@
             		join.click(function (e) {
                         send_text("/vote_rdy " + username);
             		});
-                } else if (userobj[1] & 4) { // game host, USR_HOST
+                } else if ((userobj[1] & 4) && (username != userobj[3])) { // game host, USR_HOST
             		var join = $("#MnuTarget");
                     join.html("Kick <b>" + layoutSafeStr(username) + "</b>");
             		join.unbind("click");
