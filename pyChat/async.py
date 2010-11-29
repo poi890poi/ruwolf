@@ -327,6 +327,9 @@ def check_do_later():
 
         do_later_long = now + INTERVAL_LONG
 
+def check_vote(roomid):
+    pass
+
 class MyHandler(RequestHandler):
     def handle_get(self):
         self.path = 'html' + self.path
@@ -434,6 +437,7 @@ class MyHandler(RequestHandler):
 
             if auth:
                 roomid = str(uuid.uuid4())
+                username = auth[0]
                 description = unicode(self.rfile.getvalue(), 'utf-8')
                 if description == '[rnd]':
                     with open('gamename.txt') as hfile:
@@ -448,26 +452,26 @@ class MyHandler(RequestHandler):
                 phase = 0
                 timeout = TIME_MAX
                 dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?)', \
-                    (auth[0], roomid, description, ruleset, options, phase, timeout, 0, ''))
+                    (username, roomid, description, ruleset, options, phase, timeout, 0, ''))
                 dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
-                    (roomid, PVG_ROOMCHAT, auth[0]))
+                    (roomid, PVG_ROOMCHAT, username))
 
                 timestamp = get_time_norm()
                 privilege = 0
-                username = roomid
                 participant = 1
-                json_serial = (description, ruleset, options, phase, auth[0], roomid, participant)
+                json_serial = (description, ruleset, options, phase, username, roomid, participant)
                 message = json.dumps(json_serial)
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
-                    ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
+                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, ''))
 
-                logging.debug('/host, room: '+roomid+', host: '+auth[0])
-                #user_status[auth[0]] |= USR_HOST
+                sys_msg('Welcome to <b>'+description+'</b> hosted by '+username+'.', roomid)
+                logging.debug('/host, room: '+roomid+', host: '+username)
+                #user_status[username] |= USR_HOST
 
                 upd_room(roomid)
-                upd_user_status(auth[0])
+                upd_user_status(username)
                 do_later_mask |= DLTR_COMMIT_DB
-                msg_command('', MSG_USERQUIT, auth[0])
+                msg_command('', MSG_USERQUIT, username)
 
                 self.send_response(205)
                 self.end_headers()
@@ -573,13 +577,15 @@ class MyHandler(RequestHandler):
                 if room:
                     if user_status[username] & USR_VOTE_MASK:
                         targetname = self.rfile.getvalue().decode('utf-8')
-                        dbcursor.execute("""select * from user where username=?""", (targetname, ))
+                        dbcursor.execute("""select * from user where roomid=? and username=?""", (roomid, targetname, ))
                         target = dbcursor.fetchone()
 
-                        sys_msg(username+' voted for '+targetname, roomid)
+                        #dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where username=?""", (sessionkey, ip, '', username))
 
-                        user_status[username] &= ~USR_VOTE_MASK
-                        upd_user_status(username)
+                        if target:
+                            sys_msg(username+' voted for '+targetname, roomid)
+                            user_status[username] &= ~USR_VOTE_MASK
+                            upd_user_status(username)
 
                 self.send_response(204)
                 self.end_headers()
