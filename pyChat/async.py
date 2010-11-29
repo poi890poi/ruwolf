@@ -166,13 +166,10 @@ dbcursor.execute('''create table if not exists room
 (username text, roomid text, description text, ruleset integer, options integer,
 phase integer, timeout integer, reserved1 integer, reserved2 text)''')
 
-# System messages are cached in a queue.
-# They are not saved in database.
-# When clients request for new messages. It's sent to clients.
-# Some types of system message have life spans.
-# Such messages are cached in a set. So there's no duplicated entry with same name.
+dbcursor.execute('''create table if not exists action
+(roomid text, action integer, username text, target text)''')
 
-sys_msg = []
+ACT_VOTE_RDY = 1
 
 # class definition
 
@@ -328,7 +325,58 @@ def check_do_later():
         do_later_long = now + INTERVAL_LONG
 
 def check_vote(roomid):
-    pass
+    dbcursor.execute("""select count(*) from user where roomid=? and status&? and status&?""", \
+        (roomid, USR_CONN, USR_VOTE_MASK))
+    sqlcount = dbcursor.fetchall()
+    user_count = sqlcount[0][0]
+    if user_count == -1:
+        user_count = 0
+    if user_count == 0:
+        # all actions are taken
+
+        dbcursor.execute("""select * from action where roomid=? and action=?""", \
+            (roomid, ACT_VOTE_RDY))
+
+        vote_count = dict()
+        vote_target = dict()
+        for rec in dbcursor:
+            action = rec[1]
+            username = rec[2]
+            target = rec[3]
+            vote_target[username] = target
+            if target not in vote_count:
+                vote_count[target] = 0
+            if username not in vote_count:
+                vote_count[username] = 0
+            vote_count[target] += 1
+
+        msg = ''
+        max = 0
+        elected = []
+        for key, value in sorted(vote_count.iteritems(), key=lambda (k,v): (v,k), reverse=True):
+            if value > max:
+                max = value
+            if value == max:
+                elected.append(key)
+            msg += '(' + str(value) + ') '
+            msg += key
+            msg += ' voted for '
+            msg += vote_target[key]
+            msg += '<br/>'
+
+        msg += '<br/>'
+
+        if len(elected) > 1:
+            # deadlocked election
+            # USR_DEADLOCKED_E
+            msg += 're-elect<br/>'
+        else:
+            msg += elected[0] + ' is hanged<br/>'
+
+        sys_msg(msg, roomid)
+
+
+    logging.debug('not voted yet: '+str(user_count))
 
 class MyHandler(RequestHandler):
     def handle_get(self):
@@ -539,6 +587,7 @@ class MyHandler(RequestHandler):
                             This is to make sure everyone knows how the game proceeds.
                             """
                             dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
+                            dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
 
                             dbcursor.execute("""select * from user where
                                 roomid=?""", (roomid, ))
@@ -580,12 +629,14 @@ class MyHandler(RequestHandler):
                         dbcursor.execute("""select * from user where roomid=? and username=?""", (roomid, targetname, ))
                         target = dbcursor.fetchone()
 
-                        #dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where username=?""", (sessionkey, ip, '', username))
-
                         if target:
-                            sys_msg(username+' voted for '+targetname, roomid)
+                            #sys_msg(username+' voted for '+targetname, roomid)
                             user_status[username] &= ~USR_VOTE_MASK
                             upd_user_status(username)
+
+                            dbcursor.execute('insert into action values (?,?,?,?)', \
+                                (roomid, ACT_VOTE_RDY, username, targetname))
+                            check_vote(roomid)
 
                 self.send_response(204)
                 self.end_headers()

@@ -393,7 +393,7 @@
                 var target = jQuery.parseJSON($(this).attr('data-json'));
                 var username = target[3];
 
-                if (userobj[1] & 8) { // vote for ready, USR_RDYCHK
+                if ((userobj[1] & 8) && (username != userobj[3])) { // vote for ready, USR_RDYCHK
             		var join = $("#MnuTarget");
                     join.html("Vote for <b>" + layoutSafeStr(username) + "</b>");
             		join.unbind("click");
