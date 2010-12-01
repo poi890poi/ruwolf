@@ -499,6 +499,7 @@ class MyHandler(RequestHandler):
                 room = dbcursor.fetchone()
 
                 if room:
+                    logging.debug('/drop, room: '+roomid+', host: '+username)
                     if room[0] == username:
                         dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
                         dbcursor.execute("""delete from room where roomid=?""", (roomid, ))
@@ -842,6 +843,9 @@ if __name__=="__main__":
     # clear temp states
     dbcursor.execute("""delete from message where type=? or type=? or type=?""", \
         (MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
+
+    # init other modules
+    random.seed()
 
     port = 80
     s = Server('', port, MyHandler)
