@@ -69,13 +69,17 @@
             {
             }
 
-            login_xmlhttp.onreadystatechange = nill;
-            login_xmlhttp.abort();
+            send_xmlhttp.onreadystatechange = nill;
+            send_xmlhttp.abort();
         }
     }
 
     function send_text(params)
     {
+        //alert(send_xmlhttp.readyState);
+        if (send_xmlhttp.readyState != 0) {
+            return;
+        }
         if (!params)
         {
             params = $("#EditMessage").val();
@@ -172,6 +176,9 @@
 
     function login()
     {
+        if (login_xmlhttp.readyState != 0) {
+            return;
+        }
         login_xmlhttp.onreadystatechange = handle_login_return;
         var params = "";
         params += $("#Username").val();
@@ -237,16 +244,16 @@ var start = dtobj.getTime();
                         //alert(obj[i][3]);
                         if (subobj[1] & 1) { // connection alive
                             if (subobj[1] & 256) { // waiting for ready check
-                                userhtml += "<img class='usericon' src='images/wait.png'></img>";
+                                userhtml += "<img class='usericon' src='images/unknown.png'></img>";
                             } else if (subobj[1] & 4) { // host
                                 userhtml += "<img class='usericon' src='images/mod.png'></img>";
-                            } else if (subobj[2]) { // for test only
-                                userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
+                            //} else if (subobj[2]) { // for test only
+                                //userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
                             } else {
                                 userhtml += "<img class='usericon' src='images/villager.png'></img>";
                             }
                         } else {
-                            userhtml += "<img class='usericon' src='images/dead.png'></img>";
+                            userhtml += "<img class='usericon' src='images/unknown.png'></img>";
                         }
                         if (obj[i][0] == 4) userhtml += "<u>";
                         userhtml += "<b>";
