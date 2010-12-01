@@ -60,7 +60,7 @@ dbcursor.execute('''create table if not exists room
 phase integer, timeout integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists action
-(roomid text, action integer, username text, target text)''')
+(roomid text, action integer, username text, target text, timestamp integer)''')
 
 # class definition
 
@@ -228,41 +228,57 @@ def check_vote(roomid):
         dbcursor.execute("""select * from action where roomid=? and action=?""", \
             (roomid, ACT_VOTE_RDY))
 
-        vote_count = dict()
-        vote_target = dict()
+        voter = dict()
+        timestamp = dict()
         for rec in dbcursor:
             action = rec[1]
             username = rec[2]
             target = rec[3]
-            vote_target[username] = target
-            if target not in vote_count:
-                vote_count[target] = 0
-            if username not in vote_count:
-                vote_count[username] = 0
-            vote_count[target] += 1
+            if target not in voter:
+                voter[target] = set()
+            voter[target].add(username)
+            if target not in timestamp:
+                timestamp[target] = 0
+            if rec[4] > timestamp[target]:
+                timestamp[target] = rec[4]
 
         msg = ''
         max = 0
-        elected = []
-        for key, value in sorted(vote_count.iteritems(), key=lambda (k,v): (v,k), reverse=True):
-            if value > max:
-                max = value
-            if value == max:
-                elected.append(key)
-            msg += '(' + str(value) + ') '
+        elected = dict()
+        for key, value in sorted(voter.iteritems(), key=lambda (k,v): (len(v)), reverse=True):
+            if len(value) > max:
+                max = len(value)
+            if len(value) == max:
+                elected[key] = timestamp[key]
             msg += key
-            msg += ' voted for '
-            msg += vote_target[key]
-            msg += '<br/>'
+            msg += ': '
+            msg += str(len(value))
+            if value:
+                msg += ' ('
+                list = ''
+                for voter in value:
+                    list += ', '
+                    list += voter
+                msg += list.replace(', ', '', 1)
+                msg += ')<br/>'
 
         msg += '<br/>'
 
+        final = ''
         if len(elected) > 1:
             # deadlocked election
             # USR_DEADLOCKED_E
-            msg += 're-elect<br/>'
+            for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
+                final = key
+                break
+                #msg += key + ' ' + str(value) + '<br/>'
         else:
-            msg += elected[0] + ' is hanged<br/>'
+            final = random.choice(elected.items())[0]
+
+        msg += '<b>'
+        msg += final
+        msg += '</b>'
+        msg += ' is hanged<br/>'
 
         sys_msg(msg, roomid)
 
@@ -479,16 +495,15 @@ class MyHandler(RequestHandler):
 
                 if room:
                     if room[0] == username:
+                        dbcursor.execute("""select * from user where
+                            roomid=?""", (roomid, ))
+                        userlist = dbcursor.fetchall()
                         if room[5] == 0:
                             """Enter phase 1(ready check). The match starts after everyone votes for someone.
                             This is to make sure everyone knows how the game proceeds.
                             """
                             dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
                             dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
-
-                            dbcursor.execute("""select * from user where
-                                roomid=?""", (roomid, ))
-                            userlist = dbcursor.fetchall()
                             for row in userlist:
                                 logging.debug('issue a USR_DAY_VOTE vote to user: '+row[0])
                                 user_status[row[0]] |= USR_DAY_VOTE
@@ -497,6 +512,11 @@ class MyHandler(RequestHandler):
                             sys_msg('Vote for someone to start the match.', roomid)
                         else:
                             dbcursor.execute("""update room set phase=0 where roomid=?""", (roomid, ))
+                            dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
+                            for row in userlist:
+                                logging.debug('remove USR_DAY_VOTE vote from user: '+row[0])
+                                user_status[row[0]] &= ~USR_DAY_VOTE
+                                upd_user_status(row[0])
 
                         upd_room(roomid)
                         do_later_mask |= DLTR_COMMIT_DB
@@ -531,8 +551,8 @@ class MyHandler(RequestHandler):
                             user_status[username] &= ~USR_ACT_MASK
                             upd_user_status(username)
 
-                            dbcursor.execute('insert into action values (?,?,?,?)', \
-                                (roomid, ACT_VOTE_RDY, username, targetname))
+                            dbcursor.execute('insert into action values (?,?,?,?,?)', \
+                                (roomid, ACT_VOTE_RDY, username, targetname, get_time_norm()))
                             check_vote(roomid)
 
                 self.send_response(204)
