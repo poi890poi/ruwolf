@@ -305,16 +305,19 @@
                     var ishost = false;
                     if (roomobj.length >=5 && userobj.length >= 4)
                     {
-                        if (roomobj[3] > 0) {
-                            $("#MnuQuit").removeClass("menuitem")
-                                .addClass("menudisable");
-                        } else {
+                        if (roomobj[3] == 0) {
                             $("#MnuQuit").addClass("menuitem")
                                 .removeClass("menudisable");
+                        } else {
+                            $("#MnuQuit").removeClass("menuitem")
+                                .addClass("menudisable");
                         }
                         if (roomobj[4] == userobj[3]) {
                             ishost = true;
                         }
+                    } else {
+                        $("#MnuQuit").removeClass("menuitem")
+                            .addClass("menudisable");
                     }
 
                     if (ishost) {
@@ -390,22 +393,37 @@
                 {
                     return true;
                 }
-                var target = jQuery.parseJSON($(this).attr('data-json'));
-                var username = target[3];
 
-                if ((userobj[1] & 8) && (username != userobj[3])) { // vote for ready, USR_RDYCHK
+                var targetname = "";
+                var target = jQuery.parseJSON($(this).attr('data-json'));
+                if (target.length >= 4)
+                {
+                    targetname = target[3];
+                }
+
+                // room (description, ruleset, options, phase, host, roomid, participant)
+                var phase = 0;
+                var roomid = "";
+                var roomobj = jQuery.parseJSON(roomjson);
+                if (roomobj.length >= 6)
+                {
+                    phase = roomobj[3];
+                    roomid = roomobj[5];
+                }
+
+                if ((roomid) && (phase == 1) && (userobj[1] & 256) && (targetname != userobj[3])) { // vote for ready, USR_RDYCHK
             		var join = $("#MnuTarget");
-                    join.html("Vote for <b>" + layoutSafeStr(username) + "</b>");
+                    join.html("Vote for <b>" + layoutSafeStr(targetname) + "</b>");
             		join.unbind("click");
             		join.click(function (e) {
-                        send_text("/vote_rdy " + username);
+                        send_text("/vote_rdy " + targetname);
             		});
-                } else if ((userobj[1] & 4) && (username != userobj[3])) { // game host, USR_HOST
+                } else if ((userobj[1] & 4) && (targetname != userobj[3])) { // game host, USR_HOST
             		var join = $("#MnuTarget");
-                    join.html("Kick <b>" + layoutSafeStr(username) + "</b>");
+                    join.html("Kick <b>" + layoutSafeStr(targetname) + "</b>");
             		join.unbind("click");
             		join.click(function (e) {
-                        send_text("/kick " + username);
+                        send_text("/kick " + targetname);
             		});
                 } else {
                     return true;

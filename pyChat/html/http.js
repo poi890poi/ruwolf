@@ -229,7 +229,7 @@ var start = dtobj.getTime();
                             var userhtml = new String();
                             //alert(obj[i][3]);
                             if (subobj[1] & 1) { // connection alive
-                                if (subobj[1] & 8) { // waiting for ready check
+                                if (subobj[1] & 256) { // waiting for ready check
                                     userhtml += "<img class='usericon' src='images/wait.png'></img>";
                                 } else if (subobj[1] & 4) { // host
                                     userhtml += "<img class='usericon' src='images/mod.png'></img>";

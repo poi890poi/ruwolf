@@ -9,118 +9,11 @@ import uuid
 import random
 
 from recipe440665 import *
+from constant import *
 
 import logging
 LOG_FILENAME = 'debug.log'
 logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
-
-# init variables
-
-INTERVAL_SHORT = 3 * 1000
-INTERVAL_LONG = 30 * 1000
-INTERVAL_DROPUSER = 12 * 60 * 1000
-TIME_MAX = long(9999999999999)
-
-# message types, specified in user column
-SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
-GUID_0 = '3e5cdec2-f504-4474-ba0f-2f358c210be8'
-GUID_0 = '7051262e-c2ff-4e69-b2ed-76cb4d01eb9a'
-GUID_0 = '87018045-fd87-4f7c-ad87-94b9c898cdfe'
-GUID_0 = '4b89497a-2bb1-4234-9747-cd7c862479be'
-GUID_0 = '9fe94f24-4e45-4cc6-b030-6363d2e7cc1f'
-GUID_0 = '8f4c6b3e-0aa8-4d41-a550-95a8e7dd04e0'
-GUID_0 = 'a745ee66-6538-48e2-97f1-9eaf32ce5701'
-GUID_0 = '1df5fd0f-06eb-4961-a96e-27e78567eb98'
-GUID_0 = 'ceb7d84e-f5c2-4f9b-9700-a1d3c63c771e'
-GUID_0 = '204c4a4e-5b67-4745-b104-9f6dcf0ad8e4'
-
-# message types
-MSG_USER_STATUS = 1
-MSG_ROOM = 2
-MSG_USERQUIT = 3
-MSG_USR_STA_PRIVATE = 4
-MSG_USR_STA_ALIGNMENT = 5
-MSG_GAMEDROP = 6
-MSG_GAMEDROP_P = 7
-MSG_ROOM_DETAIL = 8
-MSG_PRIVATE = 9
-
-# user status
-USR_PUBLIC_MASK = 0x000000ff
-USR_PRIVATE_MASK = 0x00ffff00
-
-USR_CONN = 0x00000001
-USR_SURVIVE = 0x00000002
-USR_HOST = 0x00000004
-USR_RDYCHK = 0x00000008
-USR_KICKED = 0x00000010
-USR_HANG = 0x00000020
-USR_DEADLOCKED_E = 0x00000040
-
-USR_PRESERVE = 0x00000080
-
-USR_VOTE_LYNCH = 0x00000100
-USR_VOTE_CASTING = 0x00000200
-
-USR_PRESERVE = 0x00000400
-USR_PRESERVE = 0x00000800
-
-USR_VOTE_BITE = 0x00001000
-USR_NA_BLOCK = 0x00002000
-USR_NA_DETECT = 0x00004000
-USR_NA_PROTECT = 0x00008000
-USR_NA_AUTOPSY = 0x000010000
-USR_NA_CUPID = 0x000020000
-
-USR_PRESERVE = 0x000040000
-USR_PRESERVE = 0x000080000
-
-USR_D_TARGET1 = 0x000100000
-USR_D_TARGET2 = 0x000200000
-USR_D_TARGET3 = 0x000400000
-USR_D_TARGET4 = 0x000800000
-
-USR_VOTE_MASK = USR_RDYCHK | USR_VOTE_LYNCH | USR_VOTE_CASTING | \
-    USR_VOTE_BITE | USR_NA_BLOCK | USR_NA_DETECT | USR_NA_PROTECT | \
-    USR_NA_AUTOPSY | USR_NA_CUPID
-
-# roles
-ROLE_ALIGNMENT_SHIFT = 24
-
-ROLE_VILLAGER = 0x00000000
-ROLE_SEER = 0x00000001
-ROLE_HEALER = 0x00000002
-ROLE_HUNTER = 0x00000004
-ROLE_PRESERVE = 0x00000008
-
-ROLE_CUPID = 0x00000010
-ROLE_LOVER = 0x00000020
-ROLE_PRESERVE = 0x00000040
-ROLE_PRESERVE = 0x00000080
-
-ROLE_WOLF = 0x00000100
-ROLE_BLOCKER = 0x00000200
-ROLE_ALPHA_WOLF = 0x00000400
-ROLE_MADMAN = 0x00000800
-ROLE_JUNIOR_WOLF = 0x00001000
-ROLE_PRESERVE = 0x00002000
-ROLE_PRESERVE = 0x00004000
-ROLE_PRESERVE = 0x00008000
-
-# privileges
-PVG_ALIGNMENT_MASK = 0xff0000000
-
-PVG_ROOMCHAT = 0x00000001
-
-PVG_DETECTOR1 = 0x000100000
-PVG_DETECTOR2 = 0x000200000
-PVG_DETECTOR3 = 0x000400000
-PVG_DETECTOR4 = 0x000800000
-
-PVG_PRIVATE = 0xffffffff
-
-# do later actions
-DLTR_COMMIT_DB = 0b00000001
 
 do_later_short = long(0)
 do_later_long = long(0)
@@ -168,8 +61,6 @@ phase integer, timeout integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists action
 (roomid text, action integer, username text, target text)''')
-
-ACT_VOTE_RDY = 1
 
 # class definition
 
@@ -326,7 +217,7 @@ def check_do_later():
 
 def check_vote(roomid):
     dbcursor.execute("""select count(*) from user where roomid=? and status&? and status&?""", \
-        (roomid, USR_CONN, USR_VOTE_MASK))
+        (roomid, USR_CONN, USR_ACT_MASK))
     sqlcount = dbcursor.fetchall()
     user_count = sqlcount[0][0]
     if user_count == -1:
@@ -377,6 +268,12 @@ def check_vote(roomid):
 
 
     logging.debug('not voted yet: '+str(user_count))
+
+def get_day_night(phase):
+    # -1: game not commencing, 0: day, 1: night
+    if phase < 10 or phase > 0xffff:
+        return -1
+    return phase / 10 % 2
 
 class MyHandler(RequestHandler):
     def handle_get(self):
@@ -593,8 +490,8 @@ class MyHandler(RequestHandler):
                                 roomid=?""", (roomid, ))
                             userlist = dbcursor.fetchall()
                             for row in userlist:
-                                logging.debug('issue a USR_RDYCHK vote to user: '+row[0])
-                                user_status[row[0]] |= USR_RDYCHK
+                                logging.debug('issue a USR_DAY_VOTE vote to user: '+row[0])
+                                user_status[row[0]] |= USR_DAY_VOTE
                                 upd_user_status(row[0])
 
                             sys_msg('Vote for someone to start the match.', roomid)
@@ -624,14 +521,14 @@ class MyHandler(RequestHandler):
                 room = dbcursor.fetchone()
 
                 if room:
-                    if user_status[username] & USR_VOTE_MASK:
+                    if user_status[username] & USR_ACT_MASK:
                         targetname = self.rfile.getvalue().decode('utf-8')
                         dbcursor.execute("""select * from user where roomid=? and username=?""", (roomid, targetname, ))
                         target = dbcursor.fetchone()
 
                         if target:
                             #sys_msg(username+' voted for '+targetname, roomid)
-                            user_status[username] &= ~USR_VOTE_MASK
+                            user_status[username] &= ~USR_ACT_MASK
                             upd_user_status(username)
 
                             dbcursor.execute('insert into action values (?,?,?,?)', \
@@ -734,7 +631,8 @@ class MyHandler(RequestHandler):
                 room = dbcursor.fetchone()
 
                 if room:
-                    if room[5] == 0:
+                    phase = room[5]
+                    if phase == 0:
                         msg_command(auth[4], MSG_USERQUIT, auth[0])
                         dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
                             (roomid, PVG_ROOMCHAT, auth[0]))
@@ -782,8 +680,15 @@ class MyHandler(RequestHandler):
             if auth:
                 username = auth[0]
                 roomid = auth[4]
-                if roomid:
-                    privilege |= PVG_ROOMCHAT
+
+                dbcursor.execute("""select * from room where roomid=?""", (roomid, ))
+                room = dbcursor.fetchone()
+
+                if room:
+                    phase = room[5]
+                    if phase < 10:
+                        privilege |= PVG_ROOMCHAT
+
             isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
             message = msgbody
 
