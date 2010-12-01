@@ -1,7 +1,6 @@
     var timestamp = 0;
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
     //var sessionkey = ""; //for testing
-    var user_status = new Array();
     var polling = false;
     var userjson = "[]";
     var roomjson = "[]";

@@ -69,9 +69,15 @@ def html_escape(text):
     return "".join(html_escape_table.get(c,c) for c in text)
 
 def get_time_norm():
+    """Timestamp is always integer, in miliseconds,
+        to prevent float point precision problem
+    """
     return long(time.time()*1000)
 
 def upd_room(roomid):
+    """Room status is a special message type with a single instance per room.
+    Later status overwrites earlier one.
+    """
     dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
     dbcursor.execute("""select count(*) from user where roomid=? and status&?""", (roomid, USR_CONN))
     sqlcount = dbcursor.fetchall()
@@ -96,6 +102,19 @@ def upd_room(roomid):
             (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, ''))
 
 def upd_user_status(user):
+    """User status are special message types.
+    There are 3 types of them, each has a single instance per user.
+        1. public user status
+            Everyone in the room can see. Such as connection, surviving...
+        2. alignment status
+            Only players share the same alignments can see. Such as werewolf...
+        3. private status
+            Only the sole player can see. Such as seer...
+    The 3 types must be updated the same time with a strict timestamp order.
+        Private > Alignment > Public
+    And alignment status always include public staus, private status always include alignment status.
+    So player always get the full information that is avaliable for him.
+    """
     global user_status
     dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
         (user, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
@@ -286,10 +305,31 @@ def check_vote(roomid):
     logging.debug('not voted yet: '+str(user_count))
 
 def get_day_night(phase):
-    # -1: game not commencing, 0: day, 1: night
-    if phase < 10 or phase > 0xffff:
+    """Phase is defined in hex.
+    0x00-0x0f: Pre-match phase.
+        0x00: Room is open for joining.
+        0x01: The host has sent ready cehck. The room is cloesd and the match starts after every voted.
+    0x0010-0xffff: Game is commencing.
+        Each phase is divided to 0xf sub-phases.
+    0x10000-0xfffff: The game ended.
+    Return values:
+        -1: game not commencing, 0: day, 1: night
+    """
+    if (phase >> 4 == 0) or phase > 0xffff:
         return -1
-    return phase / 10 % 2
+    return (phase >> 4) % 2
+
+def get_subphase(phase):
+    """Sub-phases definition:
+        0x0-0x5: Pre-election phases.
+        ox6: First round election.
+        0x7-0x9: Second round elections.
+        0x-0xf: Post-election phases.
+    """
+    return phase & 0xf
+
+def phase_advance(phase):
+    reurn ((phase >> 4) + 0x1) << 4
 
 class MyHandler(RequestHandler):
     def handle_get(self):

@@ -2,96 +2,7 @@
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>pyChat</title>
-<style type="text/css">
-    bodyforenglish {
-        font-family: helvetica, verdana, arial, sans-serif;
-        font-weight: normal }
-    body {
-        font-family: 細明體; }
-
-    #MessageList {
-        overflow: auto; overflow-x: hidden;
-        width: 648px; height: 600px;
-        border: 1px solid black;
-    }
-    #MessageList table {
-        table-layout: fixed;
-        width: 638px;
-    }
-    #MessageList td {
-        padding: 6px 6px 15px 6px;
-        border-top: 1px dashed #999999;
-    }
-    #MessageList td.system {
-        padding: 20px 50px;
-        background: #cccccc;
-    }
-    #MessageList td.lead {
-        width: 125px;
-        padding-right: 15px;
-    }
-
-    #PostMessage {
-        padding-top: 16px;
-    }
-    #PostMessage textarea {
-        width: 650px; height: 80px;
-    }
-    #Login {
-        padding-top: 16px;
-        display: none;
-    }
-    #Toolbar {
-        position: absolute;
-        width: 300px;
-        left: 680px; top: 16px;
-        border: 0px solid black;
-    }
-    #Toolbar #tabs_content_container {
-        overflow: auto; overflow-x: hidden;
-        vertical-align: top;
-        width: 298px;
-        border: 1px solid black; }
-    #Toolbar #tabs_content_container div {
-        margin-bottom: 2px;
-    }
-    #Toolbar #tabs_content_container .tab_content {
-        padding: 6px 9px;
-        display: none;
-    }
-    img.usericon {
-        vertical-align: text-bottom;
-        padding-right: 3px;
-    }
-    img.role {
-        width: 298px;
-    }
-    div.contextmenu {
-        padding: 4px;
-        position: absolute;
-		width: 220px;
-        background: #eeeeee;
-        border: 2px solid #777777;
-        border-top: 2px solid #dddddd;
-        border-left: 2px solid #dddddd;
-        display: none;
-    }
-    div.menuitem {
-        cursor: pointer;
-        padding: 4px 26px;
-    }
-    div.menudisable {
-        padding: 4px 26px;
-        color: #cccccc;
-    }
-    div.menuhover {
-        color: white;
-        background: royalblue;
-    }
-    .clkable {
-        cursor: pointer;
-    }
-</style>
+<link href="style.css" rel="stylesheet" type="text/css"/>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
 <script type="text/javascript" src="jquery.cookie.js"></script>
@@ -271,6 +182,48 @@
                 return false;
             });
 
+    		$(".menuitem").live("mouseover", function (e) {
+    	        $(this).addClass("menuhover");
+    		});
+    		$(".menuitem").live("mouseout", function (e) {
+    	        $(this).removeClass("menuhover");
+    		});
+            $(document).click(function(e) {
+        		$(".contextmenu").hide();
+            });
+
+            $("#MnuHelp").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
+        		$(".contextmenu").hide();
+            });
+            $("#MnuQuit").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
+        		$(".contextmenu").hide();
+                send_text("/quit");
+            });
+            $("#MnuLogout").live("click", function(e) {
+                if ($(this).hasClass("menudisable")) return;
+        		$(".contextmenu").hide();
+                send_text("/logout");
+            });
+            $("#MnuHost").live("click", function(e) {
+                if ($(this).hasClass("menudisable")) return;
+        		$(".contextmenu").hide();
+                //var description = prompt("Please enter a brief description."); // doesn't work in IE
+                var description = "[rnd]";
+                send_text("/host " + description);
+            });
+            $("#MnuReadyCheck").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
+        		$(".contextmenu").hide();
+                send_text("/ready");
+            });
+            $("#MnuDrop").click(function(e) {
+                if ($(this).hasClass("menudisable")) return;
+        		$(".contextmenu").hide();
+                send_text("/drop");
+            });
+
             $(document)[0].oncontextmenu = function() {return false;}
             $(document).mousedown(function(e){
                 if( e.button == 2 ) {
@@ -341,47 +294,6 @@
                 } else {
                     return true;
                 }
-            });
-    		$(".menuitem").live("mouseover", function (e) {
-    	        $(this).addClass("menuhover");
-    		});
-    		$(".menuitem").live("mouseout", function (e) {
-    	        $(this).removeClass("menuhover");
-    		});
-            $(document).click(function(e) {
-        		$(".contextmenu").hide();
-            });
-
-            $("#MnuHelp").click(function(e) {
-                if ($(this).hasClass("menudisable")) return;
-        		$(".contextmenu").hide();
-            });
-            $("#MnuQuit").click(function(e) {
-                if ($(this).hasClass("menudisable")) return;
-        		$(".contextmenu").hide();
-                send_text("/quit");
-            });
-            $("#MnuLogout").live("click", function(e) {
-                if ($(this).hasClass("menudisable")) return;
-        		$(".contextmenu").hide();
-                send_text("/logout");
-            });
-            $("#MnuHost").live("click", function(e) {
-                if ($(this).hasClass("menudisable")) return;
-        		$(".contextmenu").hide();
-                //var description = prompt("Please enter a brief description."); // doesn't work in IE
-                var description = "[rnd]";
-                send_text("/host " + description);
-            });
-            $("#MnuReadyCheck").click(function(e) {
-                if ($(this).hasClass("menudisable")) return;
-        		$(".contextmenu").hide();
-                send_text("/ready");
-            });
-            $("#MnuDrop").click(function(e) {
-                if ($(this).hasClass("menudisable")) return;
-        		$(".contextmenu").hide();
-                send_text("/drop");
             });
 
             $("#Toolbar div.clk_user").live("click", function(e) {
