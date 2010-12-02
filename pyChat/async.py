@@ -645,7 +645,7 @@ class MyHandler(RequestHandler):
                 upd_user_status(username)
                 do_later_mask |= DLTR_COMMIT_DB
 
-                self.send_response(204)
+                self.send_response(205)
                 self.end_headers()
             else:
                 self.send_response(401)

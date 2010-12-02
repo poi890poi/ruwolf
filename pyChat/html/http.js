@@ -233,9 +233,8 @@ var start = dtobj.getTime();
 
                         if (obj[i][0] == 4) { // user status private
                             if (subobj[1] & 16) { // kicked, USR_KICKED
-                                alert("You are dropped by host.");
+                                alert("You have been INVITED to the lobby.");
                                 send_text("/drop_confirm");
-                                location.reload();
                             }
                             userjson = obj[i][3];
                         }
