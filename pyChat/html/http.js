@@ -1,13 +1,15 @@
+    var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+
     var timestamp = 0;
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
     //var sessionkey = ""; //for testing
     var userjson = "[]";
     var roomjson = "[]";
-    var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
     var poll_xmlhttp = createXMLHttpRequest();
     var poll_timer;
     var send_xmlhttp = createXMLHttpRequest();
     var login_xmlhttp = createXMLHttpRequest();
+    var t_resizeui;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -208,7 +210,7 @@ var start = dtobj.getTime();
                 var obj = jQuery.parseJSON(poll_xmlhttp.responseText);
                 var msgappend = "";
                 var lstappend = "";
-                var tbdom = $("#tab1");
+                var tbdom = $("#UserList #UserListContainer");
 
                 var i, N = obj.length;
                 for (i=0; i<N; i++) {
@@ -220,7 +222,7 @@ var start = dtobj.getTime();
                             msg += obj[i][3] + "</td></tr>";
                             msgappend += msg;
                         } else {
-                            msg += "<tr><td class='lead'>";
+                            msg += "<tr><td>";
                             var username = layoutSafeStr(obj[i][1]);
                             msg += "<b>" + username + "</b></td>";
                             msg += "<td>" + obj[i][3] + "</td></tr>";
@@ -278,6 +280,7 @@ var start = dtobj.getTime();
                         var subobj = jQuery.parseJSON(obj[i][3]);
                         if (subobj.length == 7)
                         {
+                            //alert(obj[i][3]);
                             roomid = obj[i][1];
 
                             var roomhtml = new String();
@@ -340,7 +343,7 @@ var start = dtobj.getTime();
                 }
 
                 if (msgappend) {
-                    msgappend = "<table cellspacing='0'>" + msgappend;
+                    msgappend = "<table cellspacing='0'><tr><th class='left'></th><th></th></tr>" + msgappend;
                     msgappend += "</table>";
                     $("#MessageList").append(msgappend);
                 }
@@ -348,7 +351,7 @@ var start = dtobj.getTime();
                 if (lstappend) {
                     lstappend = "<div>" + lstappend;
                     lstappend += "</div>";
-                    $("#tab1").append(lstappend);
+                    tbdom.append(lstappend);
                 }
 
                 // is scroll is at bottom, scroll to bottom

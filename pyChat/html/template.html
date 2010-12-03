@@ -3,25 +3,37 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <title>pyChat</title>
 <link href="style.css" rel="stylesheet" type="text/css"/>
-<link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
 <script type="text/javascript" src="jquery.cookie.js"></script>
 <script type="text/javascript" src="http.js"></script>
 <script type="text/javascript">
     function resizeUI(wait)
     {
-        setTimeout("resizeUIactual();", wait);
+        t_resizeui = setTimeout("resizeUIactual();", wait);
     }
 
     function resizeUIactual()
     {
+        var save = 32;
+        var wid = 680;
+        if ($(window).width() < 1024)
+        {
+            wid = $(window).width() - 300 - save;
+        }
+        if (wid < 450) wid = 450;
+        $("#MessageList").width(wid-2);
+        $("#PostMessage textarea").width(wid);
+
+        var offset = $("#MessageList").offset();
+        offset.left += wid + save;
+        $("#UserList").offset(offset);
+
         var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
             $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
 
         var seth = 0;
         var postm = $("#PostMessage").outerHeight();
         var login = 0;
-        var save = 32;
         if ($('#Login').is(':visible')) {
             login = $("#Login").outerHeight();
         }
@@ -30,15 +42,19 @@
         $("#MessageList").height(seth);
         //$("#Toolbar").height($(window).height()-save);
 
-        var tbc = $("#tabs_container").outerHeight();
-        var role = 0;
-        var save = 32;
-        if ($('#role').is(':visible')) {
-            role = $("#role").outerHeight();
+        var utilp = 16;
+        var utilh = 0;
+        if ($('#Utility').is(':visible')) {
+            itemh = $("#Utility #UtilityContainer .active").outerHeight();
+            $("#Utility #UtilityContainer").height(itemh);
+            utilh = $("#Utility").outerHeight();
         }
-        seth = $(window).height() - tbc - role - save;
+        seth = $(window).height() - utilh - save;
         if (seth < 200 ) seth = 200;
-        $("#tabs_content_container").height(seth);
+        $("#UserList").height(seth-utilp);
+
+        offset.top += $("#UserList").outerHeight() + utilp;
+        $("#Utility").offset(offset);
 
         if (scr_to_bottom >= 0) {
             $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
@@ -103,33 +119,29 @@
             });
         </script>
 
-    <div id="Toolbar">
-        <div id="tabs_container">
-            <ul id="tabs">
-                <li class="active"><a href="#tab1">Players</a></li>
-                <li><a class="icon_accept" href="#tab2">Memo</a></li>
-                <li><a href="#tab3">Options</a></li>
-            </ul>
+    <div id="UserList">
+        <div class="titlebar">
+            User List
         </div>
-        <div id="tabs_content_container">
-            <div id="tab1" class="tab_content" style="display: block;">
-            </div>
-            <div id="tab2" class="tab_content">
-                <p>This tab has icon in it.</p>
-            </div>
-            <div id="tab3" class="tab_content">
-                <p>
-                    <input type="checkbox" name="chkLogout"/> Save credential<br/>
-                    <input type="checkbox" name="chkNotify"/> Sound notify<br/>
-                    <input type="checkbox" name="chkNotify"/> High latency mode<br/>
-                </p>
-            </div>
+        <div id="UserListContainer">
         </div>
-        <div id="role">
-            <img class="role" src="images/wolf.png"></img><br/>
-            You are a werewolf. Only wolves know your identity.
-            Your goal is to eliminate all apples in the township,
-            without getting caught by the mob. Don't get yourself lynched!<br/><br/>
+    </div>
+
+    <div id="Utility">
+        <div class="titlebar">
+            Utility
+        </div>
+        <div id="UtilityContainer">
+            <div id="Util0" class="inactive"></div>
+            <div id="Util1" class="active">
+                <img class="role" src="images/wolf.png"></img><br/>
+                You are a werewolf. Only wolves know your identity.
+                Your goal is to eliminate all apples in the township,
+                without getting caught by the mob. Don't get yourself lynched!<br/><br/>
+            </div>
+            <div id="Util2" class="inactive">
+                Info Box<br/><br/>
+            </div>
         </div>
     </div>
 
@@ -168,8 +180,11 @@
 
     <script type="text/javascript">
         $(window).load(function(){
-            $("#role").click(function(){
-                $(this).hide();
+            $("#UtilityContainer #Util1").click(function(){
+                $(this).removeClass("active");
+                $(this).addClass("inactive");
+                $("#UtilityContainer #Util2").removeClass("inactive");
+                $("#UtilityContainer #Util2").addClass("active");
                 resizeUI(0);
             });
 
@@ -296,7 +311,7 @@
                 }
             });
 
-            $("#Toolbar div.clk_user").live("click", function(e) {
+            $("#UserList div.clk_user").live("click", function(e) {
         		$(".contextmenu").hide();
 
                 // user status (roomid, user_status[user], role, username)
@@ -348,7 +363,7 @@
                 return false;
             });
 
-            $("#Toolbar div.clk_room").live("click", function(e) {
+            $("#UserList div.clk_room").live("click", function(e) {
         		$(".contextmenu").hide();
 
                 //alert($(this).attr("data-json"));
@@ -379,10 +394,6 @@
         		setTimeout("$('#MenuContainerRoom').show();", 120);
                 return false;
             });
-
-            var offset = $("#MessageList").offset();
-            offset.left += 680;
-            $("#Toolbar").offset(offset);
 
             resizeUI(0);
 
