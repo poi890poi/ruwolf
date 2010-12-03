@@ -45,23 +45,6 @@ conn = sqlite3.connect(dbf)
 
 dbcursor = conn.cursor()
 
-# Create table
-dbcursor.execute('''create table if not exists message
-(roomid text, timestamp integer, privilege integer, username text,
-datetime text, message text, type integer, reserved1 integer, reserved2 text)''')
-
-dbcursor.execute('''create table if not exists user
-(username text, password text, sessionkey text, ip text, roomid text,
-role integer, status integer, privilege integer, displayntable text,
-lastactivity integer, reserved1 integer, reserved2 text)''')
-
-dbcursor.execute('''create table if not exists room
-(username text, roomid text, description text, ruleset integer, options integer,
-phase integer, timeout integer, reserved1 integer, reserved2 text)''')
-
-dbcursor.execute('''create table if not exists action
-(roomid text, action integer, username text, target text, timestamp integer)''')
-
 # class definition
 
 def html_escape(text):
@@ -448,12 +431,12 @@ class MyHandler(RequestHandler):
                 if not description:
                     description = roomid
                 description = html_escape(description)
-                ruleset = 0
+                ruleset = ''
                 options = 0
                 phase = 0
                 timeout = TIME_MAX
-                dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?)', \
-                    (username, roomid, description, ruleset, options, phase, timeout, 0, ''))
+                dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?,?)', \
+                    (username, roomid, description, ruleset, options, phase, timeout, '', 0, ''))
                 dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
                     (roomid, PVG_ROOMCHAT, username))
 
@@ -499,23 +482,23 @@ class MyHandler(RequestHandler):
                 room = dbcursor.fetchone()
 
                 if room:
-                    logging.debug('/drop, room: '+roomid+', host: '+username)
+                    logging.debug('/drop, room: '+roomid+', host: '+room[0]+', username: '+username)
                     if room[0] == username:
                         dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
                         dbcursor.execute("""delete from room where roomid=?""", (roomid, ))
 
-                        dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
-                            ('', ~PVG_ROOMCHAT, username))
-                        #user_status[username] &= ~USR_HOST
-                        upd_user_status(username)
-
                         msg_command(roomid, MSG_GAMEDROP_P, roomid)
                         msg_command('', MSG_GAMEDROP, roomid)
 
-                        do_later_mask |= DLTR_COMMIT_DB
+                dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
+                    ('', ~PVG_ROOMCHAT, username))
+                #user_status[username] &= ~USR_HOST
+                upd_user_status(username)
 
-                        self.send_response(205)
-                        self.end_headers()
+                do_later_mask |= DLTR_COMMIT_DB
+
+                self.send_response(205)
+                self.end_headers()
 
         elif self.path == '/ready':
             auth = None
@@ -827,6 +810,83 @@ class MyHandler(RequestHandler):
                 self.end_headers()
 
             check_do_later()
+
+        elif self.path == '/hostex':
+            auth = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+
+
+            if auth:
+                ruleset = ''
+                description = ''
+                message = unicode(self.rfile.getvalue(), 'utf-8')
+                message = html_escape(message)
+                if 'X-RuleSet' in self.headers:
+                    ruleset = self.headers['X-RuleSet']
+                if 'X-Description' in self.headers:
+                    description = unicode(self.headers['X-Description'], 'utf-8')
+                    description = html_escape(description)
+
+                roomid = str(uuid.uuid4())
+                username = auth[0]
+                if not description:
+                    with open('gamename.txt') as hfile:
+                        lst = hfile.readlines()
+                        description = random.choice(lst).decode('utf-8')
+                        description = description.replace('\n', '')
+                if not description:
+                    description = roomid
+                description = html_escape(description)
+                ruleset = 0
+                options = 0
+                phase = 0
+                timeout = TIME_MAX
+                dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?,?)', \
+                    (username, roomid, description, ruleset, options, phase, timeout, message, 0, ''))
+                dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
+                    (roomid, PVG_ROOMCHAT, username))
+
+                timestamp = get_time_norm()
+                privilege = 0
+                participant = 1
+                json_serial = (description, ruleset, options, phase, username, roomid, participant)
+                message = json.dumps(json_serial)
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, ''))
+
+                sys_msg('Welcome to <b>'+description+'</b> hosted by '+username+'.', roomid)
+                logging.debug('/hostex, room: '+roomid+', host: '+username)
+                #user_status[username] |= USR_HOST
+
+                upd_room(roomid)
+                upd_user_status(username)
+                do_later_mask |= DLTR_COMMIT_DB
+                msg_command('', MSG_USERQUIT, username)
+
+                self.send_response(205)
+                self.end_headers()
+            else:
+                self.send_response(401)
+                self.end_headers()
+
+        elif self.path == '/get_ruleset':
+            dbcursor.execute('select * from ruleset')
+            ret = u''
+            for rec in dbcursor:
+                ret += u'<option value="%s">%s</option>' % (rec[1], rec[0])
+
+            if ret:
+                self.send_response(200)
+                self.send_header(u'Content-type', u'text/plain')
+                self.end_headers()
+                self.wfile.write(ret)
+            elif auth:
+                self.send_response(204)
+                self.end_headers()
 
     def handle_data(self):
         if self.command == 'GET':

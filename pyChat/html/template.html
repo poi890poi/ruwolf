@@ -224,9 +224,9 @@
             $("#MnuHost").live("click", function(e) {
                 if ($(this).hasClass("menudisable")) return;
         		$(".contextmenu").hide();
-                //var description = prompt("Please enter a brief description."); // doesn't work in IE
-                var description = "[rnd]";
-                send_text("/host " + description);
+                //var description = "[rnd]";
+                //send_text("/host " + description);
+                window.location = "./host.html"
             });
             $("#MnuReadyCheck").click(function(e) {
                 if ($(this).hasClass("menudisable")) return;
@@ -338,7 +338,8 @@
                     roomid = roomobj[5];
                 }
 
-                if ((roomid) && (phase == 1) && (userobj[1] & 256) && (targetname != userobj[3])) { // vote for ready, USR_RDYCHK
+                //if ((roomid) && (phase == 1) && (userobj[1] & 256) && (targetname != userobj[3])) { // vote for ready, USR_RDYCHK
+                if ((roomid) && (phase == 1) && (userobj[1] & 256)) { // vote for ready, USR_RDYCHK
             		var join = $("#MnuTarget");
                     join.html("Vote for <b>" + layoutSafeStr(targetname) + "</b>");
             		join.unbind("click");

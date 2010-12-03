@@ -1,0 +1,143 @@
+﻿<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<title>Host a new game</title>
+<style type="text/css">
+    #Options td {
+        vertical-align: top;
+    }
+    #Options .right {
+        width: 350px;
+    }
+    #Options textarea {
+        height: 100px;
+    }
+</style>
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<script type="text/javascript" src="jquery.cookie.js"></script>
+<script type="text/javascript">
+    var xmlhttpobj = createXMLHttpRequest();
+
+    function createXMLHttpRequest()
+    {
+        var xmlhttp;
+        if (window.XMLHttpRequest)
+        {// code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest();
+        }
+        else
+        {// code for IE6, IE5
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        return xmlhttp;
+    }
+
+    function nill(){}
+
+    function handle_xmlhttp_return()
+    {
+        if (xmlhttpobj.readyState==4)
+        {
+            //alert(xmlhttpobj.status);
+            if (xmlhttpobj.status==200)
+            {
+                //alert("xmlhttpobj.responseText");
+                $("#Options #ruleset").html(xmlhttpobj.responseText);
+            }
+            if (xmlhttpobj.status==205)
+            {
+                window.location = "./"
+            }
+            if (xmlhttpobj.status==401)
+            {
+                alert("You cannot host a game.");
+            }
+
+            xmlhttpobj.onreadystatechange = nill;
+            xmlhttpobj.abort();
+        }
+    }
+
+    function xmlhttpq(params)
+    {
+        if (xmlhttpobj.readyState != 0) {
+            return;
+        }
+        xmlhttpobj.onreadystatechange = handle_xmlhttp_return;
+        xmlhttpobj.open("POST", params, true);
+        var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
+        xmlhttpobj.setRequestHeader("Authorization", sessionkey);
+        xmlhttpobj.setRequestHeader("Content-type", "text/plain");
+        if (params == "/hostex") {
+            var hostparams = "";
+            xmlhttpobj.setRequestHeader("X-RuleSet", $("#Options #ruleset").val());
+            xmlhttpobj.setRequestHeader("X-Description", $("#Options #gamename").val());
+            var msg = $("#Options #description").val();
+            if (!msg) msg = ".";
+            xmlhttpobj.send(msg);
+        } else {
+            xmlhttpobj.send(".");
+        }
+    }
+</script>
+</head>
+<body>
+    <div id="Options">
+        <table cellspacing='0'>
+        <tr>
+            <td colspan="2">
+                <b>Hosting a new game...</b><br/><br/>
+            </td>
+        </tr>
+        <tr>
+            <td>Rule set:</td>
+            <td>
+                <select id="ruleset" class="right"></select>
+            </td>
+        </tr>
+        <tr>
+            <td style="width: 120px">Game name:</td>
+            <td style="width: 420px"><input id="gamename" class="right"></input></td>
+        </tr>
+        <tr>
+            <td>Description:</td>
+            <td><textarea id="description" class="right"></textarea></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+        </tr>
+        </table>
+    </div>
+
+        <script type="text/javascript">
+            $("#Options #description").keydown(function(event) {
+                if (event.keyCode == '13') {
+                    event.preventDefault();
+                    if (event.ctrlKey) {
+                        var val = this.value;
+                        if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
+                            var start = this.selectionStart;
+                            this.value = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
+                            this.selectionStart = this.selectionEnd = start + 1;
+                        } else if (document.selection && document.selection.createRange) {
+                            this.focus();
+                            var range = document.selection.createRange();
+                            range.text = "\r\n";
+                            range.collapse(false);
+                            range.select();
+                        }
+                    } else {
+                        xmlhttpq("/hostex");
+                    }
+                }
+            });
+        </script>
+
+    <script type="text/javascript">
+        $(window).load(function(){
+            xmlhttpq("/get_ruleset");
+        });
+    </script>
+</body>
+</html>
