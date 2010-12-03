@@ -180,6 +180,19 @@
 
     <script type="text/javascript">
         $(window).load(function(){
+            var isIE = (navigator.appName == "Microsoft Internet Explorer");
+            if (isIE) {
+            } else {
+                $(window).bind("focus", function() {
+                    window_focus = true;
+                    $("#Utility #Util2").html("has focus");
+                })
+                    .bind("blur", function() {
+                        window_focus = false;
+                        $("#Utility #Util2").html("no focus");
+                    });
+            }
+
             $("#UtilityContainer #Util1").click(function(){
                 $(this).removeClass("active");
                 $(this).addClass("inactive");

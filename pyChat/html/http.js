@@ -10,6 +10,7 @@
     var send_xmlhttp = createXMLHttpRequest();
     var login_xmlhttp = createXMLHttpRequest();
     var t_resizeui;
+    var window_focus = true;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -346,6 +347,11 @@ var start = dtobj.getTime();
                     msgappend = "<table cellspacing='0'><tr><th class='left'></th><th></th></tr>" + msgappend;
                     msgappend += "</table>";
                     $("#MessageList").append(msgappend);
+                    setTimeout(function () {
+                        // notification
+                        //if (!window_focus) {alert("new msg");}
+                    }, 500);
+
                 }
 
                 if (lstappend) {
