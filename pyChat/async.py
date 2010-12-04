@@ -75,7 +75,8 @@ def upd_room(roomid):
         privilege = 0
         username = roomid
         participant = user_count
-        json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, participant)
+        roommessage = rec[7]
+        json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, participant, roommessage)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             ('', timestamp, 0, username, '', message, MSG_ROOM, 0, ''))
@@ -841,7 +842,6 @@ class MyHandler(RequestHandler):
                 if not description:
                     description = roomid
                 description = html_escape(description)
-                ruleset = 0
                 options = 0
                 phase = 0
                 timeout = TIME_MAX
@@ -853,7 +853,7 @@ class MyHandler(RequestHandler):
                 timestamp = get_time_norm()
                 privilege = 0
                 participant = 1
-                json_serial = (description, ruleset, options, phase, username, roomid, participant)
+                json_serial = (description, ruleset, options, phase, username, roomid, participant, message)
                 message = json.dumps(json_serial)
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, ''))

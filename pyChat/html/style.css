@@ -38,21 +38,24 @@
 
     #UserList {
         position: absolute;
-        overflow: auto; overflow-x: hidden;
         width: 298px;
         border: 1px solid black;
+    }
+    #UserList #UserListContainer{
+        padding: 1px 5px;
+        overflow: auto; overflow-x: hidden;
     }
     #UserList #UserListContainer div{
         padding: 1px 5px;
     }
     #Utility {
         position: absolute;
-        overflow: auto; overflow-x: hidden;
         width: 298px;
         border: 1px solid black;
     }
     #Utility #UtilityContainer {
         padding: 6px;
+        overflow: auto; overflow-x: hidden;
     }
     #Utility #UtilityContainer .active {
     }

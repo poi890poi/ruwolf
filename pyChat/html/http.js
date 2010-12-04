@@ -9,8 +9,12 @@
     var poll_timer;
     var send_xmlhttp = createXMLHttpRequest();
     var login_xmlhttp = createXMLHttpRequest();
-    var t_resizeui;
     var window_focus = true;
+    var t_resizeui;
+    var ondemand_xmlhttp = createXMLHttpRequest();
+    var t_hover;
+    var latency = 0;
+    var poll_sent = 0;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -199,6 +203,9 @@
     function handle_poll_return()
     {
         if (poll_xmlhttp.readyState==4) {
+            var dtobj = new Date();
+            latency = dtobj.getTime() - poll_sent;
+
             if (poll_xmlhttp.status==200)
             {
 
@@ -277,9 +284,9 @@ var start = dtobj.getTime();
                         }
                     }
                     else if (obj[i][0] == 2) {
-                        // room (description, ruleset, options, phase, host, roomid, participant)
+                        // room (description, ruleset, options, phase, host, roomid, participant, message)
                         var subobj = jQuery.parseJSON(obj[i][3]);
-                        if (subobj.length == 7)
+                        if (subobj.length >= 8)
                         {
                             //alert(obj[i][3]);
                             roomid = obj[i][1];
@@ -314,9 +321,9 @@ var start = dtobj.getTime();
                         }
                     }
                     else if (obj[i][0] == 8) {
-                        // room (description, ruleset, options, phase, host, roomid, participant)
+                        // room (description, ruleset, options, phase, host, roomid, participant, message)
                         var subobj = jQuery.parseJSON(obj[i][3]);
-                        if (subobj.length == 7)
+                        if (subobj.length >= 8)
                         {
                             roomjson = obj[i][3];
                         }
@@ -351,7 +358,6 @@ var start = dtobj.getTime();
                         // notification
                         //if (!window_focus) {alert("new msg");}
                     }, 500);
-
                 }
 
                 if (lstappend) {
@@ -402,6 +408,9 @@ dtobj = new Date();
         poll_xmlhttp.setRequestHeader("Authorization", sessionkey);
         poll_xmlhttp.setRequestHeader("Content-type", "text/plain");
         poll_xmlhttp.send(params);
+
+        var dtobj = new Date();
+        poll_sent = dtobj.getTime();
     }
 
     function init_poll()

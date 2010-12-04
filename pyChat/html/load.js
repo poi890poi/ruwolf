@@ -4,11 +4,11 @@ $(window).load(function(){
     } else {
         $(window).bind("focus", function() {
             window_focus = true;
-            $("#Utility #Util2").html("has focus");
+            //$("#Utility #Util2").html("has focus");
         })
             .bind("blur", function() {
                 window_focus = false;
-                $("#Utility #Util2").html("no focus");
+                //$("#Utility #Util2").html("no focus");
             });
     }
 
@@ -20,61 +20,52 @@ $(window).load(function(){
         resizeUI(0);
     });
 
-    $("#tabs li").click(function() {
-        $("#tabs li").removeClass('active');
-        $(this).addClass("active");
-        $(".tab_content").hide();
-        var selected_tab = $(this).find("a").attr("href");
-        $(selected_tab).fadeIn();
-        return false;
-    });
-
-	$(".menuitem").live("mouseover", function (e) {
+	$("div.menuitem").live("mouseover", function (e) {
         $(this).addClass("menuhover");
 	});
-	$(".menuitem").live("mouseout", function (e) {
+	$("div.menuitem").live("mouseout", function (e) {
         $(this).removeClass("menuhover");
 	});
     $(document).click(function(e) {
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
     });
 
     $("#MnuHelp").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
     });
     $("#MnuQuit").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
         send_text("/quit");
     });
     $("#MnuLogout").live("click", function(e) {
         if ($(this).hasClass("menudisable")) return;
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
         send_text("/logout");
     });
     $("#MnuHost").live("click", function(e) {
         if ($(this).hasClass("menudisable")) return;
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
         //var description = "[rnd]";
         //send_text("/host " + description);
         window.location = "./host.html"
     });
     $("#MnuReadyCheck").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
         send_text("/ready");
     });
     $("#MnuDrop").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
         send_text("/drop");
     });
 
     $(document)[0].oncontextmenu = function() {return false;}
     $(document).mousedown(function(e){
         if( e.button == 2 ) {
-    		$(".contextmenu").hide();
+    		$("div.contextmenu").hide();
             if (e.ctrlKey) {
                 return true;
             }
@@ -99,8 +90,10 @@ $(window).load(function(){
                     .addClass("menuitem");
             }
 
-            // room (description, ruleset, options, phase, host, roomid, participant)
-            //alert(roomjson);
+            // room (description, ruleset, options, phase, host, roomid, participant, message)
+            //$("#Utility #Util2").html(roomjson);
+            //resizeUI(0);
+
             var roomobj = jQuery.parseJSON(roomjson);
             var ishost = false;
             if (roomobj.length >=5 && userobj.length >= 4)
@@ -197,7 +190,7 @@ $(window).load(function(){
     });
 
     $("#UserList div.clk_room").live("click", function(e) {
-		$(".contextmenu").hide();
+		$("div.contextmenu").hide();
 
         //alert($(this).attr("data-json"));
         // room (description, ruleset, options, phase, host, roomid, participant)
@@ -228,14 +221,55 @@ $(window).load(function(){
         return false;
     });
 
-    resizeUI(0);
+    $("#UserList div.clk_room").live("mouseover", function(e) {
+        var obj = $(this);
 
+        clearTimeout(t_hover);
+        t_hover = setTimeout(function () {
+            //$("#Utility #Util2").html($.dump(obj));
+            //resizeUI(0);
+            // room (description, ruleset, options, phase, host, roomid, participant, message)
+            if (!sessionkey)
+            {
+                return true;
+            }
+
+            var data_json = jQuery.parseJSON(obj.attr("data-json"));
+            if (data_json.length >= 8)
+            {
+                var txt = "";
+                txt += "<b>" + data_json[0] + "</b><br/>";
+                txt += "Host: " + data_json[4] + "<br/>";
+                txt += "Rule-set: " + data_json[1] + "<br/>";
+                txt += "Participant: " + data_json[6] + "<br/><br/>";
+                txt += data_json[7];
+                $("#Utility #Util2").html(txt);
+                //$("#Utility #Util2").html(obj.attr("data-json"));
+                resizeUI(0);
+            }
+        }, 500);
+    })
+        .live("mouseout", function(e) {
+            clearTimeout(t_hover);
+            t_hover = setTimeout("general_info();", 500);
+        });
+
+    general_info();
+    resizeUI(0);
     init_poll();
 
     $(window).resize(function(){
         resizeUI(500);
     });
 });
+
+function general_info()
+{
+    var txt = "";
+    txt += "Latency: " + latency;
+    $("#Utility #Util2").html(txt);
+    t_hover = setTimeout("general_info();", 1000);
+}
 
 function resizeUI(wait)
 {
@@ -276,7 +310,8 @@ function resizeUIactual()
     var utilp = 16;
     var utilh = 0;
     if ($('#Utility').is(':visible')) {
-        itemh = $("#Utility #UtilityContainer .active").outerHeight();
+        itemh = $("#Utility #UtilityContainer .active").outerHeight() + save;
+        if (itemh > 150) itemh = 250;
         $("#Utility #UtilityContainer").height(itemh);
         utilh = $("#Utility").outerHeight();
     }
