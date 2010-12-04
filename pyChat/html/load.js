@@ -292,7 +292,16 @@ $(window).load(function(){
 function general_info()
 {
     var txt = "";
-    txt += "Latency: " + latency;
+    txt += "Latency: " + latency + "<br/>";
+    // room (description, ruleset, options, phase, host, roomid, participant, message)
+    var roomobj = jQuery.parseJSON(roomjson);
+    if (roomobj.length >= 8)
+    {
+        txt += "Game: " + roomobj[0] + "<br/>";
+        txt += "Rule set: " + roomobj[1] + "<br/>";
+        txt += "Phase: " + roomobj[3] + "<br/>";
+        txt += "Participant: " + roomobj[6] + "<br/>";
+    }
     $("#Utility #Util2").html(txt);
     t_hover = setTimeout("general_info();", 1000);
 }

@@ -370,7 +370,7 @@ def game_start(roomid):
                 role = rset_final.pop()
                 user_role[user[0]] = role
                 logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
-                upd_user_status(user)
+                upd_user_status(user[0])
 
             logging.debug('game_start, room: '+roomid)
         else:

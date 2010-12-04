@@ -268,10 +268,10 @@ var start = dtobj.getTime();
                             } else if (subobj[1] & 4) { // host
                                 userhtml += "<img class='usericon' src='images/mod.png'></img>";
                             } else {
-                                userhtml += "<img class='usericon' src='images/mask.png'></img>";
+                                userhtml += "<img class='usericon' src='images/unknown.png'></img>";
                             }
                         } else {
-                            userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                            userhtml += "<img class='usericon' src='images/error.png'></img>";
                         }
                         if (obj[i][0] == 4) userhtml += "<u>";
                         userhtml += "<b>";
@@ -335,6 +335,8 @@ var start = dtobj.getTime();
                         if (subobj.length >= 8)
                         {
                             roomjson = obj[i][3];
+                            general_info();
+                            resizeUI(0);
                         }
                     }
                     else if (obj[i][0] == 3) {
