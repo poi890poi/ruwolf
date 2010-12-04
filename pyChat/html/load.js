@@ -299,11 +299,21 @@ function general_info()
     {
         txt += "Game: " + roomobj[0] + "<br/>";
         txt += "Rule set: " + roomobj[1] + "<br/>";
-        txt += "Phase: " + roomobj[3] + "<br/>";
+        txt += "Phase: " + roomobj[3];
+        txt += " ("+get_day_night(roomobj[3])+")<br/>";
         txt += "Participant: " + roomobj[6] + "<br/>";
     }
     $("#Utility #Util2").html(txt);
     t_hover = setTimeout("general_info();", 1000);
+}
+
+function get_day_night(phase)
+{
+    if ((phase >> 4 == 0) || (phase > 0xffff))
+    {
+        return -1;
+    }
+    return (phase >> 4) % 2
 }
 
 function resizeUI(wait)

@@ -16,7 +16,7 @@ dbcursor = conn.cursor()
 # Create table
 dbcursor.execute('''create table if not exists message
 (roomid text, timestamp integer, privilege integer, username text,
-datetime text, message text, type integer, reserved1 integer, reserved2 text)''')
+datetime text, message text, type integer, phase integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists user
 (username text, password text, sessionkey text, ip text, roomid text,

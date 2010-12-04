@@ -224,14 +224,19 @@ var start = dtobj.getTime();
                 var i, N = obj.length;
                 for (i=0; i<N; i++) {
                     if (obj[i][0] == 0) {
-                        //user message (type, username, isoformat, message, timestamp)
+                        //user message (type, username, isoformat, message, timestamp, phase)
                         var msg = new String();
+                        var daynight = get_day_night(obj[i][5]);
                         if (obj[i][1] == SYSTEM_USER) {
                             msg += "<tr><td colspan='2' class='system'>";
                             msg += obj[i][3] + "</td></tr>";
                             msgappend += msg;
                         } else {
-                            msg += "<tr><td>";
+                            if (daynight == 0) {
+                                msg += "<tr><td>";
+                            } else if (daynight == 1) {
+                                msg += "<tr class='night'><td>";
+                            }
                             var username = layoutSafeStr(obj[i][1]);
                             msg += "<b>" + username + "</b></td>";
                             msg += "<td>" + obj[i][3] + "</td></tr>";
@@ -250,25 +255,41 @@ var start = dtobj.getTime();
                             userjson = obj[i][3];
                         }
 
+                        var phase = 0;
+                        var roomobj = jQuery.parseJSON(roomjson);
+                        if (roomobj.length >= 8)
+                        {
+                            phase = roomobj[3]
+                        }
+
                         var userhtml = new String();
                         //alert(obj[i][3]);
                         if (subobj[1] & 1) { // connection alive
-                            if (subobj[1] & 256) { // waiting for ready check
-                                userhtml += "<img class='usericon' src='images/unknown.png'></img>";
-                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x100) { // for test only
-                                userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
-                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x200) { // for test only
-                                userhtml += "<img class='usericon' src='images/blocker.png'></img>";
-                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x01) { // for test only
-                                userhtml += "<img class='usericon' src='images/eye.png'></img>";
-                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x02) { // for test only
-                                userhtml += "<img class='usericon' src='images/heal.png'></img>";
-                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x04) { // for test only
-                                userhtml += "<img class='usericon' src='images/villager.png'></img>";
-                            } else if (subobj[1] & 4) { // host
-                                userhtml += "<img class='usericon' src='images/mod.png'></img>";
+                            if (phase >= 10)
+                            {
+                                if (subobj[1] & 256) { // waiting for ready check
+                                    userhtml += "<img class='usericon' src='images/error.png'></img>";
+                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x100) {
+                                    userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
+                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x200) {
+                                    userhtml += "<img class='usericon' src='images/blocker.png'></img>";
+                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x01) {
+                                    userhtml += "<img class='usericon' src='images/eye.png'></img>";
+                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x02) {
+                                    userhtml += "<img class='usericon' src='images/heal.png'></img>";
+                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x04) {
+                                    userhtml += "<img class='usericon' src='images/villager.png'></img>";
+                                } else {
+                                    userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                                }
                             } else {
-                                userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                                if (subobj[1] & 256) { // waiting for ready check
+                                    userhtml += "<img class='usericon' src='images/error.png'></img>";
+                                } else if ((subobj[1] & 4) && (phase < 10)) { // host
+                                    userhtml += "<img class='usericon' src='images/mod.png'></img>";
+                                } else {
+                                    userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                                }
                             }
                         } else {
                             userhtml += "<img class='usericon' src='images/error.png'></img>";
@@ -294,6 +315,7 @@ var start = dtobj.getTime();
                     }
                     else if (obj[i][0] == 2) {
                         // room (description, ruleset, options, phase, host, roomid, participant, message)
+                        // in lobby
                         var subobj = jQuery.parseJSON(obj[i][3]);
                         if (subobj.length >= 8)
                         {
@@ -331,10 +353,19 @@ var start = dtobj.getTime();
                     }
                     else if (obj[i][0] == 8) {
                         // room (description, ruleset, options, phase, host, roomid, participant, message)
+                        // in game
                         var subobj = jQuery.parseJSON(obj[i][3]);
                         if (subobj.length >= 8)
                         {
                             roomjson = obj[i][3];
+                            var daynight = get_day_night(subobj[3]);
+                            if (daynight == 0) {
+                                //$("body").removeClass("night");
+                                //$("body").addClass("day");
+                            } else if (daynight == 1) {
+                                //$("body").removeClass("day");
+                                //$("body").addClass("night");
+                            }
                             general_info();
                             resizeUI(0);
                         }

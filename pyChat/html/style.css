@@ -1,6 +1,14 @@
     body {
         font-family: ²Ó©úÅé; }
 
+    .day {
+        background: #ffffff;
+    }
+    .night {
+        color: #ffffff;
+        background: #00008b;
+    }
+
     #MessageList {
         overflow: auto; overflow-x: hidden;
         width: 648px; height: 600px;
