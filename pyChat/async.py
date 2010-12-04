@@ -62,7 +62,7 @@ def upd_room(roomid):
     Later status overwrites earlier one.
     """
     dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
-    dbcursor.execute("""select count(*) from user where roomid=? and status&?""", (roomid, USR_CONN))
+    dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
     sqlcount = dbcursor.fetchall()
     user_count = sqlcount[0][0]
     if user_count == -1: user_count = 0
@@ -152,7 +152,14 @@ def upd_user_status(user):
             (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, ''))
         logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+hex(PVG_PRIVATE))
 
-        dbcursor.execute("""update user set status=?, role=? where username=?""", (status, role, user))
+        privilege = 0
+        dbcursor.execute("""select * from room where roomid=?""", (roomid, ))
+        room = dbcursor.fetchone()
+        if room:
+            privilege |= PVG_ROOMCHAT
+
+        dbcursor.execute("""update user set status=?, role=?, privilege=?
+            where username=?""", (status, role, privilege, user))
         user_status[user] = status
 
 def msg_command(roomid, type, argument):
@@ -355,17 +362,14 @@ def game_start(roomid):
             logging.debug('roleset, participant: '+str(user_count)+', set: '+repr(rset_final))
 
             # assign role to players
-            to_upd = []
             assign_role = dict
             random.shuffle(rset_final)
             dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
-            for user in dbcursor:
+            userlist = dbcursor.fetchall()
+            for user in userlist:
                 role = rset_final.pop()
                 user_role[user[0]] = role
                 logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
-                to_upd.append(user[0])
-
-            for user in to_upd:
                 upd_user_status(user)
 
             logging.debug('game_start, room: '+roomid)
@@ -575,8 +579,8 @@ class MyHandler(RequestHandler):
                         msg_command(roomid, MSG_GAMEDROP_P, roomid)
                         msg_command('', MSG_GAMEDROP, roomid)
 
-                dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
-                    ('', ~PVG_ROOMCHAT, username))
+                dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
+                    ('', 0, username))
                 #user_status[username] &= ~USR_HOST
                 upd_user_status(username)
 
@@ -607,6 +611,7 @@ class MyHandler(RequestHandler):
                         dbcursor.execute("""select * from user where
                             roomid=?""", (roomid, ))
                         userlist = dbcursor.fetchall()
+                        to_upd = []
                         if room[5] == 0:
                             """Enter phase 1(ready check). The match starts after everyone votes for someone.
                             This is to make sure everyone knows how the game proceeds.
@@ -684,8 +689,8 @@ class MyHandler(RequestHandler):
                         username=? and roomid=?""", (targetname, roomid))
                     target = dbcursor.fetchone()
                     if target:
-                        dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
-                            ('', ~PVG_ROOMCHAT, targetname))
+                        dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
+                            ('', 0, targetname))
                         user_status[targetname] |= USR_KICKED
                         upd_user_status(targetname)
                         upd_room(roomid)
@@ -729,8 +734,8 @@ class MyHandler(RequestHandler):
 
             if auth:
                 msg_command(auth[4], MSG_USERQUIT, auth[0])
-                dbcursor.execute("""update user set roomid=?, privilege=privilege&? where username=?""", \
-                    ('', ~PVG_ROOMCHAT, auth[0]))
+                dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
+                    ('', 0, auth[0]))
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -763,8 +768,8 @@ class MyHandler(RequestHandler):
                     phase = room[5]
                     if phase == 0:
                         msg_command(auth[4], MSG_USERQUIT, auth[0])
-                        dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
-                            (roomid, PVG_ROOMCHAT, auth[0]))
+                        dbcursor.execute("""update user set roomid=? where username=?""", \
+                            (roomid, auth[0]))
                         upd_user_status(auth[0])
                         do_later_mask |= DLTR_COMMIT_DB
 
@@ -931,8 +936,8 @@ class MyHandler(RequestHandler):
                 timeout = TIME_MAX
                 dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?,?)', \
                     (username, roomid, description, ruleset, options, phase, timeout, message, 0, ''))
-                dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
-                    (roomid, PVG_ROOMCHAT, username))
+                dbcursor.execute("""update user set roomid=? where username=?""", \
+                    (roomid, username))
 
                 timestamp = get_time_norm()
                 privilege = 0
