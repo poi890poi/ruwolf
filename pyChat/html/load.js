@@ -254,6 +254,32 @@ $(window).load(function(){
             t_hover = setTimeout("general_info();", 500);
         });
 
+    $("#UserList div.clk_user").live("mouseover", function(e) {
+        var obj = $(this);
+
+        clearTimeout(t_hover);
+        t_hover = setTimeout(function () {
+            //$("#Utility #Util2").html($.dump(obj));
+            //resizeUI(0);
+            // room (description, ruleset, options, phase, host, roomid, participant, message)
+            if (!sessionkey)
+            {
+                return true;
+            }
+
+            var data_json = jQuery.parseJSON(obj.attr("data-json"));
+            if (data_json.length >= 4)
+            {
+                $("#Utility #Util2").html(obj.attr("data-json"));
+                resizeUI(0);
+            }
+        }, 500);
+    })
+        .live("mouseout", function(e) {
+            clearTimeout(t_hover);
+            t_hover = setTimeout("general_info();", 500);
+        });
+
     general_info();
     resizeUI(0);
     init_poll();

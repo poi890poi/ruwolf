@@ -10,6 +10,7 @@ import random
 
 from recipe440665 import *
 from constant import *
+from function import *
 
 import logging
 LOG_FILENAME = 'debug.log'
@@ -21,6 +22,7 @@ do_later_mask = 0
 
 user_activity = dict()
 user_status = dict()
+user_role = dict()
 
 html_escape_table = {
     "&": "&amp;",
@@ -44,8 +46,6 @@ dbf = os.path.join(appdata, u'pychat.db')
 conn = sqlite3.connect(dbf)
 
 dbcursor = conn.cursor()
-
-# class definition
 
 def html_escape(text):
     """Produce entities within text."""
@@ -99,7 +99,7 @@ def upd_user_status(user):
     And alignment status always include public staus, private status always include alignment status.
     So player always get the full information that is avaliable for him.
     """
-    global user_status
+    global user_status, user_role
     dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
         (user, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
     rec = None
@@ -116,6 +116,8 @@ def upd_user_status(user):
         status = 0
         if user in user_status:
             status = user_status[user]
+        if user in user_role:
+            role = user_role[user]
 
         # check if the user is a host
         status &= ~USR_HOST
@@ -125,7 +127,7 @@ def upd_user_status(user):
             if room[0] == username:
                 status |= USR_HOST
 
-        logging.debug('user_status: '+str(hex(status)))
+        logging.debug('user_status: '+hex(status))
 
         json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user)
         message = json.dumps(json_serial)
@@ -133,25 +135,24 @@ def upd_user_status(user):
             (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, ''))
         logging.debug('upd_user_status, public, user: '+user+', json: '+message)
 
-        # settings for testing only
-        alignment = 0x1
-        alignment <<= ROLE_ALIGNMENT_SHIFT
-        role = ROLE_WOLF | ROLE_BLOCKER
-        privilege = alignment
-
-        json_serial = (roomid, status, role, user)
-        message = json.dumps(json_serial)
-        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, ''))
-        logging.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+str(privilege))
+        alignment = role >> ROLE_ALIGNMENT_SHIFT
+        if alignment:
+            logging.debug('role: '+hex(role))
+            logging.debug('PVG_ALIGNMENT_MASK: '+hex(PVG_ALIGNMENT_MASK))
+            privilege = role & PVG_ALIGNMENT_MASK
+            json_serial = (roomid, status, role, user)
+            message = json.dumps(json_serial)
+            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
+                (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, ''))
+            logging.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+hex(privilege))
 
         json_serial = (roomid, status, role, user)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, ''))
-        logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+str(PVG_PRIVATE))
+        logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+hex(PVG_PRIVATE))
 
-        dbcursor.execute("""update user set status=? where username=?""", (status, user))
+        dbcursor.execute("""update user set status=?, role=? where username=?""", (status, role, user))
         user_status[user] = status
 
 def msg_command(roomid, type, argument):
@@ -227,6 +228,7 @@ def check_vote(roomid):
         user_count = 0
     if user_count == 0:
         # all actions are taken
+        game_start(roomid)
 
         dbcursor.execute("""select * from action where roomid=? and action=?""", \
             (roomid, ACT_VOTE_RDY))
@@ -285,8 +287,90 @@ def check_vote(roomid):
 
         sys_msg(msg, roomid)
 
-
     logging.debug('not voted yet: '+str(user_count))
+
+dbcursor.execute('''create table if not exists ruleset
+(description text, id text, options integer, baseset text, roles text,
+nightzero integer, day integer, night integer, runoff integer)''')
+
+def copy_ruleset(ruleset, roomid):
+    global do_later_mask
+    dbcursor.execute("""delete from ruleset where id=?""", (roomid, ))
+    dbcursor.execute("""select * from ruleset where id=?""", (ruleset,))
+    rec = dbcursor.fetchone()
+    if rec:
+        dbcursor.execute('insert into ruleset values (?,?,?,?,?,?,?,?,?)', \
+            (rec[0], roomid, rec[2], ruleset, rec[4], rec[5], rec[6], rec[7], rec[8]))
+        do_later_mask |= DLTR_COMMIT_DB
+
+def game_start(roomid):
+    global user_status, user_role
+
+    dbcursor.execute("""select * from room where roomid=?""", \
+        (roomid, ))
+    room = dbcursor.fetchone()
+
+    if room:
+        username = room[0]
+        description = room[2]
+        ruleset = room[3]
+        options = room[4]
+        phase = room[5]
+        timeout = room[6]
+        message = room[7]
+
+        copy_ruleset(ruleset, roomid)
+        dbcursor.execute("""select * from ruleset where id=?""", (roomid,))
+        ruleset = dbcursor.fetchone()
+        if ruleset:
+            options = ruleset[2]
+            roles = json.loads(ruleset[4])
+            nightzero = ruleset[5]
+            day = ruleset[6]
+            night = ruleset[7]
+            runoff = ruleset[8]
+
+            # get best matched role sets
+            dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
+            sqlcount = dbcursor.fetchall()
+            user_count = sqlcount[0][0]
+            rset_choice = []
+            rset_min = []
+            rset_max = []
+            rset_final = []
+            for rset in sorted(roles, key=lambda (s): (len(s))):
+                rset_max = rset
+                if not rset_min:
+                    rset_min = rset
+                if len(rset) == user_count:
+                    rset_choice.append(rset)
+            if rset_choice:
+                rset_final = random.choice(rset_choice)
+            else:
+                if user_count < len(rset_min):
+                    rset_final = rset_min
+                else:
+                    rset_final = rset_max
+
+            logging.debug('roleset, participant: '+str(user_count)+', set: '+repr(rset_final))
+
+            # assign role to players
+            to_upd = []
+            assign_role = dict
+            random.shuffle(rset_final)
+            dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
+            for user in dbcursor:
+                role = rset_final.pop()
+                user_role[user[0]] = role
+                logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
+                to_upd.append(user[0])
+
+            for user in to_upd:
+                upd_user_status(user)
+
+            logging.debug('game_start, room: '+roomid)
+        else:
+            logging.debug('game_start failed, roomid: '+roomid)
 
 def get_day_night(phase):
     """Phase is defined in hex.
@@ -326,7 +410,7 @@ class MyHandler(RequestHandler):
 
     def handle_post(self):
         global svr_doc_time, msg_cache, do_later_mask, \
-            user_activity, user_status
+            user_activity, user_status, user_role
 
         if self.path != '/check_update':
             logging.debug('post, command: '+self.path+', ip: '+self.client_address[0]+', value: '+self.rfile.getvalue())
@@ -754,7 +838,7 @@ class MyHandler(RequestHandler):
                 dbcursor.execute("""select * from user where
                     sessionkey=? and ip=?""", (sessionkey,ip))
                 auth = dbcursor.fetchone()
-                print auth
+                #print auth
                 #time.sleep(100)
 
                 if auth:
@@ -874,7 +958,7 @@ class MyHandler(RequestHandler):
                 self.end_headers()
 
         elif self.path == '/get_ruleset':
-            dbcursor.execute('select * from ruleset')
+            dbcursor.execute("""select * from ruleset where baseset=?""", ('',))
             ret = u''
             for rec in dbcursor:
                 ret += u'<option value="%s">%s</option>' % (rec[1], rec[0])

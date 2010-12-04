@@ -1,4 +1,5 @@
     var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+    var ALIGNMENT_MASK = 0xffffff
 
     var timestamp = 0;
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
@@ -254,12 +255,20 @@ var start = dtobj.getTime();
                         if (subobj[1] & 1) { // connection alive
                             if (subobj[1] & 256) { // waiting for ready check
                                 userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x100) { // for test only
+                                userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
+                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x200) { // for test only
+                                userhtml += "<img class='usericon' src='images/blocker.png'></img>";
+                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x01) { // for test only
+                                userhtml += "<img class='usericon' src='images/eye.png'></img>";
+                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x02) { // for test only
+                                userhtml += "<img class='usericon' src='images/heal.png'></img>";
+                            } else if ((subobj[2] & ALIGNMENT_MASK) == 0x04) { // for test only
+                                userhtml += "<img class='usericon' src='images/villager.png'></img>";
                             } else if (subobj[1] & 4) { // host
                                 userhtml += "<img class='usericon' src='images/mod.png'></img>";
-                            //} else if (subobj[2]) { // for test only
-                                //userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
                             } else {
-                                userhtml += "<img class='usericon' src='images/villager.png'></img>";
+                                userhtml += "<img class='usericon' src='images/mask.png'></img>";
                             }
                         } else {
                             userhtml += "<img class='usericon' src='images/unknown.png'></img>";
