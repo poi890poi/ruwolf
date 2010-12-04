@@ -194,8 +194,8 @@ def check_dltr_mask(mask_bit):
 def check_do_later():
     global do_later_short, do_later_long
     now = get_time_norm()
-    print 'now: ', now
-    print 'do_later_short: ', do_later_short
+    #print 'now: ', now
+    #print 'do_later_short: ', do_later_short
     if now > do_later_short:
         for user in user_status:
             if user_status[user] & USR_CONN:

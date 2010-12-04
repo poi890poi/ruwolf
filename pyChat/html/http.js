@@ -355,8 +355,6 @@ var start = dtobj.getTime();
                 }
 
                 if (lstappend) {
-                    lstappend = "<div>" + lstappend;
-                    lstappend += "</div>";
                     tbdom.append(lstappend);
                 }
 
