@@ -156,6 +156,23 @@
         }
     }
 
+    function send_text_ex(params, action, content)
+    {
+        if (send_xmlhttp.readyState != 0) {
+            return;
+        }
+        send_xmlhttp.onreadystatechange = handle_send_return;
+        var trimmed = trim(params);
+
+        if (trimmed == "/target") {
+            send_xmlhttp.open("POST", trimmed, true);
+            send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Content-type", "text/plain");
+            send_xmlhttp.setRequestHeader("X-Action", action);
+            send_xmlhttp.send(content);
+        }
+    }
+
     function handle_login_return()
     {
         //alert("returned " + login_xmlhttp.status);
@@ -271,20 +288,26 @@ var start = dtobj.getTime();
                         if (subobj[1] & 1) { // connection alive
                             if (phase >= 10)
                             {
-                                if (subobj[1] & 256) { // waiting for ready check
-                                    userhtml += "<img class='usericon' src='images/error.png'></img>";
-                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x100) {
-                                    userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
-                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x200) {
-                                    userhtml += "<img class='usericon' src='images/blocker.png'></img>";
-                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x01) {
-                                    userhtml += "<img class='usericon' src='images/eye.png'></img>";
-                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x02) {
-                                    userhtml += "<img class='usericon' src='images/heal.png'></img>";
-                                } else if ((subobj[2] & ALIGNMENT_MASK) == 0x04) {
-                                    userhtml += "<img class='usericon' src='images/villager.png'></img>";
+                                if (subobj[1] & 0x2) {
+                                    if (subobj[1] & 256) { // waiting for ready check
+                                        userhtml += "<img class='usericon' src='images/error.png'></img>";
+                                    } else if ((subobj[2] & ALIGNMENT_MASK) == 0x100) {
+                                        userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
+                                    } else if ((subobj[2] & ALIGNMENT_MASK) == 0x200) {
+                                        userhtml += "<img class='usericon' src='images/blocker.png'></img>";
+                                    } else if ((subobj[2] & ALIGNMENT_MASK) == 0x01) {
+                                        userhtml += "<img class='usericon' src='images/eye.png'></img>";
+                                    } else if ((subobj[2] & ALIGNMENT_MASK) == 0x02) {
+                                        userhtml += "<img class='usericon' src='images/heal.png'></img>";
+                                    } else if ((subobj[2] & ALIGNMENT_MASK) == 0x04) {
+                                        userhtml += "<img class='usericon' src='images/villager.png'></img>";
+                                    } else {
+                                        userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                                    }
+                                } else if (subobj[1] & 0x20) {
+                                    userhtml += "<img class='usericon' src='images/hang.png'></img>";
                                 } else {
-                                    userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                                    userhtml += "<img class='usericon' src='images/dead.png'></img>";
                                 }
                             } else {
                                 if (subobj[1] & 256) { // waiting for ready check
@@ -394,7 +417,7 @@ var start = dtobj.getTime();
                         send_text("/quit");
                     }
                     else if (obj[i][0] == 0x10000) {
-                        location.reload();
+                        setTimeout("location.reload();", 500);
                     }
                     if (obj[i][4] > timestamp) timestamp = obj[i][4];
                 }

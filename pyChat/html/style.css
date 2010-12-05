@@ -26,12 +26,12 @@
     }
     #MessageList td.system_night {
         padding: 20px 50px;
-        color: #eeeeee;
-        background: #101010;
+        color: #ffffff;
+        background: #40408a;
     }
     #MessageList .night {
         color: #ffffff;
-        background: #40408a;
+        background: #666666;
     }
 
     #PostMessage {

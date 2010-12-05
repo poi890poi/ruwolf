@@ -171,13 +171,29 @@ $(window).load(function(){
     		join.click(function (e) {
                 send_text("/vote_rdy " + targetname);
     		});
-        } else if ((userobj[1] & 4) && (targetname != userobj[3])) { // game host, USR_HOST
+        } else if ((userobj[1] & 4) && (phase < 10) && (targetname != userobj[3])) { // game host, USR_HOST
     		var join = $("#MnuTarget");
             join.html("Kick <b>" + layoutSafeStr(targetname) + "</b>");
     		join.unbind("click");
     		join.click(function (e) {
                 send_text("/kick " + targetname);
     		});
+        } else if (target.length >= 4) {
+            var target_status = target[1];
+            var target_role = target[2];
+            var target_alignment = target_role & 0x4f000000;
+            var self_role = userobj[2];
+            var self_alignment = self_role & 0x4f000000;
+            if ((userobj[1] & 0x1000) && (target_status & 0x2) && (target_alignment != self_alignment)) { // bite
+        		var join = $("#MnuTarget");
+                join.html("Attack <b>" + layoutSafeStr(targetname) + "</b>");
+        		join.unbind("click");
+        		join.click(function (e) {
+                    send_text_ex("/target", 0x1000, targetname);
+        		});
+            } else {
+                return true;
+            }
         } else {
             return true;
         }

@@ -298,7 +298,73 @@ def check_do_later():
 
         do_later_long = now + INTERVAL_LONG
 
-def check_vote(roomid):
+def check_vote_day(room):
+    roomid = room[1]
+    options = room[4]
+    phase = room[5]
+
+    dbcursor.execute("""select * from action where roomid=? and action=?""", \
+        (roomid, ACT_VOTE_RDY))
+
+    voter = dict()
+    timestamp = dict()
+    for rec in dbcursor:
+        action = rec[1]
+        username = rec[2]
+        target = rec[3]
+        if target not in voter:
+            voter[target] = set()
+        voter[target].add(username)
+        if target not in timestamp:
+            timestamp[target] = 0
+        if rec[4] > timestamp[target]:
+            timestamp[target] = rec[4]
+
+    msg = ''
+    max = 0
+    elected = dict()
+    for key, value in sorted(voter.iteritems(), key=lambda (k,v): (len(v)), reverse=True):
+        if len(value) > max:
+            max = len(value)
+        if len(value) == max:
+            elected[key] = timestamp[key]
+        msg += key
+        msg += ': '
+        msg += str(len(value))
+        if value:
+            msg += ' ('
+            list = ''
+            for voter in value:
+                list += ', '
+                list += voter
+            msg += list.replace(', ', '', 1)
+            msg += ')<br/>'
+
+    msg += '<br/>'
+
+    final = ''
+    if len(elected) > 1:
+        # deadlocked election
+        # USR_DEADLOCKED_E
+        for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
+            final = key
+            break
+            #msg += key + ' ' + str(value) + '<br/>'
+    else:
+        final = random.choice(elected.items())[0]
+
+    msg += '<b>'
+    msg += final
+    msg += '</b>'
+    msg += ' is hanged<br/>'
+
+    sys_msg(msg, roomid)
+
+def check_vote(room):
+    roomid = room[1]
+    options = room[4]
+    phase = room[5]
+
     dbcursor.execute("""select count(*) from user where roomid=? and status&? and status&?""", \
         (roomid, USR_CONN, USR_ACT_MASK))
     sqlcount = dbcursor.fetchall()
@@ -307,64 +373,13 @@ def check_vote(roomid):
         user_count = 0
     if user_count == 0:
         # all actions are taken
-        game_start(roomid)
-
-        dbcursor.execute("""select * from action where roomid=? and action=?""", \
-            (roomid, ACT_VOTE_RDY))
-
-        voter = dict()
-        timestamp = dict()
-        for rec in dbcursor:
-            action = rec[1]
-            username = rec[2]
-            target = rec[3]
-            if target not in voter:
-                voter[target] = set()
-            voter[target].add(username)
-            if target not in timestamp:
-                timestamp[target] = 0
-            if rec[4] > timestamp[target]:
-                timestamp[target] = rec[4]
-
-        msg = ''
-        max = 0
-        elected = dict()
-        for key, value in sorted(voter.iteritems(), key=lambda (k,v): (len(v)), reverse=True):
-            if len(value) > max:
-                max = len(value)
-            if len(value) == max:
-                elected[key] = timestamp[key]
-            msg += key
-            msg += ': '
-            msg += str(len(value))
-            if value:
-                msg += ' ('
-                list = ''
-                for voter in value:
-                    list += ', '
-                    list += voter
-                msg += list.replace(', ', '', 1)
-                msg += ')<br/>'
-
-        msg += '<br/>'
-
-        final = ''
-        if len(elected) > 1:
-            # deadlocked election
-            # USR_DEADLOCKED_E
-            for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
-                final = key
-                break
-                #msg += key + ' ' + str(value) + '<br/>'
-        else:
-            final = random.choice(elected.items())[0]
-
-        msg += '<b>'
-        msg += final
-        msg += '</b>'
-        msg += ' is hanged<br/>'
-
-        sys_msg(msg, roomid)
+        daynight = get_day_night(phase)
+        if daynight == 0: # day
+            check_vote_day(room)
+        if daynight == 1: # night
+            pass
+        elif phase == 1: # ready check
+            game_start(room)
 
     logging.debug('not voted yet: '+str(user_count))
 
@@ -382,81 +397,78 @@ def copy_ruleset(ruleset, roomid):
             (rec[0], roomid, rec[2], ruleset, rec[4], rec[5], rec[6], rec[7], rec[8]))
         do_later_mask |= DLTR_COMMIT_DB
 
-def game_start(roomid):
+def game_start(room):
     global user_status, user_role
 
-    dbcursor.execute("""select * from room where roomid=?""", \
-        (roomid, ))
-    room = dbcursor.fetchone()
+    username = room[0]
+    roomid = room[1]
+    description = room[2]
+    ruleset = room[3]
+    options = room[4]
+    phase = room[5]
+    timeout = room[6]
+    message = room[7]
 
-    if room:
-        username = room[0]
-        description = room[2]
-        ruleset = room[3]
-        options = room[4]
-        phase = room[5]
-        timeout = room[6]
-        message = room[7]
+    copy_ruleset(ruleset, roomid)
+    dbcursor.execute("""select * from ruleset where id=?""", (roomid,))
+    ruleset = dbcursor.fetchone()
+    if ruleset:
+        options = ruleset[2]
+        roles = json.loads(ruleset[4])
+        nightzero = ruleset[5]
+        day = ruleset[6]
+        night = ruleset[7]
+        runoff = ruleset[8]
+
+        # get best matched role sets
+        dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
+        sqlcount = dbcursor.fetchall()
+        user_count = sqlcount[0][0]
+        rset_choice = []
+        rset_min = []
+        rset_max = []
+        rset_final = []
+        for rset in sorted(roles, key=lambda (s): (len(s))):
+            rset_max = rset
+            if not rset_min:
+                rset_min = rset
+            if len(rset) == user_count:
+                rset_choice.append(rset)
+        if rset_choice:
+            rset_final = random.choice(rset_choice)
+        else:
+            if user_count < len(rset_min):
+                rset_final = rset_min
+            else:
+                rset_final = rset_max
+
+        logging.debug('roleset, participant: '+str(user_count)+', set: '+repr(rset_final))
+
+        # assign role to players
+        assign_role = dict
+        random.shuffle(rset_final)
+        dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
+        userlist = dbcursor.fetchall()
+        for user in userlist:
+            role = rset_final.pop()
+            user_role[user[0]] = role
+            user_status[user[0]] |= USR_SURVIVE
+            logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
+            dbcursor.execute("""update user set status=?, role=?
+                where username=?""", (user_status[user[0]], user_role[user[0]], user[0]))
 
         # change phase
-        phase = phase_advance(phase)
-        dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
+        phase = phase_advance(room)
         upd_room_ingame(roomid)
-        # assign actions to players
-        # put in game_start temporarily for easy coding
-        # should moved to phase_advance later
-        sys_msg('Game started.', roomid)
 
-        copy_ruleset(ruleset, roomid)
-        dbcursor.execute("""select * from ruleset where id=?""", (roomid,))
-        ruleset = dbcursor.fetchone()
-        if ruleset:
-            options = ruleset[2]
-            roles = json.loads(ruleset[4])
-            nightzero = ruleset[5]
-            day = ruleset[6]
-            night = ruleset[7]
-            runoff = ruleset[8]
+        # update user status message and notify user to reload
+        for user in userlist:
+            upd_user_status(user[0])
+            msg_onetime(roomid, user[0], MSG_RELOAD, '')
 
-            # get best matched role sets
-            dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
-            sqlcount = dbcursor.fetchall()
-            user_count = sqlcount[0][0]
-            rset_choice = []
-            rset_min = []
-            rset_max = []
-            rset_final = []
-            for rset in sorted(roles, key=lambda (s): (len(s))):
-                rset_max = rset
-                if not rset_min:
-                    rset_min = rset
-                if len(rset) == user_count:
-                    rset_choice.append(rset)
-            if rset_choice:
-                rset_final = random.choice(rset_choice)
-            else:
-                if user_count < len(rset_min):
-                    rset_final = rset_min
-                else:
-                    rset_final = rset_max
-
-            logging.debug('roleset, participant: '+str(user_count)+', set: '+repr(rset_final))
-
-            # assign role to players
-            assign_role = dict
-            random.shuffle(rset_final)
-            dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
-            userlist = dbcursor.fetchall()
-            for user in userlist:
-                role = rset_final.pop()
-                user_role[user[0]] = role
-                logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
-                upd_user_status(user[0])
-                msg_onetime(roomid, user[0], MSG_RELOAD, '')
-
-            logging.debug('game_start, room: '+roomid)
-        else:
-            logging.debug('game_start failed, roomid: '+roomid)
+        logging.debug('game_start, room: '+roomid)
+    else:
+        logging.debug('game_start failed, roomid: '+roomid)
 
 def get_day_night(phase):
     """Phase is defined in hex.
@@ -482,8 +494,39 @@ def get_subphase(phase):
     """
     return phase & 0xf
 
-def phase_advance(phase):
-    return ((phase >> 4) + 0x1) << 4
+def phase_advance(room):
+    roomid = room[1]
+    description = room[2]
+    ruleset = room[3]
+    options = room[4]
+    phase = room[5]
+    timeout = room[6]
+
+    if phase < 0x10: # start
+        sys_msg('Game started.', roomid)
+
+    phase = ((phase >> 4) + 0x1) << 4
+    dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
+
+    # assign actions to players
+
+    daynight = get_day_night(phase)
+    if daynight == 0: # day
+        sys_msg('The sun rises.', roomid)
+    if daynight == 1: # night
+        sys_msg('Night falls.', roomid)
+
+        dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
+        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, PVG_ALIGNMENT_MASK))
+        userlist = dbcursor.fetchall()
+        for row in userlist:
+            logging.debug('issue a USR_NIGHT_VOTE vote to user: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_VOTE
+            upd_user_status(row[0])
+
+    elif phase > 0xffff: # end
+        sys_msg('Game ended.', roomid)
+    return phase
 
 class MyHandler(RequestHandler):
     def handle_get(self):
@@ -749,7 +792,46 @@ class MyHandler(RequestHandler):
 
                             dbcursor.execute('insert into action values (?,?,?,?,?)', \
                                 (roomid, ACT_VOTE_RDY, username, targetname, get_time_norm()))
-                            check_vote(roomid)
+                            check_vote(room)
+
+                self.send_response(204)
+                self.end_headers()
+
+        elif self.path == '/target':
+            auth = None
+            action = 0
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                auth = dbcursor.fetchone()
+            if 'X-Action' in self.headers:
+                action = int(self.headers['X-Action'])
+
+            if auth:
+                username = auth[0]
+                roomid = auth[4]
+
+                dbcursor.execute("""select * from room where roomid=?""", \
+                    (roomid, ))
+                room = dbcursor.fetchone()
+
+                if room:
+                    if user_status[username] & action:
+                        targetname = self.rfile.getvalue().decode('utf-8')
+                        dbcursor.execute("""select * from user where roomid=? and username=?""", (roomid, targetname, ))
+                        target = dbcursor.fetchone()
+
+                        logging.debug('/target, username: '+username+', targetname: '+targetname+', action: '+hex(action))
+
+                        if target and False:
+                            #sys_msg(username+' voted for '+targetname, roomid)
+                            user_status[username] &= ~action
+                            upd_user_status(username)
+
+                            dbcursor.execute('insert into action values (?,?,?,?,?)', \
+                                (roomid, action, username, targetname, get_time_norm()))
+                            check_vote(room)
 
                 self.send_response(204)
                 self.end_headers()
@@ -944,7 +1026,7 @@ class MyHandler(RequestHandler):
                 if auth:
                     user_activity[auth[0]] = get_time_norm()
                     if auth[0] not in user_status:
-                        user_status[auth[0]] = 0
+                        user_status[auth[0]] = auth[6]
                     if not user_status[auth[0]] & USR_CONN:
                         # user connected
                         user_status[auth[0]] |= USR_CONN
@@ -1092,7 +1174,7 @@ if __name__=="__main__":
     do_later_long = now + INTERVAL_LONG
 
     # clear temp states
-    dbcursor.execute("""delete from message where type=? or type=? or type=?""", \
+    dbcursor.execute("""delete from message where roomid='' and (type=? or type=? or type=?)""", \
         (MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
 
     # init other modules
