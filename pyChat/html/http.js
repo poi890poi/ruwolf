@@ -228,7 +228,11 @@ var start = dtobj.getTime();
                         var msg = new String();
                         var daynight = get_day_night(obj[i][5]);
                         if (obj[i][1] == SYSTEM_USER) {
-                            msg += "<tr><td colspan='2' class='system'>";
+                            if (daynight == 1) {
+                                msg += "<tr><td colspan='2' class='system_night'>";
+                            } else {
+                                msg += "<tr><td colspan='2' class='system'>";
+                            }
                             msg += obj[i][3] + "</td></tr>";
                             msgappend += msg;
                         } else {
@@ -243,11 +247,11 @@ var start = dtobj.getTime();
                             msgappend += msg;
                         }
                     }
-                    else if (obj[i][0] == 1 || obj[i][0] == 4 || obj[i][0] == 5) {
+                    else if (obj[i][0] == 1 || obj[i][0] == 0x4000 || obj[i][0] == 5) {
                         // user status (roomid, user_status[user], role, username)
                         var subobj = jQuery.parseJSON(obj[i][3]);
 
-                        if (obj[i][0] == 4) { // user status private
+                        if (obj[i][0] == 0x4000) { // user status private
                             if (subobj[1] & 16) { // kicked, USR_KICKED
                                 alert("You have been INVITED to the lobby.");
                                 send_text("/drop_confirm");
@@ -294,11 +298,11 @@ var start = dtobj.getTime();
                         } else {
                             userhtml += "<img class='usericon' src='images/error.png'></img>";
                         }
-                        if (obj[i][0] == 4) userhtml += "<u>";
+                        if (obj[i][0] == 0x4000) userhtml += "<u>";
                         userhtml += "<b>";
                         userhtml += layoutSafeStr(obj[i][1]);
                         userhtml += "</b>";
-                        if (obj[i][0] == 4) userhtml += "</u>";
+                        if (obj[i][0] == 0x4000) userhtml += "</u>";
 
                         userspan = tbdom.find("#3B06037A"+obj[i][1]);
                         //alert("#3B06037A"+obj[i][1] + ", " + userspan.length);
@@ -388,6 +392,9 @@ var start = dtobj.getTime();
                         alert("The game is dropped by host.");
                         // gamedrop, to room, obj[i][3] = roomid
                         send_text("/quit");
+                    }
+                    else if (obj[i][0] == 0x10000) {
+                        location.reload();
                     }
                     if (obj[i][4] > timestamp) timestamp = obj[i][4];
                 }

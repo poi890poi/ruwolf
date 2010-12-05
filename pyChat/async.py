@@ -212,6 +212,14 @@ def upd_user_status(user):
         user_status[user] = status
     do_later_mask |= DLTR_COMMIT_DB
 
+def msg_onetime(roomid, username, type, argument):
+    now = time.time()
+    timestamp = long(now*1000)
+    ct = time.localtime(now)
+    isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, 0, username, isoformat, argument, type, 0, 0, ''))
+
 def msg_command(roomid, type, argument):
     now = time.time()
     timestamp = long(now*1000)
@@ -228,7 +236,7 @@ def dbg_msg(message):
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
         ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, 0, ''))
 
-def sys_msg(message, roomid):
+def sys_msg(message, roomid, phase = 0):
     now = time.time()
     timestamp = long(now*1000)
     ct = time.localtime(now)
@@ -248,7 +256,7 @@ def sys_msg(message, roomid):
             privilege |= PVG_ROOMCHAT
 
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, 0, 0, ''))
+        (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, phase, 0, ''))
 
 def private_msg(username, message, roomid):
     now = time.time()
@@ -284,7 +292,7 @@ def check_do_later():
 
     if now > do_later_long:
         # do something
-        if check_dltr_mask(DLTR_COMMIT_DB):
+        if conn.total_changes:
             conn.commit()
             logging.debug('commit database')
 
@@ -397,13 +405,12 @@ def game_start(roomid):
         # assign actions to players
         # put in game_start temporarily for easy coding
         # should moved to phase_advance later
+        sys_msg('Game started.', roomid)
 
         copy_ruleset(ruleset, roomid)
         dbcursor.execute("""select * from ruleset where id=?""", (roomid,))
         ruleset = dbcursor.fetchone()
         if ruleset:
-            sys_msg('Game will start in 5 seconds.', roomid)
-
             options = ruleset[2]
             roles = json.loads(ruleset[4])
             nightzero = ruleset[5]
@@ -445,6 +452,7 @@ def game_start(roomid):
                 user_role[user[0]] = role
                 logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
                 upd_user_status(user[0])
+                msg_onetime(roomid, user[0], MSG_RELOAD, '')
 
             logging.debug('game_start, room: '+roomid)
         else:
@@ -958,10 +966,12 @@ class MyHandler(RequestHandler):
                 privilege = auth[7]
 
             dbcursor.execute("""select * from message \
-                where timestamp>? and roomid=? and ((privilege&?=privilege) or ((type=? or type=?) and username=?))""", \
-                (client_doc_time, roomid, privilege, MSG_USR_STA_PRIVATE, MSG_PRIVATE, username))
+                where timestamp>? and roomid=? and ((privilege&?=privilege) or (type&? and username=?))""", \
+                (client_doc_time, roomid, privilege, MSG_PRIVATE_MASK, username))
+            msglist = dbcursor.fetchall()
             json_serial = []
-            for row in dbcursor:
+            for row in msglist:
+                print row
                 timestamp = row[1]
                 author = row[3]
                 isoformat = row[4]
@@ -970,6 +980,10 @@ class MyHandler(RequestHandler):
                 phase = row[7]
                 row_serial = (type, author, isoformat, message, timestamp, phase)
                 json_serial.append(row_serial)
+
+            dbcursor.execute("""delete from message \
+                where timestamp>? and roomid=? and (type&? and username=?)""", \
+                (client_doc_time, roomid, MSG_ONETIME_MASK, username))
 
             if json_serial:
                 ret = json.dumps(json_serial)
