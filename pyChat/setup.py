@@ -46,12 +46,20 @@ id = 'davidoff_classic'
 options = RLE_VOTE_RUNOFF | RLE_NIGHTVOTE_AGREE
 baseset = ''
 roles = []
-# 1 wolf is for test only
-for vn in range(2, 5):
+
+# for test only
+rset = []
+rset.append(wolf)
+rset.append(ROLE_HEALER)
+rset.append(ROLE_SEER)
+roles.append(rset)
+for vn in range(3, 5):
+    # for test only
     rset = []
     for i in range(1): rset.append(wolf)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
+
 for vn in range(4, 6):
     rset = []
     for i in range(2): rset.append(wolf)
