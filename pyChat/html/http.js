@@ -232,10 +232,10 @@ var start = dtobj.getTime();
                             msg += obj[i][3] + "</td></tr>";
                             msgappend += msg;
                         } else {
-                            if (daynight == 0) {
-                                msg += "<tr><td>";
-                            } else if (daynight == 1) {
+                            if (daynight == 1) {
                                 msg += "<tr class='night'><td>";
+                            } else {
+                                msg += "<tr><td>";
                             }
                             var username = layoutSafeStr(obj[i][1]);
                             msg += "<b>" + username + "</b></td>";

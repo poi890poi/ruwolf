@@ -233,8 +233,22 @@ def sys_msg(message, roomid):
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+
+    privilege = 0
+    dbcursor.execute("""select * from room where roomid=?""", (roomid, ))
+    room = dbcursor.fetchone()
+    if room:
+        phase = room[5]
+        daynight = get_day_night(phase)
+        if daynight == 0: # day
+            pass
+        if daynight == 1: # night
+            pass
+        else:
+            privilege |= PVG_ROOMCHAT
+
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, 0, ''))
+        (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, 0, 0, ''))
 
 def private_msg(username, message, roomid):
     now = time.time()
@@ -388,6 +402,8 @@ def game_start(roomid):
         dbcursor.execute("""select * from ruleset where id=?""", (roomid,))
         ruleset = dbcursor.fetchone()
         if ruleset:
+            sys_msg('Game will start in 5 seconds.', roomid)
+
             options = ruleset[2]
             roles = json.loads(ruleset[4])
             nightzero = ruleset[5]
