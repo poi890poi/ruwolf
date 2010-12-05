@@ -237,6 +237,8 @@ def dbg_msg(message):
         ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, 0, ''))
 
 def sys_msg(message, roomid, phase = 0):
+    logging.debug('sys_msg: '+message)
+
     now = time.time()
     timestamp = long(now*1000)
     ct = time.localtime(now)
@@ -247,10 +249,12 @@ def sys_msg(message, roomid, phase = 0):
     room = dbcursor.fetchone()
     if room:
         phase = room[5]
+        logging.debug('phase: '+hex(phase))
         daynight = get_day_night(phase)
+        logging.debug('daynight: '+str(daynight))
         if daynight == 0: # day
             pass
-        if daynight == 1: # night
+        elif daynight == 1: # night
             pass
         else:
             privilege |= PVG_ROOMCHAT
@@ -356,9 +360,50 @@ def check_vote_day(room):
     msg += '<b>'
     msg += final
     msg += '</b>'
-    msg += ' is hanged<br/>'
+    msg += ' is hanged.<br/>'
 
     sys_msg(msg, roomid)
+
+def check_vote_night(room, action):
+    roomid = room[1]
+    options = room[4]
+    phase = room[5]
+
+    dbcursor.execute("""select * from action where roomid=? and action=?""", \
+        (roomid, action))
+
+    voter = dict()
+    timestamp = dict()
+    for rec in dbcursor:
+        action = rec[1]
+        username = rec[2]
+        target = rec[3]
+        if target not in voter:
+            voter[target] = set()
+        voter[target].add(username)
+        if target not in timestamp:
+            timestamp[target] = 0
+        if rec[4] > timestamp[target]:
+            timestamp[target] = rec[4]
+
+    msg = ''
+    max = 0
+    elected = dict()
+    for key, value in sorted(voter.iteritems(), key=lambda (k,v): (len(v)), reverse=True):
+        if len(value) > max:
+            max = len(value)
+        if len(value) == max:
+            elected[key] = timestamp[key]
+
+    final = ''
+    if len(elected) > 1:
+        for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
+            final = key
+            break
+    else:
+        final = random.choice(elected.items())[0]
+
+    return final
 
 def check_vote(room):
     roomid = room[1]
@@ -373,13 +418,45 @@ def check_vote(room):
         user_count = 0
     if user_count == 0:
         # all actions are taken
+        deadlist = []
         daynight = get_day_night(phase)
         if daynight == 0: # day
             check_vote_day(room)
-        if daynight == 1: # night
-            pass
+        elif daynight == 1: # night
+            killed = check_vote_night(room, USR_NIGHT_VOTE)
+            if killed:
+                deadlist.append(killed)
+            # handle night actions
         elif phase == 1: # ready check
             game_start(room)
+
+        dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
+
+        if not daynight == -1:
+            # phase ended
+            # process action result
+            # advance phase (assign actions)
+            logging.debug('deadlist: '+repr(deadlist))
+
+            # change phase
+            phase = phase_advance(room)
+            upd_room_ingame(roomid)
+
+            logging.debug('deadlist: '+repr(deadlist))
+
+            for killed in deadlist:
+                logging.debug('killed: '+killed)
+                msg = ''
+                msg += '<b>'
+                msg += killed
+                msg += '</b>'
+                msg += ' is dead.<br/>'
+                sys_msg(msg, roomid)
+
+            dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
+            userlist = dbcursor.fetchall()
+            for user in userlist:
+                upd_user_status(user[0])
 
     logging.debug('not voted yet: '+str(user_count))
 
@@ -508,15 +585,15 @@ def phase_advance(room):
     phase = ((phase >> 4) + 0x1) << 4
     dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
 
+    logging.debug('phase advanced: '+hex(phase))
     # assign actions to players
 
     daynight = get_day_night(phase)
     if daynight == 0: # day
         sys_msg('The sun rises.', roomid)
-    if daynight == 1: # night
+    elif daynight == 1: # night
         sys_msg('Night falls.', roomid)
 
-        dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, PVG_ALIGNMENT_MASK))
         userlist = dbcursor.fetchall()
         for row in userlist:
@@ -824,7 +901,7 @@ class MyHandler(RequestHandler):
 
                         logging.debug('/target, username: '+username+', targetname: '+targetname+', action: '+hex(action))
 
-                        if target and False:
+                        if target:
                             #sys_msg(username+' voted for '+targetname, roomid)
                             user_status[username] &= ~action
                             upd_user_status(username)
@@ -994,7 +1071,7 @@ class MyHandler(RequestHandler):
                     daynight = get_day_night(phase)
                     if daynight == 0: # day
                         pass
-                    if daynight == 1: # night
+                    elif daynight == 1: # night
                         if not (user_privilege & PVG_NIGHTCHAT):
                             dosend = False
                         privilege |= alignment
@@ -1026,7 +1103,7 @@ class MyHandler(RequestHandler):
                 if auth:
                     user_activity[auth[0]] = get_time_norm()
                     if auth[0] not in user_status:
-                        user_status[auth[0]] = auth[6]
+                        user_status[auth[0]] = auth[6] & ~USR_CONN
                     if not user_status[auth[0]] & USR_CONN:
                         # user connected
                         user_status[auth[0]] |= USR_CONN
