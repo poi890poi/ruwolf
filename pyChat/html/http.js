@@ -393,9 +393,15 @@ var start = dtobj.getTime();
                 }
 
                 if (msgappend) {
-                    msgappend = "<table cellspacing='0'><tr><th class='left'></th><th></th></tr>" + msgappend;
-                    msgappend += "</table>";
-                    $("#MessageList").append(msgappend);
+                    var tbmsglist = $("#MessageList #TableMessageList");
+                    if (tbmsglist.length)
+                    {
+                        tbmsglist.append(msgappend);
+                    } else {
+                        msgappend = "<table id='TableMessageList' cellspacing='0'><tr><th class='left'></th><th></th></tr>" + msgappend;
+                        msgappend += "</table>";
+                        $("#MessageList").append(msgappend);
+                    }
                     setTimeout(function () {
                         // notification
                         //if (!window_focus) {alert("new msg");}

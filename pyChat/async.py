@@ -869,11 +869,13 @@ class MyHandler(RequestHandler):
             phase = 0
             privilege = 0
             username = author
+            dosend = True
             ct = time.localtime(now)
             if auth:
                 username = auth[0]
                 roomid = auth[4]
                 role = auth[5]
+                user_privilege = auth[7]
                 alignment = role & PVG_ALIGNMENT_MASK
 
                 # check if user has privilege to speak
@@ -887,17 +889,18 @@ class MyHandler(RequestHandler):
                     if daynight == 0: # day
                         pass
                     if daynight == 1: # night
+                        if not (user_privilege & PVG_NIGHTCHAT):
+                            dosend = False
                         privilege |= alignment
                     else:
                         privilege |= PVG_ROOMCHAT
 
-            isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-            message = msgbody
-
-            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
-                (roomid, timestamp, privilege, username, isoformat, message, 0, phase, 0, ''))
-            do_later_mask |= DLTR_COMMIT_DB
-            #conn.commit()
+            if dosend:
+                isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+                message = msgbody
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
+                    (roomid, timestamp, privilege, username, isoformat, message, 0, phase, 0, ''))
+                do_later_mask |= DLTR_COMMIT_DB
 
             self.send_response(204)
             self.end_headers()
