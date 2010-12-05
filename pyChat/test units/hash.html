@@ -1,0 +1,29 @@
+<html>
+<head>
+<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+<style type="text/css">
+    body {
+        font-family: 細明體; }
+</style>
+</head>
+<body>
+    <div id="pt">x</div>
+    <script type="text/javascript">
+        hashx("fnknjw2細明體");
+
+        function hashx(str)
+        {
+            $("#pt").html(str);
+            $("#pt").append(": ");
+            var i = 0;
+            var N = str.length;
+            var bin = new Array();
+            for (i = 0; i < N; i++)
+            {
+                $("#pt").append(str.charCodeAt(i));
+                $("#pt").append(", ");
+            }
+        }
+    </script>
+</body>
+</html>
