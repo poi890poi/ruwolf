@@ -21,7 +21,7 @@ datetime text, message text, type integer, phase integer, reserved1 integer, res
 dbcursor.execute('''create table if not exists user
 (username text, password text, sessionkey text, ip text, roomid text,
 role integer, status integer, privilege integer, displayntable text,
-lastactivity integer, reserved1 integer, reserved2 text)''')
+lastactivity integer, displayname text, email text, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists room
 (username text, roomid text, description text, ruleset text, options integer,

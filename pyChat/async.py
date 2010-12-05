@@ -652,8 +652,6 @@ class MyHandler(RequestHandler):
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
                     dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where username=?""", (sessionkey, ip, '', username))
-                    #do_later_mask |= DLTR_COMMIT_DB
-                    conn.commit()
                 else:
                     print 'incorrect password'
             else:
@@ -668,8 +666,6 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
                     role, status, privilege, displayntable, lastactivity, 0, ''))
-                #do_later_mask |= DLTR_COMMIT_DB
-                conn.commit()
 
             print 'sessionkey: ', sessionkey
 
@@ -1253,6 +1249,9 @@ if __name__=="__main__":
     # clear temp states
     dbcursor.execute("""delete from message where roomid='' and (type=? or type=? or type=?)""", \
         (MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
+    dbcursor.execute("""select * from user""")
+    for rec in dbcursor:
+        user_status[rec[0]] = rec[6]
 
     # init other modules
     random.seed()
