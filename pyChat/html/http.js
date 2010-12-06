@@ -32,6 +32,18 @@
         return strText;
     }
 
+    function resetContent()
+    {
+        $("#MessageList").empty();
+        $("#UserListContainer").empty();
+        userjson = "[]";
+        roomjson = "[]";
+        timestamp = 0;
+        poll_xmlhttp.onreadystatechange = nill;
+        poll_xmlhttp.abort();
+        poll();
+    }
+
     function layoutSafeStr(strText)
     {
         if (strText.length > 12) {
@@ -71,7 +83,8 @@
             }
             else if (send_xmlhttp.status==205)
             {
-                location.reload();
+                //location.reload();
+                resetContent();
             }
             else if (send_xmlhttp.status==401)
             {
@@ -417,7 +430,9 @@ var start = dtobj.getTime();
                         send_text("/quit");
                     }
                     else if (obj[i][0] == 0x10000) {
-                        setTimeout("location.reload();", 500);
+                        //setTimeout("location.reload();", 500);
+                        resetContent();
+                        return;
                     }
                     if (obj[i][4] > timestamp) timestamp = obj[i][4];
                 }
