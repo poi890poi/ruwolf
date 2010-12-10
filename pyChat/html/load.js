@@ -164,31 +164,39 @@ $(window).load(function(){
         }
 
         //if ((roomid) && (phase == 1) && (userobj[1] & 256) && (targetname != userobj[3])) { // vote for ready, USR_RDYCHK
+        $("#MenuContainerTarget").children(".menuitem").removeClass("menuitem")
+            .addClass("menudisable");
         if ((roomid) && (phase == 1) && (userobj[1] & 256)) { // vote for ready, USR_RDYCHK
-    		var join = $("#MnuTarget");
-            join.html("Vote for <b>" + layoutSafeStr(targetname) + "</b>");
-    		join.unbind("click");
-    		join.click(function (e) {
+            $("#MnuVote").removeClass("menudisable")
+                .addClass("menuitem");
+    		var mitem = $("#MnuVote");
+            mitem.html("Vote for <b>" + layoutSafeStr(targetname) + "</b>");
+    		mitem.unbind("click");
+    		mitem.click(function (e) {
                 send_text("/vote_rdy " + targetname);
     		});
         } else if ((userobj[1] & 4) && (phase < 10) && (targetname != userobj[3])) { // game host, USR_HOST
-    		var join = $("#MnuTarget");
-            join.html("Kick <b>" + layoutSafeStr(targetname) + "</b>");
-    		join.unbind("click");
-    		join.click(function (e) {
+            $("#MnuReport").removeClass("menudisable")
+                .addClass("menuitem");
+    		var mitem = $("#MnuReport");
+            mitem.html("Kick <b>" + layoutSafeStr(targetname) + "</b>");
+    		mitem.unbind("click");
+    		mitem.click(function (e) {
                 send_text("/kick " + targetname);
     		});
         } else if (target.length >= 4) {
+            $("#MnuVote").removeClass("menudisable")
+                .addClass("menuitem");
             var target_status = target[1];
             var target_role = target[2];
             var target_alignment = target_role & 0x4f000000;
             var self_role = userobj[2];
             var self_alignment = self_role & 0x4f000000;
             if ((userobj[1] & 0x1000) && (target_status & 0x2) && (target_alignment != self_alignment)) { // bite
-        		var join = $("#MnuTarget");
-                join.html("Attack <b>" + layoutSafeStr(targetname) + "</b>");
-        		join.unbind("click");
-        		join.click(function (e) {
+        		var mitem = $("#MnuVote");
+                mitem.html("Attack <b>" + layoutSafeStr(targetname) + "</b>");
+        		mitem.unbind("click");
+        		mitem.click(function (e) {
                     send_text_ex("/target", 0x1000, targetname);
         		});
             } else {
