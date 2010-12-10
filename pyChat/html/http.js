@@ -195,7 +195,7 @@
             {
                 var obj = jQuery.parseJSON(login_xmlhttp.responseText);
                 sessionkey = obj[0];
-                document.title = obj[1];
+                //document.title = obj[1];
                 $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", sessionkey, { expires: 7 });
                 $("#Login").fadeOut();
                 resizeUI(500);
@@ -278,7 +278,8 @@ var start = dtobj.getTime();
                         }
                     }
                     else if (obj[i][0] == 1 || obj[i][0] == 0x4000 || obj[i][0] == 5) {
-                        // user status (roomid, user_status[user], role, username)
+                        // user status (roomid, user_status[user], role, username, ip, hash, email)
+
                         var subobj = jQuery.parseJSON(obj[i][3]);
 
                         if (obj[i][0] == 0x4000) { // user status private
@@ -340,14 +341,13 @@ var start = dtobj.getTime();
                         userhtml += "</b>";
                         if (obj[i][0] == 0x4000) userhtml += "</u>";
 
-                        userspan = tbdom.find("#3B06037A"+obj[i][1]);
-                        //alert("#3B06037A"+obj[i][1] + ", " + userspan.length);
+                        userspan = tbdom.find("#3B06037A"+subobj[5]);
                         if (userspan.length) {
                             userspan.html(userhtml);
                             userspan.attr('data-json', obj[i][3]);
                         } else {
                             userspan = new String();
-                            userspan += "<div id='3B06037A" + obj[i][1] + "' class='clk_user clkable' data-json='" + obj[i][3] + "'>"
+                            userspan += "<div id='3B06037A" + subobj[5] + "' class='clk_user clkable' data-json='" + obj[i][3] + "'>"
                             userspan += userhtml + "</div>";
                             tbdom.append(userspan);
                             //lstappend += userspan;

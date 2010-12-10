@@ -283,7 +283,7 @@ $(window).load(function(){
 
         clearTimeout(t_hover);
         t_hover = setTimeout(function () {
-            //$("#Utility #Util2").html($.dump(obj));
+            // $("#Utility #Util2").html($.dump(obj));
             //resizeUI(0);
             // room (description, ruleset, options, phase, host, roomid, participant, message)
             if (!sessionkey)
@@ -352,7 +352,7 @@ function resizeUIactual()
     var wid = 680;
     if ($(window).width() < 1024)
     {
-        wid = $(window).width() - 300 - save;
+        wid = $(window).width() - 300 - save - pad;
     }
     if (wid < 450) wid = 450;
     $("#MessageList").width(wid-2);

@@ -7,14 +7,35 @@ import sqlite3
 import sys
 import uuid
 import random
+import hashlib
+import logging
+import logging.handlers
 
 from recipe440665 import *
 from constant import *
 from function import *
 
-import logging
-LOG_FILENAME = 'debug.log'
-logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
+appdata = os.path.join(os.environ['APPDATA'], u'MyPythonApp')
+if not os.path.isdir(appdata):
+    os.mkdir(appdata)
+
+logf = os.path.join(appdata, u'debug.log')
+
+# Set up a specific logger with our desired output level
+my_logger = logging.getLogger('MyLogger')
+my_logger.setLevel(logging.DEBUG)
+
+# Add the log message handler to the logger
+handler = logging.handlers.RotatingFileHandler(
+              logf, maxBytes=262144, backupCount=10)
+
+# create formatter
+formatter = logging.Formatter("%(asctime)s - %(lineno)s - %(levelname)s - %(message)s")
+
+# add formatter to ch
+handler.setFormatter(formatter)
+
+my_logger.addHandler(handler)
 
 do_later_short = long(0)
 do_later_long = long(0)
@@ -38,14 +59,10 @@ html_escape_table = {
 
 # init database
 
-appdata = os.path.join(os.environ['APPDATA'], u'MyPythonApp')
-if not os.path.isdir(appdata):
-    os.mkdir(appdata)
 dbf = os.path.join(appdata, u'pychat.db')
-
 conn = sqlite3.connect(dbf)
-
 dbcursor = conn.cursor()
+dbcomitted = 0
 
 def html_escape(text):
     """Produce entities within text."""
@@ -70,7 +87,7 @@ def upd_room(roomid):
     rec = None
     dbcursor.execute("""select * from room where roomid=?""", (roomid,))
     rec = dbcursor.fetchone()
-    #logging.debug('user_count, room: '+roomid+', count: '+str(user_count))
+    #my_logger.debug('user_count, room: '+roomid+', count: '+str(user_count))
     if rec:
         timestamp = get_time_norm()
         privilege = 0
@@ -81,7 +98,7 @@ def upd_room(roomid):
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
             ('', timestamp, 0, username, '', message, MSG_ROOM, 0, 0, ''))
-        logging.debug('upd_room, room: '+roomid+', json: '+message)
+        my_logger.debug('upd_room, room: '+roomid+', json: '+message)
 
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, 0, ''))
@@ -108,7 +125,7 @@ def upd_room_ingame(roomid):
 
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, 0, ''))
-        logging.debug('upd_room_ingame, room: '+roomid+', json: '+message)
+        my_logger.debug('upd_room_ingame, room: '+roomid+', json: '+message)
     do_later_mask |= DLTR_COMMIT_DB
 
 def upd_user_status(user):
@@ -133,8 +150,12 @@ def upd_user_status(user):
     rec = dbcursor.fetchone()
     print 'rec: ', rec
     if rec:
+        ipaddr = rec[3].split('.')
         roomid = rec[4]
         role = rec[5]
+        email = rec[10]
+        hashname = rec[11]
+        maskip = '*.*.' + ipaddr[2] + '.' + ipaddr[3]
         timestamp = get_time_norm()
         privilege = 0
         username = user
@@ -157,31 +178,34 @@ def upd_user_status(user):
             daynight = get_day_night(phase)
             if daynight == -1:
                 role = ROLE_VILLAGER
+            else:
+                maskip = ''
+                email = ''
 
-        logging.debug('user_status: '+hex(status))
+        my_logger.debug('user_status: '+hex(status))
 
-        json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user)
+        json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user, maskip, hashname, email)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, 0, ''))
-        logging.debug('upd_user_status, public, user: '+user+', json: '+message)
+        my_logger.debug('upd_user_status, public, user: '+user+', json: '+message)
 
         alignment = role >> ROLE_ALIGNMENT_SHIFT
         if alignment:
-            logging.debug('role: '+hex(role))
-            logging.debug('PVG_ALIGNMENT_MASK: '+hex(PVG_ALIGNMENT_MASK))
+            my_logger.debug('role: '+hex(role))
+            my_logger.debug('PVG_ALIGNMENT_MASK: '+hex(PVG_ALIGNMENT_MASK))
             privilege = role & PVG_ALIGNMENT_MASK
-            json_serial = (roomid, status, role, user)
+            json_serial = (roomid, status, role, user, maskip, hashname, email)
             message = json.dumps(json_serial)
             dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
                 (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, 0, ''))
-            logging.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+hex(privilege))
+            my_logger.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+hex(privilege))
 
-        json_serial = (roomid, status, role, user)
+        json_serial = (roomid, status, role, user, maskip, hashname, email)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, 0, ''))
-        logging.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+hex(PVG_PRIVATE))
+        my_logger.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+hex(PVG_PRIVATE))
 
         # privilege setup should only be done at game_start
         # put here temporarily for easy coding
@@ -237,7 +261,7 @@ def dbg_msg(message):
         ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, 0, ''))
 
 def sys_msg(message, roomid, phase = 0):
-    logging.debug('sys_msg: '+message)
+    my_logger.debug('sys_msg: '+message)
 
     now = time.time()
     timestamp = long(now*1000)
@@ -249,9 +273,9 @@ def sys_msg(message, roomid, phase = 0):
     room = dbcursor.fetchone()
     if room:
         phase = room[5]
-        logging.debug('phase: '+hex(phase))
+        my_logger.debug('phase: '+hex(phase))
         daynight = get_day_night(phase)
-        logging.debug('daynight: '+str(daynight))
+        my_logger.debug('daynight: '+str(daynight))
         if daynight == 0: # day
             pass
         elif daynight == 1: # night
@@ -277,7 +301,7 @@ def check_dltr_mask(mask_bit):
     return ret
 
 def check_do_later():
-    global do_later_short, do_later_long
+    global do_later_short, do_later_long, dbcomitted
     now = get_time_norm()
     #print 'now: ', now
     #print 'do_later_short: ', do_later_short
@@ -290,15 +314,16 @@ def check_do_later():
                 if now - user_activity[user] > INTERVAL_SHORT:
                     user_status[user] &= ~USR_CONN
                     upd_user_status(user)
-                    logging.debug('user discon, user: '+user)
+                    my_logger.debug('user discon, user: '+user)
 
         do_later_short = now + INTERVAL_SHORT
 
     if now > do_later_long:
         # do something
-        if conn.total_changes:
+        if conn.total_changes > dbcomitted:
             conn.commit()
-            logging.debug('commit database')
+            my_logger.debug('commit database, '+str(conn.total_changes-dbcomitted))
+            dbcomitted = conn.total_changes
 
         do_later_long = now + INTERVAL_LONG
 
@@ -436,16 +461,16 @@ def check_vote(room):
             # phase ended
             # process action result
             # advance phase (assign actions)
-            logging.debug('deadlist: '+repr(deadlist))
+            my_logger.debug('deadlist: '+repr(deadlist))
 
             # change phase
             phase = phase_advance(room)
             upd_room_ingame(roomid)
 
-            logging.debug('deadlist: '+repr(deadlist))
+            my_logger.debug('deadlist: '+repr(deadlist))
 
             for killed in deadlist:
-                logging.debug('killed: '+killed)
+                my_logger.debug('killed: '+killed)
                 msg = ''
                 msg += '<b>'
                 msg += killed
@@ -458,7 +483,7 @@ def check_vote(room):
             for user in userlist:
                 upd_user_status(user[0])
 
-    logging.debug('not voted yet: '+str(user_count))
+    my_logger.debug('not voted yet: '+str(user_count))
 
 dbcursor.execute('''create table if not exists ruleset
 (description text, id text, options integer, baseset text, roles text,
@@ -519,7 +544,7 @@ def game_start(room):
             else:
                 rset_final = rset_max
 
-        logging.debug('roleset, participant: '+str(user_count)+', set: '+repr(rset_final))
+        my_logger.debug('roleset, participant: '+str(user_count)+', set: '+repr(rset_final))
 
         # assign role to players
         assign_role = dict
@@ -530,7 +555,7 @@ def game_start(room):
             role = rset_final.pop()
             user_role[user[0]] = role
             user_status[user[0]] |= USR_SURVIVE
-            logging.debug('assign role, , user: '+user[0]+', role: '+hex(role))
+            my_logger.debug('assign role, , user: '+user[0]+', role: '+hex(role))
             dbcursor.execute("""update user set status=?, role=?
                 where username=?""", (user_status[user[0]], user_role[user[0]], user[0]))
 
@@ -543,9 +568,9 @@ def game_start(room):
             upd_user_status(user[0])
             msg_onetime(roomid, user[0], MSG_RELOAD, '')
 
-        logging.debug('game_start, room: '+roomid)
+        my_logger.debug('game_start, room: '+roomid)
     else:
-        logging.debug('game_start failed, roomid: '+roomid)
+        my_logger.debug('game_start failed, roomid: '+roomid)
 
 def get_day_night(phase):
     """Phase is defined in hex.
@@ -585,7 +610,7 @@ def phase_advance(room):
     phase = ((phase >> 4) + 0x1) << 4
     dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
 
-    logging.debug('phase advanced: '+hex(phase))
+    my_logger.debug('phase advanced: '+hex(phase))
     # assign actions to players
 
     daynight = get_day_night(phase)
@@ -597,7 +622,7 @@ def phase_advance(room):
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, PVG_ALIGNMENT_MASK))
         userlist = dbcursor.fetchall()
         for row in userlist:
-            logging.debug('issue a USR_NIGHT_VOTE vote to user: '+row[0])
+            my_logger.debug('issue a USR_NIGHT_VOTE vote to user: '+row[0])
             user_status[row[0]] |= USR_NIGHT_VOTE
             upd_user_status(row[0])
 
@@ -619,7 +644,7 @@ class MyHandler(RequestHandler):
             user_activity, user_status, user_role
 
         if self.path != '/check_update':
-            logging.debug('post, command: '+self.path+', ip: '+self.client_address[0]+', value: '+self.rfile.getvalue())
+            my_logger.debug('post, command: '+self.path+', ip: '+self.client_address[0]+', value: '+self.rfile.getvalue())
 
         if self.path == '/login':
             login = unicode(self.rfile.getvalue(), 'utf-8')
@@ -629,7 +654,7 @@ class MyHandler(RequestHandler):
             username = u''
             password = u''
             if login[0]:
-                username = login[0]
+                username = html_escape(login[0])
             if login[1]:
                 password = login[1]
             print u'username: ', username
@@ -641,7 +666,7 @@ class MyHandler(RequestHandler):
             dbcursor.execute("""select * from user where ip=?""", (ip,))
             conflict = dbcursor.fetchone()
             if conflict:
-                logging.debug('double login, ip: '+ip+', user: '+username)
+                my_logger.debug('double login, ip: '+ip+', user: '+username)
 
             dbcursor.execute("""select * from user where username=?""", (username,))
             auth = dbcursor.fetchone()
@@ -661,11 +686,13 @@ class MyHandler(RequestHandler):
                 role = 0
                 status = 0
                 privilege = 0
-                displayntable = ''
+                registername = username
+                email = ''
+                hashname = hashlib.sha1(username.encode('utf-8')).hexdigest()
                 lastactivity = get_time_norm()
-                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
-                    role, status, privilege, displayntable, lastactivity, 0, ''))
+                    role, status, privilege, lastactivity, registername, email, hashname, 0, ''))
 
             print 'sessionkey: ', sessionkey
 
@@ -686,6 +713,7 @@ class MyHandler(RequestHandler):
             auth = dbcursor.fetchone()
             if auth:
                 username = auth[0]
+                hashname = auth[11]
                 user_status.pop(username)
                 reset = str(uuid.uuid4())
                 dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where sessionkey=?""", (reset, reset, '', sessionkey))
@@ -693,7 +721,7 @@ class MyHandler(RequestHandler):
                     (username, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
                 #do_later_mask |= DLTR_COMMIT_DB
                 conn.commit()
-                msg_command(auth[4], MSG_USERQUIT, username)
+                msg_command(auth[4], MSG_USERQUIT, hashname)
 
             self.send_response(205)
             self.end_headers()
@@ -709,6 +737,7 @@ class MyHandler(RequestHandler):
             if auth:
                 roomid = str(uuid.uuid4())
                 username = auth[0]
+                hashname = auth[11]
                 description = unicode(self.rfile.getvalue(), 'utf-8')
                 if description == '[rnd]':
                     with open('gamename.txt') as hfile:
@@ -736,13 +765,13 @@ class MyHandler(RequestHandler):
                     ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, 0, ''))
 
                 sys_msg('Welcome to <b>'+description+'</b> hosted by '+username+'.', roomid)
-                logging.debug('/host, room: '+roomid+', host: '+username)
+                my_logger.debug('/host, room: '+roomid+', host: '+username)
                 #user_status[username] |= USR_HOST
 
                 upd_room(roomid)
                 upd_user_status(username)
                 do_later_mask |= DLTR_COMMIT_DB
-                msg_command('', MSG_USERQUIT, username)
+                msg_command('', MSG_USERQUIT, hashname)
 
                 self.send_response(205)
                 self.end_headers()
@@ -769,7 +798,7 @@ class MyHandler(RequestHandler):
                 room = dbcursor.fetchone()
 
                 if room:
-                    logging.debug('/drop, room: '+roomid+', host: '+room[0]+', username: '+username)
+                    my_logger.debug('/drop, room: '+roomid+', host: '+room[0]+', username: '+username)
                     if room[0] == username:
                         dbcursor.execute("""delete from message where username=? and type=?""", (roomid, MSG_ROOM))
                         dbcursor.execute("""delete from room where roomid=?""", (roomid, ))
@@ -817,7 +846,7 @@ class MyHandler(RequestHandler):
                             dbcursor.execute("""update room set phase=1 where roomid=?""", (roomid, ))
                             dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
                             for row in userlist:
-                                logging.debug('issue a USR_DAY_VOTE vote to user: '+row[0])
+                                my_logger.debug('issue a USR_DAY_VOTE vote to user: '+row[0])
                                 user_status[row[0]] |= USR_DAY_VOTE
                                 upd_user_status(row[0])
 
@@ -826,7 +855,7 @@ class MyHandler(RequestHandler):
                             dbcursor.execute("""update room set phase=0 where roomid=?""", (roomid, ))
                             dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
                             for row in userlist:
-                                logging.debug('remove USR_DAY_VOTE vote from user: '+row[0])
+                                my_logger.debug('remove USR_DAY_VOTE vote from user: '+row[0])
                                 user_status[row[0]] &= ~USR_DAY_VOTE
                                 upd_user_status(row[0])
 
@@ -895,7 +924,7 @@ class MyHandler(RequestHandler):
                         dbcursor.execute("""select * from user where roomid=? and username=?""", (roomid, targetname, ))
                         target = dbcursor.fetchone()
 
-                        logging.debug('/target, username: '+username+', targetname: '+targetname+', action: '+hex(action))
+                        my_logger.debug('/target, username: '+username+', targetname: '+targetname+', action: '+hex(action))
 
                         if target:
                             #sys_msg(username+' voted for '+targetname, roomid)
@@ -926,17 +955,18 @@ class MyHandler(RequestHandler):
                         username=? and roomid=?""", (targetname, roomid))
                     target = dbcursor.fetchone()
                     if target:
+                        targethash = target[11]
                         dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
                             ('', 0, targetname))
                         user_status[targetname] |= USR_KICKED
                         upd_user_status(targetname)
                         upd_room(roomid)
 
-                        msg_command(roomid, MSG_USERQUIT, targetname)
+                        msg_command(roomid, MSG_USERQUIT, targethash)
 
                         do_later_mask |= DLTR_COMMIT_DB
 
-                        logging.debug('/kick/, username: '+targetname+', roomid: '+roomid)
+                        my_logger.debug('/kick/, username: '+targetname+', roomid: '+roomid)
 
                 self.send_response(204)
                 self.end_headers()
@@ -970,13 +1000,13 @@ class MyHandler(RequestHandler):
                 auth = dbcursor.fetchone()
 
             if auth:
-                msg_command(auth[4], MSG_USERQUIT, auth[0])
+                msg_command(auth[4], MSG_USERQUIT, auth[11])
                 dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
                     ('', 0, auth[0]))
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
-                logging.debug('/quit/, username: '+auth[0]+', roomid: '+auth[4])
+                my_logger.debug('/quit/, username: '+auth[0]+', roomid: '+auth[4])
                 upd_room(auth[4])
 
                 self.send_response(205)
@@ -1004,13 +1034,13 @@ class MyHandler(RequestHandler):
                 if room:
                     phase = room[5]
                     if phase == 0:
-                        msg_command(auth[4], MSG_USERQUIT, auth[0])
+                        msg_command(auth[4], MSG_USERQUIT, auth[11])
                         dbcursor.execute("""update user set roomid=? where username=?""", \
                             (roomid, auth[0]))
                         upd_user_status(auth[0])
                         do_later_mask |= DLTR_COMMIT_DB
 
-                        logging.debug('/join/, username: '+auth[0]+', roomid: '+roomid)
+                        my_logger.debug('/join/, username: '+auth[0]+', roomid: '+roomid)
                         upd_room(roomid)
 
                         rejected = False
@@ -1104,7 +1134,7 @@ class MyHandler(RequestHandler):
                         # user connected
                         user_status[auth[0]] |= USR_CONN
                         upd_user_status(auth[0])
-                        logging.debug('user connected, user: '+auth[0])
+                        my_logger.debug('user connected, user: '+auth[0])
 
             #print 'client document time: ', self.rfile.getvalue()
             client_doc_time = long(self.rfile.getvalue())
@@ -1143,7 +1173,7 @@ class MyHandler(RequestHandler):
             if json_serial:
                 ret = json.dumps(json_serial)
 
-                #logging.debug('/check_update, username: '+username+', content: '+ret)
+                #my_logger.debug('/check_update, username: '+username+', content: '+ret)
 
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')
@@ -1180,6 +1210,7 @@ class MyHandler(RequestHandler):
 
                 roomid = str(uuid.uuid4())
                 username = auth[0]
+                hashname = auth[11]
                 if not description:
                     with open('gamename.txt') as hfile:
                         lst = hfile.readlines()
@@ -1205,13 +1236,13 @@ class MyHandler(RequestHandler):
                     ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, 0, ''))
 
                 sys_msg('Welcome to <b>'+description+'</b> hosted by '+username+'.', roomid)
-                logging.debug('/hostex, room: '+roomid+', host: '+username)
+                my_logger.debug('/hostex, room: '+roomid+', host: '+username)
                 #user_status[username] |= USR_HOST
 
                 upd_room(roomid)
                 upd_user_status(username)
                 do_later_mask |= DLTR_COMMIT_DB
-                msg_command('', MSG_USERQUIT, username)
+                msg_command('', MSG_USERQUIT, hashname)
 
                 self.send_response(205)
                 self.end_headers()
@@ -1230,7 +1261,7 @@ class MyHandler(RequestHandler):
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 self.wfile.write(ret)
-            elif auth:
+            else:
                 self.send_response(204)
                 self.end_headers()
 
