@@ -294,13 +294,13 @@ def sys_msg(message, roomid, phase = 0):
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
         (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, phase, 0, ''))
 
-def private_msg(username, message, roomid):
+def private_msg(username, message, roomid, phase):
     now = time.time()
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, PVG_PRIVATE, username, isoformat, message, MSG_PRIVATE, 0, 0, ''))
+        (roomid, timestamp, PVG_PRIVATE, username, isoformat, message, MSG_PRIVATE, phase, 0, ''))
 
 def check_dltr_mask(mask_bit):
     global do_later_mask
@@ -470,6 +470,18 @@ def check_vote(room):
             # advance phase (assign actions)
             my_logger.debug('deadlist: '+repr(deadlist))
 
+            # blocking must be handled before all actions
+            dbcursor.execute("""select * from action where roomid=? and action=?""", \
+                (roomid, USR_NIGHT_BLOCK))
+            userlist = dbcursor.fetchall()
+            for user in userlist:
+                target = user[3]
+                msg = u'%s is seduced.' % target
+                private_msg(user[2], msg, roomid, phase)
+                dbcursor.execute("""delete from action where roomid=? and username=?""", \
+                    (roomid, target))
+                my_logger.debug('blocked: '+target)
+
             # protector check must be placed after night vote counting
             # and before all other night death check
             # so it only protects victims of common night wolf attack
@@ -478,7 +490,7 @@ def check_vote(room):
             for rec in dbcursor:
                 target = rec[3]
                 msg = u'%s is healed.' % target
-                private_msg(rec[2], msg, roomid)
+                private_msg(rec[2], msg, roomid, phase)
                 if target in deadlist:
                     deadlist.remove(target)
                     my_logger.debug('healed: '+target)
