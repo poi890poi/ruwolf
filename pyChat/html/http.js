@@ -335,7 +335,7 @@ var start = dtobj.getTime();
                                     userhtml += "<img class='usericon' src='images/dead.png'></img>";
                                 }
                             } else {
-                                if (subobj[1] & 256) { // waiting for ready check
+                                if ((subobj[1] & 256) && subobj[0]) { // waiting for ready check
                                     userhtml += "<img class='usericon' src='images/error.png'></img>";
                                 } else if ((subobj[1] & 4) && (phase < 10)) { // host
                                     userhtml += "<img class='usericon' src='images/mod.png'></img>";

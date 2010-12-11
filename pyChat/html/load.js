@@ -333,16 +333,22 @@ $(window).load(function(){
         t_hover = setTimeout(function () {
             // $("#Utility #Util2").html($.dump(obj));
             //resizeUI(0);
-            // room (description, ruleset, options, phase, host, roomid, participant, message)
+            // user status (roomid, user_status[user], role, username, ip, hash, email)
             if (!sessionkey)
             {
                 return true;
             }
 
             var data_json = jQuery.parseJSON(obj.attr("data-json"));
-            if (data_json.length >= 4)
+            if (data_json.length >= 7)
             {
-                $("#Utility #Util2").html(obj.attr("data-json"));
+                var txt = "";
+                txt += "<b>" + data_json[3] + "</b><br/>";
+                txt += "Status: " + data_json[1].toString(16) + "<br/>";
+                txt += "Role: " + data_json[2].toString(16) + "<br/>";
+                txt += "IP: " + data_json[4] + "<br/>";
+                txt += "Email: " + data_json[6] + "<br/><br/>";
+                $("#Utility #Util2").html(txt);
                 resizeUI(0);
             }
         }, 500);
