@@ -289,10 +289,11 @@ var start = dtobj.getTime();
                         msg += obj[i][3] + "</td></tr>";
                         msgappend += msg;
                     }
-                    else if (obj[i][0] == 1 || obj[i][0] == 0x4000 || obj[i][0] == 5) {
+                    else if (obj[i][0] == 1 || obj[i][0] == 0x4000 || obj[i][0] == 5 || obj[i][0] == 0x1000) {
                         // user status (roomid, user_status[user], role, username, ip, hash, email)
 
                         var subobj = jQuery.parseJSON(obj[i][3]);
+                        //if (obj[i][0] == 0x1000) alert(subobj[2]);
 
                         if (obj[i][0] == 0x4000) { // user status private
                             if (subobj[1] & 16) { // kicked, USR_KICKED
@@ -312,7 +313,7 @@ var start = dtobj.getTime();
                         var userhtml = new String();
                         //alert(obj[i][3]);
                         if (subobj[1] & 1) { // connection alive
-                            if (phase >= 10)
+                            if (phase >= 0x10)
                             {
                                 if (subobj[1] & 0x2) {
                                     if ((subobj[2] & ALIGNMENT_MASK) == 0x100) {
@@ -347,7 +348,7 @@ var start = dtobj.getTime();
                         }
                         if (obj[i][0] == 0x4000) userhtml += "<u>";
                         userhtml += "<b>";
-                        userhtml += layoutSafeStr(obj[i][1]);
+                        userhtml += layoutSafeStr(subobj[3]);
                         userhtml += "</b>";
                         if (obj[i][0] == 0x4000) userhtml += "</u>";
 
