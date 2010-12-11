@@ -30,8 +30,6 @@ phase integer, timeout integer, message text, reserved1 integer, reserved2 text)
 dbcursor.execute('''create table if not exists action
 (roomid text, action integer, username text, target text, timestamp integer)''')
 
-dbcursor.execute('''drop table ruleset''')
-
 dbcursor.execute('''create table if not exists ruleset
 (description text, id text, options integer, baseset text, roles text,
 nightzero integer, day integer, night integer, runoff integer)''')
@@ -49,7 +47,7 @@ roles = []
 
 # for test only
 rset = []
-rset.append(wolf)
+rset.append(blocker)
 rset.append(ROLE_HEALER)
 rset.append(ROLE_SEER)
 roles.append(rset)

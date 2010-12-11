@@ -16,6 +16,7 @@
     var t_hover;
     var latency = 0;
     var poll_sent = 0;
+    var hoverobj = 0;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -276,6 +277,17 @@ var start = dtobj.getTime();
                             msg += "<td>" + obj[i][3] + "</td></tr>";
                             msgappend += msg;
                         }
+                    } else if (obj[i][0] == 0x9000) {
+                        //user message (type, username, isoformat, message, timestamp, phase)
+                        var msg = new String();
+                        var daynight = get_day_night(obj[i][5]);
+                        if (daynight == 1) {
+                            msg += "<tr><td colspan='2' class='system_night'>";
+                        } else {
+                            msg += "<tr><td colspan='2' class='system'>";
+                        }
+                        msg += obj[i][3] + "</td></tr>";
+                        msgappend += msg;
                     }
                     else if (obj[i][0] == 1 || obj[i][0] == 0x4000 || obj[i][0] == 5) {
                         // user status (roomid, user_status[user], role, username, ip, hash, email)

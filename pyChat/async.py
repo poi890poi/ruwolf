@@ -300,7 +300,7 @@ def private_msg(username, message, roomid):
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, 0, username, isoformat, message, MSG_PRIVATE, 0, 0, ''))
+        (roomid, timestamp, PVG_PRIVATE, username, isoformat, message, MSG_PRIVATE, 0, 0, ''))
 
 def check_dltr_mask(mask_bit):
     global do_later_mask
@@ -460,16 +460,28 @@ def check_vote(room):
             if killed:
                 deadlist.append(killed)
             # handle night actions
+
         elif phase == 1: # ready check
             game_start(room)
-
-        dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
 
         if not daynight == -1:
             # phase ended
             # process action result
             # advance phase (assign actions)
             my_logger.debug('deadlist: '+repr(deadlist))
+
+            # protector check must be placed after night vote counting
+            # and before all other night death check
+            # so it only protects victims of common night wolf attack
+            dbcursor.execute("""select * from action where roomid=? and action=?""", \
+                (roomid, USR_NIGHT_HEAL))
+            for rec in dbcursor:
+                target = rec[3]
+                msg = u'%s is healed.' % target
+                private_msg(rec[2], msg, roomid)
+                if target in deadlist:
+                    deadlist.remove(target)
+                    my_logger.debug('healed: '+target)
 
             # change phase
             phase = phase_advance(room)
@@ -490,6 +502,10 @@ def check_vote(room):
             userlist = dbcursor.fetchall()
             for user in userlist:
                 upd_user_status(user[0])
+
+        # delete all actions before next round
+        # as they are all handled
+        dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
 
     my_logger.debug('not voted yet: '+str(user_count))
 
@@ -628,13 +644,14 @@ def phase_advance(room):
         userlist = dbcursor.fetchall()
         for row in userlist:
             my_logger.debug('issue a USR_DAY_VOTE vote to everyone: '+row[0])
+            user_status[row[0]] &= ~USR_NIGHT_ACT_MASK
             user_status[row[0]] |= USR_DAY_VOTE
             upd_user_status(row[0])
 
     elif daynight == 1: # night
         sys_msg('Night falls.', roomid)
 
-        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, PVG_ALIGNMENT_MASK))
+        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BITE_MASK))
         userlist = dbcursor.fetchall()
         for row in userlist:
             my_logger.debug('issue a USR_NIGHT_VOTE vote to wolf: '+row[0])
@@ -644,22 +661,22 @@ def phase_advance(room):
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BLOCKER))
         userlist = dbcursor.fetchall()
         for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_ACT1 vote to blocker: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_ACT1
+            my_logger.debug('issue a USR_NIGHT_BLOCK vote to blocker: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_BLOCK
             upd_user_status(row[0])
 
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_SEER))
         userlist = dbcursor.fetchall()
         for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_ACT1 vote to blocker: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_ACT1
+            my_logger.debug('issue a USR_NIGHT_SEER vote to blocker: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_SEER
             upd_user_status(row[0])
 
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_HEALER))
         userlist = dbcursor.fetchall()
         for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_ACT1 vote to blocker: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_ACT1
+            my_logger.debug('issue a USR_NIGHT_HEAL vote to blocker: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_HEAL
             upd_user_status(row[0])
 
     elif phase > 0xffff: # end

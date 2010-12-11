@@ -210,23 +210,23 @@ $(window).load(function(){
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x2000, targetname);
         		});
-            } else if ((userobj[1] & 0x2000) && (self_role == 0x1) && (target_status & 0x2)) { // seer
+            } else if ((userobj[1] & 0x8000) && (self_role == 0x1) && (target_status & 0x2)) { // seer
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
                 mitem.html("See <b>" + layoutSafeStr(targetname) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
-                    send_text_ex("/target", 0x2000, targetname);
+                    send_text_ex("/target", 0x8000, targetname);
         		});
-            } else if ((userobj[1] & 0x2000) && (self_role == 0x2) && (target_status & 0x2)) { // healer
+            } else if ((userobj[1] & 0x4000) && (self_role == 0x2) && (target_status & 0x2)) { // healer
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
                 mitem.html("Heal <b>" + layoutSafeStr(targetname) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
-                    send_text_ex("/target", 0x2000, targetname);
+                    send_text_ex("/target", 0x4000, targetname);
         		});
             }
         }
@@ -292,6 +292,7 @@ $(window).load(function(){
 
     $("#UserList div.clk_room").live("mouseover", function(e) {
         var obj = $(this);
+        hoverobj = obj;
 
         clearTimeout(t_hover);
         t_hover = setTimeout(function () {
@@ -319,12 +320,14 @@ $(window).load(function(){
         }, 500);
     })
         .live("mouseout", function(e) {
+            hoverobj = 0;
             clearTimeout(t_hover);
             t_hover = setTimeout("general_info();", 500);
         });
 
     $("#UserList div.clk_user").live("mouseover", function(e) {
         var obj = $(this);
+        hoverobj = obj;
 
         clearTimeout(t_hover);
         t_hover = setTimeout(function () {
@@ -345,6 +348,7 @@ $(window).load(function(){
         }, 500);
     })
         .live("mouseout", function(e) {
+            hoverobj = 0;
             clearTimeout(t_hover);
             t_hover = setTimeout("general_info();", 500);
         });
@@ -360,6 +364,10 @@ $(window).load(function(){
 
 function general_info()
 {
+    if (hoverobj)
+    {
+        return;
+    }
     var txt = "";
     txt += "Latency: " + latency + "<br/>";
     // room (description, ruleset, options, phase, host, roomid, participant, message)
