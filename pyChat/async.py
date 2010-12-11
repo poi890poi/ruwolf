@@ -64,6 +64,8 @@ conn = sqlite3.connect(dbf)
 dbcursor = conn.cursor()
 dbcomitted = 0
 
+rndtable256 = []
+
 def html_escape(text):
     """Produce entities within text."""
     return "".join(html_escape_table.get(c,c) for c in text)
@@ -142,7 +144,7 @@ def upd_user_status(user):
     And alignment status always include public staus, private status always include alignment status.
     So player always get the full information that is avaliable for him.
     """
-    global user_status, user_role, do_later_mask
+    global user_status, user_role, do_later_mask, rndtable256
     dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
         (user, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
     rec = None
@@ -150,12 +152,18 @@ def upd_user_status(user):
     rec = dbcursor.fetchone()
     print 'rec: ', rec
     if rec:
-        ipaddr = rec[3].split('.')
+        ip = rec[3]
         roomid = rec[4]
         role = rec[5]
         email = rec[10]
         hashname = rec[11]
-        maskip = '*.*.' + ipaddr[2] + '.' + ipaddr[3]
+
+        my_logger.debug('ip: '+str(ip>>24)+'.'+str((ip&0xff0000)>>16)+'.'+str((ip&0xff00)>>8)+'.'+str(ip&0xff))
+        maskip = str(rndtable256[ip>>24]) + '.' + \
+            str(rndtable256[(ip&0xff0000)>>16]) + '.' + \
+            str(rndtable256[(ip&0xff00)>>8]) + '.' + \
+            str(rndtable256[ip&0xff])
+
         timestamp = get_time_norm()
         privilege = 0
         username = user
@@ -630,6 +638,10 @@ def phase_advance(room):
         sys_msg('Game ended.', roomid)
     return phase
 
+def get_ip_integer(ipstr):
+    ipsplit = ipstr.split('.')
+    return (int(ipsplit[0]) << 24) + (int(ipsplit[1]) << 16) + (int(ipsplit[2]) << 8) + int(ipsplit[3])
+
 class MyHandler(RequestHandler):
     def handle_get(self):
         self.path = 'html' + self.path
@@ -661,12 +673,12 @@ class MyHandler(RequestHandler):
             print u'password: ', password
 
             sessionkey = None
-            ip = self.client_address[0]
+            ip = get_ip_integer(self.client_address[0])
 
             dbcursor.execute("""select * from user where ip=?""", (ip,))
             conflict = dbcursor.fetchone()
             if conflict:
-                my_logger.debug('double login, ip: '+ip+', user: '+username)
+                my_logger.debug('double login, ip: '+hex(ip)+', user: '+username)
 
             dbcursor.execute("""select * from user where username=?""", (username,))
             auth = dbcursor.fetchone()
@@ -688,11 +700,12 @@ class MyHandler(RequestHandler):
                 privilege = 0
                 registername = username
                 email = ''
+                mark = 0
                 hashname = hashlib.sha1(username.encode('utf-8')).hexdigest()
                 lastactivity = get_time_norm()
-                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
-                    role, status, privilege, lastactivity, registername, email, hashname, 0, ''))
+                    role, status, privilege, lastactivity, registername, email, hashname, mark, 0, ''))
 
             print 'sessionkey: ', sessionkey
 
@@ -708,7 +721,7 @@ class MyHandler(RequestHandler):
 
         elif self.path == '/logout':
             sessionkey = self.rfile.getvalue()
-            ip = self.client_address[0]
+            ip = get_ip_integer(self.client_address[0])
             dbcursor.execute("""select * from user where sessionkey=? and ip=?""", (sessionkey,ip))
             auth = dbcursor.fetchone()
             if auth:
@@ -730,8 +743,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -784,8 +798,9 @@ class MyHandler(RequestHandler):
             room = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -821,8 +836,9 @@ class MyHandler(RequestHandler):
             room = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -869,8 +885,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -904,8 +921,9 @@ class MyHandler(RequestHandler):
             action = 0
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
             if 'X-Action' in self.headers:
                 action = int(self.headers['X-Action'])
@@ -942,8 +960,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -975,8 +994,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -995,8 +1015,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             if auth:
@@ -1019,8 +1040,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             rejected = True
@@ -1056,8 +1078,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
             # preprocess the message
@@ -1118,10 +1141,10 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
-                ip = self.client_address[0]
+                ip = get_ip_integer(self.client_address[0])
 
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,ip))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
                 #print auth
                 #time.sleep(100)
@@ -1192,8 +1215,9 @@ class MyHandler(RequestHandler):
             auth = None
             if 'Authorization' in self.headers:
                 sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
                 dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey,self.client_address[0]))
+                    sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
 
 
@@ -1272,6 +1296,13 @@ class MyHandler(RequestHandler):
             self.handle_post()
 
 if __name__=="__main__":
+    # init other modules
+    random.seed()
+
+    for i in range(256):
+        rndtable256.append(i)
+    random.shuffle(rndtable256)
+
     # launch the server on the specified port
     now = get_time_norm()
     do_later_short = now + INTERVAL_SHORT
@@ -1285,9 +1316,6 @@ if __name__=="__main__":
     for user in userlist:
         user_status[user[0]] = user[6]
         upd_user_status(user[0])
-
-    # init other modules
-    random.seed()
 
     port = 80
     s = Server('', port, MyHandler)

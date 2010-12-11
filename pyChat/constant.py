@@ -37,6 +37,13 @@ MSG_PRIVATE_MASK = 0xff000 # match username when fetching
 MSG_RELOAD = 0x10000
 MSG_ONETIME_MASK = 0xf0000 # if ever fetched by user, remove the entry
 
+# user makr (meta-game status)
+USR_CONN = 0x00000001
+USR_IPCONFLICT = 0x00000002
+USR_HOST = 0x00000004
+USR_EMAILCONFIRMED = 0x00000008
+USR_KICKED = 0x00000010
+
 # user status
 USR_PUBLIC_MASK = 0x00000fff
 USR_PRIVATE_MASK = 0x00fff000

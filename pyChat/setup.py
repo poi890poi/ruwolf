@@ -19,9 +19,9 @@ dbcursor.execute('''create table if not exists message
 datetime text, message text, type integer, phase integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists user
-(username text, password text, sessionkey text, ip text, roomid text,
+(username text, password text, sessionkey text, ip integer, roomid text,
 role integer, status integer, privilege integer, lastactivity integer,
-registername text, email text, hashname text, reserved1 integer, reserved2 text)''')
+registername text, email text, hashname text, mark integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists room
 (username text, roomid text, description text, ruleset text, options integer,
