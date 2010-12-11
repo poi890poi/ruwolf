@@ -303,9 +303,7 @@ var start = dtobj.getTime();
                             if (phase >= 10)
                             {
                                 if (subobj[1] & 0x2) {
-                                    if (subobj[1] & 256) { // waiting for ready check
-                                        userhtml += "<img class='usericon' src='images/error.png'></img>";
-                                    } else if ((subobj[2] & ALIGNMENT_MASK) == 0x100) {
+                                    if ((subobj[2] & ALIGNMENT_MASK) == 0x100) {
                                         userhtml += "<img class='usericon' src='images/rolewolf.png'></img>";
                                     } else if ((subobj[2] & ALIGNMENT_MASK) == 0x200) {
                                         userhtml += "<img class='usericon' src='images/blocker.png'></img>";

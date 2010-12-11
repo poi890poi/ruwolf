@@ -620,18 +620,46 @@ def phase_advance(room):
 
     my_logger.debug('phase advanced: '+hex(phase))
     # assign actions to players
-
     daynight = get_day_night(phase)
     if daynight == 0: # day
         sys_msg('The sun rises.', roomid)
+
+        dbcursor.execute("""select * from user where roomid=? and status&?""", (roomid, USR_SURVIVE))
+        userlist = dbcursor.fetchall()
+        for row in userlist:
+            my_logger.debug('issue a USR_DAY_VOTE vote to everyone: '+row[0])
+            user_status[row[0]] |= USR_DAY_VOTE
+            upd_user_status(row[0])
+
     elif daynight == 1: # night
         sys_msg('Night falls.', roomid)
 
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, PVG_ALIGNMENT_MASK))
         userlist = dbcursor.fetchall()
         for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_VOTE vote to user: '+row[0])
+            my_logger.debug('issue a USR_NIGHT_VOTE vote to wolf: '+row[0])
             user_status[row[0]] |= USR_NIGHT_VOTE
+            upd_user_status(row[0])
+
+        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BLOCKER))
+        userlist = dbcursor.fetchall()
+        for row in userlist:
+            my_logger.debug('issue a USR_NIGHT_ACT1 vote to blocker: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_ACT1
+            upd_user_status(row[0])
+
+        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_SEER))
+        userlist = dbcursor.fetchall()
+        for row in userlist:
+            my_logger.debug('issue a USR_NIGHT_ACT1 vote to blocker: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_ACT1
+            upd_user_status(row[0])
+
+        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_HEALER))
+        userlist = dbcursor.fetchall()
+        for row in userlist:
+            my_logger.debug('issue a USR_NIGHT_ACT1 vote to blocker: '+row[0])
+            user_status[row[0]] |= USR_NIGHT_ACT1
             upd_user_status(row[0])
 
     elif phase > 0xffff: # end

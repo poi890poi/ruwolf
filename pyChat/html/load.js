@@ -175,7 +175,63 @@ $(window).load(function(){
     		mitem.click(function (e) {
                 send_text("/vote_rdy " + targetname);
     		});
-        } else if ((userobj[1] & 4) && (phase < 10) && (targetname != userobj[3])) { // game host, USR_HOST
+        } else if (target.length >= 4) {
+            var target_status = target[1];
+            var target_role = target[2];
+            var target_alignment = target_role & 0x4f000000;
+            var self_role = userobj[2] & 0x00ffffff;
+            var self_alignment = userobj[2] & 0x4f000000;
+            if ((userobj[1] & 0x1000) && (target_status & 0x2) && (target_alignment != self_alignment)) { // bite
+                $("#MnuVote").removeClass("menudisable")
+                    .addClass("menuitem");
+        		var mitem = $("#MnuVote");
+                mitem.html("Attack <b>" + layoutSafeStr(targetname) + "</b>");
+        		mitem.unbind("click");
+        		mitem.click(function (e) {
+                    send_text_ex("/target", 0x1000, targetname);
+        		});
+            } else if ((userobj[1] & 0x100) && (target_status & 0x2)) { // day vote
+                $("#MnuVote").removeClass("menudisable")
+                    .addClass("menuitem");
+        		var mitem = $("#MnuVote");
+                mitem.html("Vote <b>" + layoutSafeStr(targetname) + "</b>");
+        		mitem.unbind("click");
+        		mitem.click(function (e) {
+                    send_text_ex("/target", 0x100, targetname);
+        		});
+            }
+
+            if ((userobj[1] & 0x2000) && (self_role == 0x200) && (target_status & 0x2) && (target_alignment != self_alignment)) { // blocker
+                $("#MnuNightAction").removeClass("menudisable")
+                    .addClass("menuitem");
+        		var mitem = $("#MnuNightAction");
+                mitem.html("Seduce <b>" + layoutSafeStr(targetname) + "</b>");
+        		mitem.unbind("click");
+        		mitem.click(function (e) {
+                    send_text_ex("/target", 0x2000, targetname);
+        		});
+            } else if ((userobj[1] & 0x2000) && (self_role == 0x1) && (target_status & 0x2)) { // seer
+                $("#MnuNightAction").removeClass("menudisable")
+                    .addClass("menuitem");
+        		var mitem = $("#MnuNightAction");
+                mitem.html("See <b>" + layoutSafeStr(targetname) + "</b>");
+        		mitem.unbind("click");
+        		mitem.click(function (e) {
+                    send_text_ex("/target", 0x2000, targetname);
+        		});
+            } else if ((userobj[1] & 0x2000) && (self_role == 0x2) && (target_status & 0x2)) { // healer
+                $("#MnuNightAction").removeClass("menudisable")
+                    .addClass("menuitem");
+        		var mitem = $("#MnuNightAction");
+                mitem.html("Heal <b>" + layoutSafeStr(targetname) + "</b>");
+        		mitem.unbind("click");
+        		mitem.click(function (e) {
+                    send_text_ex("/target", 0x2000, targetname);
+        		});
+            }
+        }
+
+        if ((userobj[1] & 4) && (phase < 10) && (targetname != userobj[3])) { // game host, USR_HOST
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");
@@ -184,26 +240,15 @@ $(window).load(function(){
     		mitem.click(function (e) {
                 send_text("/kick " + targetname);
     		});
-        } else if (target.length >= 4) {
-            $("#MnuVote").removeClass("menudisable")
+        } else if ((userobj[1] & 4) && (phase >= 10) && (targetname != userobj[3])) { // game host, USR_HOST
+            $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
-            var target_status = target[1];
-            var target_role = target[2];
-            var target_alignment = target_role & 0x4f000000;
-            var self_role = userobj[2];
-            var self_alignment = self_role & 0x4f000000;
-            if ((userobj[1] & 0x1000) && (target_status & 0x2) && (target_alignment != self_alignment)) { // bite
-        		var mitem = $("#MnuVote");
-                mitem.html("Attack <b>" + layoutSafeStr(targetname) + "</b>");
-        		mitem.unbind("click");
-        		mitem.click(function (e) {
-                    send_text_ex("/target", 0x1000, targetname);
-        		});
-            } else {
-                return true;
-            }
-        } else {
-            return true;
+    		var mitem = $("#MnuReport");
+            mitem.html("Report <b>" + layoutSafeStr(targetname) + "</b>");
+    		mitem.unbind("click");
+    		mitem.click(function (e) {
+                send_text("/report " + targetname);
+    		});
         }
 
 		var menu = $("#MenuContainerTarget");
