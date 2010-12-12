@@ -246,17 +246,20 @@ def upd_user_status(user):
             timeout = room[6]
             #message = room[7]
 
-            privilege |= PVG_DAYCHAT
-            daynight = get_day_night(phase)
-            if daynight == 0: # day
-                pass
-            elif daynight == 1: # night
-                pass
+            if status&USR_SURVIVE:
+                privilege |= PVG_DAYCHAT
+                daynight = get_day_night(phase)
+                if daynight == 0: # day
+                    pass
+                elif daynight == 1: # night
+                    pass
+                else:
+                    privilege |= PVG_ROOMCHAT
+                privilege |= (role & PVG_ALIGNMENT_MASK)
+                if alignment:
+                    privilege |= PVG_NIGHTCHAT
             else:
                 privilege |= PVG_ROOMCHAT
-            privilege |= (role & PVG_ALIGNMENT_MASK)
-            if alignment:
-                privilege |= PVG_NIGHTCHAT
 
         dbcursor.execute("""update user set status=?, role=?, privilege=?
             where username=?""", (status, role, privilege, user))
@@ -304,9 +307,9 @@ def sys_msg(message, roomid, phase = 0):
         daynight = get_day_night(phase)
         my_logger.debug('daynight: '+str(daynight))
         if daynight == 0: # day
-            pass
+            privilege |= PVG_DAYCHAT
         elif daynight == 1: # night
-            pass
+            privilege |= PVG_DAYCHAT
         else:
             privilege |= PVG_ROOMCHAT
 
@@ -353,6 +356,26 @@ def check_do_later():
             dbcomitted = conn.total_changes
 
         do_later_long = now + INTERVAL_LONG
+
+def kill_player(room, username, lynch = False):
+    global user_status
+
+    roomid = room[1]
+    options = room[4]
+    phase = room[5]
+
+    dbcursor.execute("""select * from user where roomid=? and username=? and status&?""", \
+        (roomid, username, USR_SURVIVE))
+    victim = dbcursor.fetchone()
+    if victim:
+        user_status[username] &= ~USR_SURVIVE
+        user_status[username] &= ~USR_ACT_MASK
+        if lynch:
+            user_status[username] |= USR_LYNCH
+            my_logger.debug('lynched, user: '+username)
+        my_logger.debug('status: '+hex(user_status[username]))
+        upd_user_status(username)
+        msg_onetime(roomid, username, MSG_RELOAD, '')
 
 def check_vote_day(room):
     roomid = room[1]
@@ -440,6 +463,7 @@ def check_vote_day(room):
         msg += final
         msg += '</b>'
         msg += ' is hanged.<br/>'
+        kill_player(room, final, lynch=True)
         sys_msg(msg, roomid, phase)
     else:
         # no one is hanged
@@ -486,6 +510,10 @@ def check_vote_night(room, action):
             break
     else:
         final = random.choice(elected.items())[0]
+
+    if phase>>4 == 1:
+        # night zero
+        return None
 
     return final
 
@@ -585,7 +613,8 @@ def check_vote(room):
                 msg += killed
                 msg += '</b>'
                 msg += ' is dead.<br/>'
-                sys_msg(msg, roomid)
+                kill_player(room, killed)
+                sys_msg(msg, roomid, phase)
 
             dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
             userlist = dbcursor.fetchall()
@@ -718,18 +747,22 @@ def phase_advance(room):
     phase = room[5]
     timeout = room[6]
 
+    gamestart = False
     if phase < 0x10: # start
-        sys_msg('Game started.', roomid)
+        gamestart = True
 
     phase = ((phase >> 4) + 0x1) << 4
     phase += 0x6 # only apply if there's no pre-election sub-phases
     dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
 
+    if gamestart:
+        sys_msg('Game started.', roomid, phase)
+
     my_logger.debug('phase advanced: '+hex(phase))
     # assign actions to players
     daynight = get_day_night(phase)
     if daynight == 0: # day
-        sys_msg('The sun rises.', roomid)
+        sys_msg('The sun rises.', roomid, phase)
 
         dbcursor.execute("""select * from user where roomid=? and status&?""", (roomid, USR_SURVIVE))
         userlist = dbcursor.fetchall()
@@ -740,7 +773,7 @@ def phase_advance(room):
             upd_user_status(row[0])
 
     elif daynight == 1: # night
-        sys_msg('Night falls.', roomid)
+        sys_msg('Night falls.', roomid, phase)
 
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BITE_MASK))
         userlist = dbcursor.fetchall()
@@ -771,7 +804,7 @@ def phase_advance(room):
             upd_user_status(row[0])
 
     elif phase > 0xffff: # end
-        sys_msg('Game ended.', roomid)
+        sys_msg('Game ended.', roomid, phase)
     return phase
 
 def get_ip_integer(ipstr):
@@ -1253,14 +1286,18 @@ class MyHandler(RequestHandler):
                 room = dbcursor.fetchone()
 
                 if room:
-                    phase = room[5]
-                    daynight = get_day_night(phase)
-                    if daynight == 0: # day
-                        pass
-                    elif daynight == 1: # night
-                        if not (user_privilege & PVG_NIGHTCHAT):
-                            dosend = False
-                        privilege |= alignment
+                    if auth[6]&USR_SURVIVE:
+                        phase = room[5]
+                        daynight = get_day_night(phase)
+                        if daynight == 0: # day
+                            privilege |= PVG_DAYCHAT
+                            pass
+                        elif daynight == 1: # night
+                            if not (user_privilege & PVG_NIGHTCHAT):
+                                dosend = False
+                            privilege |= alignment
+                        else:
+                            privilege |= PVG_ROOMCHAT
                     else:
                         privilege |= PVG_ROOMCHAT
 
