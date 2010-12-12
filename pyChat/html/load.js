@@ -344,8 +344,8 @@ $(window).load(function(){
             {
                 var txt = "";
                 txt += "<b>" + data_json[3] + "</b><br/>";
-                txt += "Status: " + data_json[1].toString(16) + "<br/>";
-                txt += "Role: " + data_json[2].toString(16) + "<br/>";
+                txt += "Status: 0x" + data_json[1].toString(16) + "<br/>";
+                txt += "Role: 0x" + data_json[2].toString(16) + "<br/>";
                 txt += "IP: " + data_json[4] + "<br/>";
                 txt += "Email: " + data_json[6] + "<br/><br/>";
                 $("#Utility #Util2").html(txt);
@@ -382,7 +382,7 @@ function general_info()
     {
         txt += "Game: " + roomobj[0] + "<br/>";
         txt += "Rule set: " + roomobj[1] + "<br/>";
-        txt += "Phase: " + roomobj[3];
+        txt += "Phase: 0x" + roomobj[3].toString(16);
         txt += " ("+get_day_night(roomobj[3])+")<br/>";
         txt += "Participant: " + roomobj[6] + "<br/>";
     }

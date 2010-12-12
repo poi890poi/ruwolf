@@ -360,7 +360,7 @@ def check_vote_day(room):
     phase = room[5]
 
     dbcursor.execute("""select * from action where roomid=? and action=?""", \
-        (roomid, ACT_VOTE_RDY))
+        (roomid, USR_DAY_VOTE))
 
     voter = dict()
     timestamp = dict()
@@ -375,6 +375,8 @@ def check_vote_day(room):
             timestamp[target] = 0
         if rec[4] > timestamp[target]:
             timestamp[target] = rec[4]
+
+    my_logger.debug('voter: '+repr(voter))
 
     msg = ''
     max = 0
@@ -396,25 +398,55 @@ def check_vote_day(room):
             msg += list.replace(', ', '', 1)
             msg += ')<br/>'
 
+    my_logger.debug('elected: '+repr(elected))
+
     msg += '<br/>'
 
-    final = ''
+    final = None
     if len(elected) > 1:
         # deadlocked election
-        # USR_DEADLOCKED_E
-        for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
-            final = key
-            break
-            #msg += key + ' ' + str(value) + '<br/>'
-    else:
+        if get_subphase(phase) >= 0x8:
+            # auto-resolve
+            for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
+                final = key
+                break
+                #msg += key + ' ' + str(value) + '<br/>'
+        else:
+            # run off
+            # USR_DEADLOCKED_E
+            phase += 1
+            dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
+
+            my_logger.debug('run-off voting, phase: '+hex(phase))
+            # assign actions to players
+            dbcursor.execute("""select * from user where roomid=? and status&?""", (roomid, USR_SURVIVE))
+            userlist = dbcursor.fetchall()
+            for row in userlist:
+                my_logger.debug('issue a USR_DAY_VOTE vote to everyone: '+row[0])
+                user_status[row[0]] |= USR_DAY_VOTE
+                upd_user_status(row[0])
+
+            msg += 'Deadlocked election. Vote again.<br/>'
+            sys_msg(msg, roomid, phase)
+
+            # run-off voting
+            return False
+
+    elif len(elected):
         final = random.choice(elected.items())[0]
 
-    msg += '<b>'
-    msg += final
-    msg += '</b>'
-    msg += ' is hanged.<br/>'
+    if final:
+        msg += '<b>'
+        msg += final
+        msg += '</b>'
+        msg += ' is hanged.<br/>'
+        sys_msg(msg, roomid, phase)
+    else:
+        # no one is hanged
+        pass
 
-    sys_msg(msg, roomid)
+    # day ended
+    return True
 
 def check_vote_night(room, action):
     roomid = room[1]
@@ -475,7 +507,9 @@ def check_vote(room):
         deadlist = []
         daynight = get_day_night(phase)
         if daynight == 0: # day
-            check_vote_day(room)
+            dayend = check_vote_day(room)
+            if not dayend:
+                return
         elif daynight == 1: # night
             killed = check_vote_night(room, USR_NIGHT_VOTE)
             if killed:
@@ -688,6 +722,7 @@ def phase_advance(room):
         sys_msg('Game started.', roomid)
 
     phase = ((phase >> 4) + 0x1) << 4
+    phase += 0x6 # only apply if there's no pre-election sub-phases
     dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
 
     my_logger.debug('phase advanced: '+hex(phase))
@@ -1160,6 +1195,7 @@ class MyHandler(RequestHandler):
                         msg_command(auth[4], MSG_USERQUIT, auth[11])
                         dbcursor.execute("""update user set roomid=? where username=?""", \
                             (roomid, auth[0]))
+                        user_status[auth[0]] &= ~USR_ACT_MASK
                         upd_user_status(auth[0])
                         do_later_mask |= DLTR_COMMIT_DB
 
@@ -1365,6 +1401,7 @@ class MyHandler(RequestHandler):
                 #user_status[username] |= USR_HOST
 
                 upd_room(roomid)
+                user_status[username] &= ~USR_ACT_MASK
                 upd_user_status(username)
                 do_later_mask |= DLTR_COMMIT_DB
                 msg_command('', MSG_USERQUIT, hashname)

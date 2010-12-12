@@ -238,7 +238,7 @@
             var dtobj = new Date();
             latency = dtobj.getTime() - poll_sent;
 
-            if (poll_xmlhttp.status==200)
+            if (poll_xmlhttp.status==200 && poll_xmlhttp.responseText.length)
             {
 
 var dtobj = new Date();
