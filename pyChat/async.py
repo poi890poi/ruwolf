@@ -14,6 +14,7 @@ import logging.handlers
 from recipe440665 import *
 from constant import *
 from function import *
+from lang import *
 
 appdata = os.path.join(os.environ['APPDATA'], u'MyPythonApp')
 if not os.path.isdir(appdata):
@@ -267,12 +268,14 @@ def upd_user_status(user):
     do_later_mask |= DLTR_COMMIT_DB
 
 def msg_onetime(roomid, username, type, argument):
+    # used for private message exclusively, as it's deleted immediately after being fetched
     now = time.time()
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, 0, username, isoformat, argument, type, 0, username, 0, ''))
+        (roomid, timestamp, PVG_PRIVATE, username, isoformat, argument, type, 0, username, 0, ''))
+    my_logger.debug('msg_onetime, type: %s, username: %s' % (hex(type), username))
 
 def msg_command(roomid, type, argument):
     now = time.time()
@@ -281,6 +284,7 @@ def msg_command(roomid, type, argument):
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
         (roomid, timestamp, 0, SYSTEM_USER, isoformat, argument, type, 0, '', 0, ''))
+    my_logger.debug('msg_command, type: %s, argument: %s' % (hex(type), argument))
 
 def dbg_msg(message):
     now = time.time()
@@ -357,6 +361,11 @@ def check_do_later():
 
         do_later_long = now + INTERVAL_LONG
 
+def get_string(rid, locale='cht'):
+    if isinstance(lang[locale][rid], tuple):
+        return random.choice(lang[locale][rid])
+    return lang[locale][rid]
+
 def kill_player(room, username, lynch = False):
     global user_status
 
@@ -376,6 +385,9 @@ def kill_player(room, username, lynch = False):
         my_logger.debug('status: '+hex(user_status[username]))
         upd_user_status(username)
         msg_onetime(roomid, username, MSG_RELOAD, '')
+        private_msg(username, get_string('sys_dead'), roomid, 0)
+
+        # check winning condictions
 
 def check_vote_day(room):
     roomid = room[1]
@@ -401,7 +413,7 @@ def check_vote_day(room):
 
     my_logger.debug('voter: '+repr(voter))
 
-    msg = ''
+    msg = u''
     max = 0
     elected = dict()
     for key, value in sorted(voter.iteritems(), key=lambda (k,v): (len(v)), reverse=True):
@@ -437,6 +449,8 @@ def check_vote_day(room):
         else:
             # run off
             # USR_DEADLOCKED_E
+            dbcursor.execute("""delete from action where roomid=? and action=?""", (roomid, USR_DAY_VOTE))
+
             phase += 1
             dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
 
@@ -449,7 +463,7 @@ def check_vote_day(room):
                 user_status[row[0]] |= USR_DAY_VOTE
                 upd_user_status(row[0])
 
-            msg += 'Deadlocked election. Vote again.<br/>'
+            msg += get_string('sys_deadlocked')
             sys_msg(msg, roomid, phase)
 
             # run-off voting
@@ -459,10 +473,7 @@ def check_vote_day(room):
         final = random.choice(elected.items())[0]
 
     if final:
-        msg += '<b>'
-        msg += final
-        msg += '</b>'
-        msg += ' is hanged.<br/>'
+        msg += get_string('sys_lynched') % final
         kill_player(room, final, lynch=True)
         sys_msg(msg, roomid, phase)
     else:
@@ -508,7 +519,7 @@ def check_vote_night(room, action):
         for key, value in sorted(elected.iteritems(), key=lambda (k,v): (v)):
             final = key
             break
-    else:
+    elif len(elected) == 1:
         final = random.choice(elected.items())[0]
 
     if phase>>4 == 1:
@@ -559,7 +570,7 @@ def check_vote(room):
             userlist = dbcursor.fetchall()
             for user in userlist:
                 target = user[3]
-                msg = u'%s is seduced.' % target
+                msg = get_string('role_block') % target
                 private_msg(user[2], msg, roomid, phase)
                 dbcursor.execute("""delete from action where roomid=? and username=?""", \
                     (roomid, target))
@@ -573,7 +584,7 @@ def check_vote(room):
             userlist = dbcursor.fetchall()
             for user in userlist:
                 target = user[3]
-                msg = u'%s is healed.' % target
+                msg = get_string('role_heal') % target
                 private_msg(user[2], msg, roomid, phase)
                 if target in deadlist:
                     deadlist.remove(target)
@@ -592,10 +603,10 @@ def check_vote(room):
                     t_name = target[0]
                     t_role = target[5]
                     t_alignment = t_role & PVG_ALIGNMENT_MASK
-                    result = u'human'
+                    result = get_string('role_villager')
                     if t_alignment:
-                        result = u'werewolf'
-                    msg = u'%s is %s.' % (t_name, result)
+                        result = get_string('role_wolf')
+                    msg = get_string('role_seer') % (t_name, result)
                     private_msg(user[2], msg, roomid, phase)
                     user_status[t_name] |= (USR_TARGET1 + seerindex)
                     seerindex += 1
@@ -608,11 +619,7 @@ def check_vote(room):
 
             for killed in deadlist:
                 my_logger.debug('killed: '+killed)
-                msg = ''
-                msg += '<b>'
-                msg += killed
-                msg += '</b>'
-                msg += ' is dead.<br/>'
+                msg = get_string('sys_killed') % killed
                 kill_player(room, killed)
                 sys_msg(msg, roomid, phase)
 
@@ -625,7 +632,10 @@ def check_vote(room):
         # as they are all handled
         dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
 
-    my_logger.debug('not voted yet: '+str(user_count))
+    else:
+        dbcursor.execute("""select username from user where roomid=? and status&? and status&?""", \
+            (roomid, USR_CONN, USR_ACT_MASK))
+        my_logger.debug('not voted yet: '+str(user_count)+', list: '+repr(dbcursor.fetchall()))
 
 dbcursor.execute('''create table if not exists ruleset
 (description text, id text, options integer, baseset text, roles text,
@@ -756,13 +766,14 @@ def phase_advance(room):
     dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
 
     if gamestart:
-        sys_msg('Game started.', roomid, phase)
+        #sys_msg('Game started.', roomid, phase)
+        pass
 
     my_logger.debug('phase advanced: '+hex(phase))
     # assign actions to players
     daynight = get_day_night(phase)
     if daynight == 0: # day
-        sys_msg('The sun rises.', roomid, phase)
+        sys_msg(get_string('sys_sunrise'), roomid, phase)
 
         dbcursor.execute("""select * from user where roomid=? and status&?""", (roomid, USR_SURVIVE))
         userlist = dbcursor.fetchall()
@@ -773,14 +784,15 @@ def phase_advance(room):
             upd_user_status(row[0])
 
     elif daynight == 1: # night
-        sys_msg('Night falls.', roomid, phase)
+        sys_msg(get_string('sys_nightfall'), roomid, phase)
 
-        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BITE_MASK))
-        userlist = dbcursor.fetchall()
-        for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_VOTE vote to wolf: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_VOTE
-            upd_user_status(row[0])
+        if phase > 0x20: # check this only if "night zero no kill" rle is applied
+            dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BITE_MASK))
+            userlist = dbcursor.fetchall()
+            for row in userlist:
+                my_logger.debug('issue a USR_NIGHT_VOTE vote to wolf: '+row[0])
+                user_status[row[0]] |= USR_NIGHT_VOTE
+                upd_user_status(row[0])
 
         dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BLOCKER))
         userlist = dbcursor.fetchall()
@@ -898,7 +910,7 @@ class MyHandler(RequestHandler):
                 hashname = auth[11]
                 user_status.pop(username)
                 reset = str(uuid.uuid4())
-                dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where sessionkey=?""", (reset, reset, '', sessionkey))
+                dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where sessionkey=?""", (reset, 0, '', sessionkey))
                 dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=?)""", \
                     (username, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT))
                 #do_later_mask |= DLTR_COMMIT_DB
@@ -947,7 +959,7 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', 0, ''))
 
-                sys_msg('Welcome to <b>'+description+'</b> hosted by '+username+'.', roomid)
+                sys_msg(get_string('sys_welcome') % description, roomid)
                 my_logger.debug('/host, room: '+roomid+', host: '+username)
                 #user_status[username] |= USR_HOST
 
@@ -1035,7 +1047,7 @@ class MyHandler(RequestHandler):
                                 user_status[row[0]] |= USR_DAY_VOTE
                                 upd_user_status(row[0])
 
-                            sys_msg('Vote for someone to start the match.', roomid)
+                            sys_msg(get_string('sys_voteready'), roomid)
                         else:
                             dbcursor.execute("""update room set phase=0 where roomid=?""", (roomid, ))
                             dbcursor.execute("""delete from action where roomid=?""", (roomid, ))
@@ -1433,7 +1445,7 @@ class MyHandler(RequestHandler):
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', 0, ''))
 
-                sys_msg('Welcome to <b>'+description+'</b> hosted by '+username+'.', roomid)
+                sys_msg(get_string('sys_welcome') % description, roomid)
                 my_logger.debug('/hostex, room: '+roomid+', host: '+username)
                 #user_status[username] |= USR_HOST
 

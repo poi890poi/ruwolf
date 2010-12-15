@@ -210,7 +210,7 @@ $(window).load(function(){
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x2000, targetname);
         		});
-            } else if ((userobj[1] & 0x8000) && (self_role == 0x1) && (target_status & 0x2)) { // seer
+            } else if ((userobj[1] & 0x8000) && (self_role == 0x1) && (target_status & 0x2) && (userobj[3] != target[3])) { // seer
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
@@ -219,7 +219,7 @@ $(window).load(function(){
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x8000, targetname);
         		});
-            } else if ((userobj[1] & 0x4000) && (self_role == 0x2) && (target_status & 0x2)) { // healer
+            } else if ((userobj[1] & 0x4000) && (self_role == 0x2) && (target_status & 0x2) && (userobj[3] != target[3])) { // healer
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
