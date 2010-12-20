@@ -261,6 +261,8 @@ def upd_user_status(user):
                     privilege |= PVG_NIGHTCHAT
             else:
                 privilege |= PVG_ROOMCHAT
+            if phase == PHS_AFTERMATH:
+                privilege = PVG_AFTERMATH
 
         dbcursor.execute("""update user set status=?, role=?, privilege=?
             where username=?""", (status, role, privilege, user))
@@ -387,7 +389,42 @@ def kill_player(room, username, lynch = False):
         msg_onetime(roomid, username, MSG_RELOAD, '')
         private_msg(username, get_string('sys_dead'), roomid, 0)
 
-        # check winning condictions
+def check_game_end(room):
+    global user_status
+
+    roomid = room[1]
+    options = room[4]
+    phase = room[5]
+
+    is_end = False
+
+    dbcursor.execute("""select count(*) from user where roomid=? and status&?""", \
+        (roomid, USR_SURVIVE))
+    sqlcount = dbcursor.fetchall()
+    survive_cnt = sqlcount[0][0]
+    if survive_cnt == -1:
+        survive_cnt = 0
+
+    dbcursor.execute("""select count(*) from user where roomid=? and status&? and role&?""", \
+        (roomid, USR_SURVIVE, PVG_ALIGNMENT_MASK))
+    sqlcount = dbcursor.fetchall()
+    wolf_cnt = sqlcount[0][0]
+    if wolf_cnt == -1:
+        wolf_cnt = 0
+
+    if wolf_cnt == 0:
+        msg = get_string('sys_villager_win')
+        sys_msg(msg, roomid, phase)
+        is_end = True
+    elif wolf_cnt > survive_cnt/2:
+        msg = get_string('sys_wolf_win')
+        sys_msg(msg, roomid, phase)
+        is_end = True
+
+    if is_end:
+        pass
+
+    return is_end
 
 def check_vote_day(room):
     roomid = room[1]
@@ -535,8 +572,8 @@ def check_vote(room):
     options = room[4]
     phase = room[5]
 
-    dbcursor.execute("""select count(*) from user where roomid=? and status&? and status&?""", \
-        (roomid, USR_CONN, USR_ACT_MASK))
+    dbcursor.execute("""select count(*) from user where roomid=? and status&?""", \
+        (roomid, USR_ACT_MASK))
     sqlcount = dbcursor.fetchall()
     user_count = sqlcount[0][0]
     if user_count == -1:
@@ -622,6 +659,11 @@ def check_vote(room):
                 msg = get_string('sys_killed') % killed
                 kill_player(room, killed)
                 sys_msg(msg, roomid, phase)
+
+            if check_game_end(room):
+                phase = PHS_AFTERMATH
+                dbcursor.execute("""update room set phase=? where roomid=?""", (phase, roomid))
+                upd_room_ingame(roomid)
 
             dbcursor.execute("""select * from user where roomid=?""", (roomid, ))
             userlist = dbcursor.fetchall()

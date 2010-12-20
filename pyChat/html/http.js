@@ -442,7 +442,7 @@ var start = dtobj.getTime();
                     }
                     else if (obj[i][0] == 0x10000) {
                         //setTimeout("location.reload();", 500);
-                        alert('reset');
+                        //alert('reset');
                         resetContent();
                         return;
                     }

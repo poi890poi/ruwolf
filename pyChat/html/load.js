@@ -98,7 +98,7 @@ $(window).load(function(){
             var ishost = false;
             if (roomobj.length >=5 && userobj.length >= 4)
             {
-                if (roomobj[3] == 0) {
+                if (roomobj[3] == 0 || roomobj[3] >= 0xffff) {
                     $("#MnuQuit").addClass("menuitem")
                         .removeClass("menudisable");
                 } else {
@@ -115,10 +115,17 @@ $(window).load(function(){
 
             if (ishost) {
         		var menu = $("#MenuContainerHost");
-                if (roomobj[3] > 0) {
-                    $("#MnuReadyCheck").html("Open Game");
+                if (roomobj[3] >= 0x10 && roomobj[3] < 0xffff) {
+                    $("#MnuReadyCheck").removeClass("menuitem")
+                        .addClass("menudisable");
                 } else {
-                    $("#MnuReadyCheck").html("Ready Check");
+                    $("#MnuReadyCheck").addClass("menuitem")
+                        .removeClass("menudisable");
+                    if (roomobj[3] > 0) {
+                        $("#MnuReadyCheck").html("Open Game");
+                    } else {
+                        $("#MnuReadyCheck").html("Ready Check");
+                    }
                 }
         		menu.css("left", e.pageX+"px");
         		menu.css("top", e.pageY+"px");
@@ -231,7 +238,7 @@ $(window).load(function(){
             }
         }
 
-        if ((userobj[1] & 4) && (phase < 10) && (targetname != userobj[3])) { // game host, USR_HOST
+        if ((userobj[1] & 4) && (phase < 0x10) && (targetname != userobj[3])) { // game host, USR_HOST
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");
@@ -240,7 +247,7 @@ $(window).load(function(){
     		mitem.click(function (e) {
                 send_text("/kick " + targetname);
     		});
-        } else if ((userobj[1] & 4) && (phase >= 10) && (targetname != userobj[3])) { // game host, USR_HOST
+        } else if ((userobj[1] & 4) && (phase >= 0x10) && (targetname != userobj[3])) { // game host, USR_HOST
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");

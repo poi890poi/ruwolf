@@ -17,6 +17,8 @@ cht['sys_killed'] = (u'<b>%s</b>身穿藍白條紋內褲，陳屍沙發！', u'<
 cht['sys_lynched'] = (u'<b>%s</b>被吊死，歹路不可行！', u'<b>%s</b>被吊死，法網恢恢，疏而不漏！')
 cht['sys_deadlocked'] = u'這是一場不公平的選舉，請重新投票！'
 cht['sys_dead'] = u'你已經死了！'
+cht['sys_wolf_win'] = u'人狼勝利'
+cht['sys_villager_win'] = u'村民勝利'
 
 cht['role_seer'] = u'<b>%s</b>是%s'
 cht['role_wolf'] = u'狼'

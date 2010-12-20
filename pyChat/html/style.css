@@ -21,11 +21,11 @@
         border-top: 1px dashed #999999;
     }
     #MessageList td.system {
-        padding: 16px 32px 24px;
+        padding: 16px 64px 24px;
         background: #dddddd;
     }
     #MessageList td.system_night {
-        padding: 16px 32px 24px;
+        padding: 16px 64px 24px;
         color: #ffffff;
         background: #40408a;
     }
