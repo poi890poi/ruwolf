@@ -1,4 +1,4 @@
-# init variables
+﻿# init variables
 
 INTERVAL_SEC = 1000
 INTERVAL_MIN = 60 * INTERVAL_SEC
