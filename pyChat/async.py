@@ -342,6 +342,7 @@ def check_do_later():
     #print 'now: ', now
     #print 'do_later_short: ', do_later_short
     if now > do_later_short:
+        # check user disconnection
         for user in user_status:
             if user_status[user] & USR_CONN:
                 # check connected user for discon
@@ -351,6 +352,13 @@ def check_do_later():
                     user_status[user] &= ~USR_CONN
                     upd_user_status(user)
                     my_logger.debug('user discon, user: '+user)
+
+        # check room timeout
+        dbcursor.execute("""select * from room where timeout<=?""", \
+            (now,))
+        roomlist = dbcursor.fetchall()
+        for room in roomlist:
+            process_timeout(room)
 
         do_later_short = now + INTERVAL_SHORT
 
@@ -362,6 +370,30 @@ def check_do_later():
             dbcomitted = conn.total_changes
 
         do_later_long = now + INTERVAL_LONG
+
+def process_timeout(room):
+    roomid = room[1]
+    description = room[2]
+    ruleset = room[3]
+    options = room[4]
+    phase = room[5]
+    timeout = room[6]
+    message = room[7]
+
+    my_logger.debug('process timeout, roomid: %s, timeout: %d, now: %d, phase: %s' % (roomid,timeout,get_time_norm(),hex(phase)))
+
+    # check untaken actions
+    dbcursor.execute("""select * from user where roomid=? and status&?""", \
+        (roomid, USR_ACT_MASK))
+    userlist = dbcursor.fetchall()
+    for user in userlist:
+        username = user[0]
+        role = user[5]
+        status = user_status[username]
+        # to-do: check specific actions and process one by one
+        user_status[username] &= ~USR_ACT_MASK
+        upd_user_status(username)
+    check_vote(room)
 
 def get_string(rid, locale='cht'):
     if isinstance(lang[locale][rid], tuple):
@@ -422,6 +454,8 @@ def check_game_end(room):
         is_end = True
 
     if is_end:
+        dbcursor.execute("""update room set timeout=? where roomid=?""", \
+            (TIME_MAX, roomid))
         pass
 
     return is_end
@@ -855,6 +889,33 @@ def phase_advance(room):
 
     elif phase > 0xffff: # end
         sys_msg('Game ended.', roomid, phase)
+
+    # set timeout
+    dbcursor.execute("""select * from ruleset where id=?""", (roomid,))
+    ruleset = dbcursor.fetchone()
+
+    options = ruleset[2]
+    nightzero = ruleset[5]
+    day = ruleset[6]
+    night = ruleset[7]
+    runoff = ruleset[8]
+
+    now = get_time_norm()
+    timeout = now
+    if daynight == 0:
+        timeout += day
+    elif daynight == 1:
+        if phase < 0x20:
+            timeout += nightzero
+        else:
+            timeout += night
+    else:
+        timeout = TIME_MAX
+    dbcursor.execute("""update room set timeout=? where roomid=?""", \
+        (timeout, roomid))
+    my_logger.debug('ruleset, day: %d, night: %d, nightzero: %d' % (day,night,nightzero))
+    my_logger.debug('set timeout, roomid: %s, timeout: %d, left: %d, phase: %s' % (roomid,timeout,timeout-now,hex(phase)))
+
     return phase
 
 def get_ip_integer(ipstr):
