@@ -105,7 +105,7 @@ $(window).load(function(){
                     $("#MnuQuit").removeClass("menuitem")
                         .addClass("menudisable");
                 }
-                if (roomobj[4] == userobj[3]) {
+                if (roomobj[4] == userobj[3] && roomobj[3] < 0x10) {
                     ishost = true;
                 }
             } else {
