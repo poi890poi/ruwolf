@@ -679,10 +679,6 @@ def check_vote(room):
             (roomid, USR_CONN, USR_ACT_MASK))
         my_logger.debug('not voted yet: '+str(user_count)+', list: '+repr(dbcursor.fetchall()))
 
-dbcursor.execute('''create table if not exists ruleset
-(description text, id text, options integer, baseset text, roles text,
-nightzero integer, day integer, night integer, runoff integer)''')
-
 def copy_ruleset(ruleset, roomid):
     global do_later_mask
     dbcursor.execute("""delete from ruleset where id=?""", (roomid, ))
@@ -1553,5 +1549,5 @@ if __name__=="__main__":
         asyncore.loop(timeout=2)
     except KeyboardInterrupt:
         conn.commit()
-        dbconn.close()
+        conn.close()
         print "Crtl+C pressed. Shutting down."
