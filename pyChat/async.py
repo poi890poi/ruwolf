@@ -903,7 +903,10 @@ def phase_advance(room):
     now = get_time_norm()
     timeout = now
     if daynight == 0:
-        timeout += day
+        if get_subphase(phase) == 0x6:
+            timeout += day
+        else:
+            timeout += runoff
     elif daynight == 1:
         if phase < 0x20:
             timeout += nightzero
@@ -913,7 +916,7 @@ def phase_advance(room):
         timeout = TIME_MAX
     dbcursor.execute("""update room set timeout=? where roomid=?""", \
         (timeout, roomid))
-    my_logger.debug('ruleset, day: %d, night: %d, nightzero: %d' % (day,night,nightzero))
+    my_logger.debug('ruleset, day: %d, night: %d, nightzero: %d, runoff: %d' % (day,night,nightzero,runoff))
     my_logger.debug('set timeout, roomid: %s, timeout: %d, left: %d, phase: %s' % (roomid,timeout,timeout-now,hex(phase)))
 
     return phase
