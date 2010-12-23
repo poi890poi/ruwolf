@@ -17,6 +17,7 @@
     var latency = 0;
     var poll_sent = 0;
     var hoverobj = 0;
+    var phase_timeout = 0;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -240,10 +241,6 @@
 
             if (poll_xmlhttp.status==200 && poll_xmlhttp.responseText.length)
             {
-
-var dtobj = new Date();
-var start = dtobj.getTime();
-
                 var scr_to_bottom = (($("#MessageList").attr("scrollTop")+
                     $("#MessageList").outerHeight()) - $("#MessageList").attr("scrollHeight"));
 
@@ -446,6 +443,11 @@ var start = dtobj.getTime();
                         resetContent();
                         return;
                     }
+                    else if (obj[i][0] == 9) {
+                        // time left before phase timeout
+                        var now = new Date();
+                        phase_timeout = now.getTime() + parseInt(obj[i][3]);
+                    }
                     if (obj[i][4] > timestamp) timestamp = obj[i][4];
                 }
 
@@ -473,10 +475,6 @@ var start = dtobj.getTime();
                 if (scr_to_bottom >= 0) {
                     $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
                 }
-
-dtobj = new Date();
-//alert(dtobj.getTime()-start);
-
             }
             else if (poll_xmlhttp.status==204)
             {

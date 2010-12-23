@@ -392,6 +392,11 @@ function general_info()
         txt += "Phase: 0x" + roomobj[3].toString(16);
         txt += " ("+get_day_night(roomobj[3])+")<br/>";
         txt += "Participant: " + roomobj[6] + "<br/>";
+        var now = new Date();
+        var tleft = phase_timeout - now.getTime();
+        if (tleft < 0) tleft = 0;
+        now.setTime(tleft);
+        txt += now.toUTCString();
     }
     $("#Utility #Util2").html(txt);
     t_hover = setTimeout("general_info();", 1000);

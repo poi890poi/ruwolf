@@ -925,6 +925,24 @@ def get_ip_integer(ipstr):
     ipsplit = ipstr.split('.')
     return (int(ipsplit[0]) << 24) + (int(ipsplit[1]) << 16) + (int(ipsplit[2]) << 8) + int(ipsplit[3])
 
+def get_timeout_msg(roomid):
+    dbcursor.execute("""select * from room where roomid=?""", (roomid,))
+    room = dbcursor.fetchone()
+    if room:
+        description = room[2]
+        ruleset = room[3]
+        options = room[4]
+        phase = room[5]
+        timeout = room[6]
+
+        timestamp = get_time_norm()
+        author = SYSTEM_USER
+        message = timeout - timestamp
+        type = MSG_TIMEOUT_MSG
+        row_serial = (type, author, '', message, timestamp, phase)
+
+    return row_serial
+
 class MyHandler(RequestHandler):
     def handle_get(self):
         self.path = 'html' + self.path
@@ -1482,6 +1500,11 @@ class MyHandler(RequestHandler):
                 (client_doc_time, roomid, MSG_ONETIME_MASK, username))
 
             if json_serial:
+                if roomid:
+                    tmsg = get_timeout_msg(roomid)
+                    if tmsg:
+                        json_serial.append(tmsg)
+
                 ret = json.dumps(json_serial)
 
                 #my_logger.debug('/check_update, username: '+username+', content: '+ret)
