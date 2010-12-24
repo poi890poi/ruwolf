@@ -5,6 +5,7 @@
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
     //var sessionkey = ""; //for testing
     var userjson = "[]";
+    var wait_action = false;
     var roomjson = "[]";
     var poll_xmlhttp = createXMLHttpRequest();
     var poll_timer;
@@ -17,7 +18,7 @@
     var latency = 0;
     var poll_sent = 0;
     var hoverobj = 0;
-    var phase_timeout = 0;
+    var phase_timeout = 9999999999999;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -39,6 +40,7 @@
         $("#MessageList").empty();
         $("#UserListContainer").empty();
         userjson = "[]";
+        wait_action = false;
         roomjson = "[]";
         timestamp = 0;
         poll_xmlhttp.onreadystatechange = nill;
@@ -168,6 +170,7 @@
             $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", "", { expires: -1 });
             sessionkey = "";
             userjson = "[]";
+            wait_action = false;
         }
     }
 
@@ -298,6 +301,16 @@
                                 send_text("/drop_confirm");
                             }
                             userjson = obj[i][3];
+
+                            wait_action = false;
+                            var userobj = jQuery.parseJSON(userjson);
+                            if (userobj.length >= 2)
+                            {
+                                if (userobj[1] & 0xfff00)
+                                {
+                                    wait_action = true;
+                                }
+                            }
                         }
 
                         var phase = 0;

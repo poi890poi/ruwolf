@@ -98,7 +98,7 @@ $(window).load(function(){
             var ishost = false;
             if (roomobj.length >=5 && userobj.length >= 4)
             {
-                if (roomobj[3] == 0 || roomobj[3] >= 0xffff) {
+                if (roomobj[3] == 0 || roomobj[3] >= 0xffff || !(userobj[1] & 0x2)) {
                     $("#MnuQuit").addClass("menuitem")
                         .removeClass("menudisable");
                 } else {
@@ -375,6 +375,20 @@ $(window).load(function(){
     });
 });
 
+function get_timeout_string(tleft)
+{
+    var dtobj = new Date();
+    dtobj.setTime(tleft);
+
+    var rettxt = "";
+    rettxt += dtobj.getUTCHours().toString().padL(2,"0");
+    rettxt += ":";
+    rettxt += dtobj.getUTCMinutes().toString().padL(2,"0");
+    rettxt += ":";
+    rettxt += dtobj.getUTCSeconds().toString().padL(2,"0");
+    return rettxt;
+}
+
 function general_info()
 {
     if (hoverobj)
@@ -395,8 +409,24 @@ function general_info()
         var now = new Date();
         var tleft = phase_timeout - now.getTime();
         if (tleft < 0) tleft = 0;
-        now.setTime(tleft);
-        txt += now.toUTCString();
+        if (tleft > 86400000)
+        {
+        }
+        else if (tleft < 30999)
+        {
+            txt = "<big>" + get_timeout_string(tleft) + "</big>";
+            if (wait_action)
+            {
+                txt += "<br/>";
+                txt += "You must act!";
+            }
+            //$("#Utility #Util2").css("font-size", "48px");
+        }
+        else
+        {
+            txt += get_timeout_string(tleft);
+            //$("#Utility #Util2").css("font-size", "");
+        }
     }
     $("#Utility #Util2").html(txt);
     t_hover = setTimeout("general_info();", 1000);
@@ -465,4 +495,40 @@ function resizeUIactual()
     if (scr_to_bottom >= 0) {
         $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
     }
+}
+
+String.prototype.padL = function(width,pad)
+{
+    if (!width ||width<1)
+    return this;
+
+    if (!pad) pad=" ";
+
+    var length = width - this.length
+
+    if (length < 1)
+    return this.substr(0,width);
+
+    return (String.repeat(pad,length) + this).substr(0,width);
+}
+String.prototype.padR = function(width,pad)
+{
+    if (!width || width<1)
+    return this;
+
+    if (!pad) pad=" ";
+
+    var length = width - this.length
+
+    if (length < 1) this.substr(0,width);
+    return (this + String.repeat(pad,length)).substr(0,width);
+}
+String.repeat = function(chr,count)
+{
+    var str = "";
+    for(var x=0;x<count;x++)
+    {
+        str += chr
+    };
+    return str;
 }

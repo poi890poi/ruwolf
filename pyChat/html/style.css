@@ -72,6 +72,12 @@
         display: none;
         height: 550px;
     }
+    #Utility #Util2{
+        height: 110px;
+    }
+    #Utility #Util2 big{
+        font-size: 48px;
+    }
 
     div .titlebar {
         text-align: center;
