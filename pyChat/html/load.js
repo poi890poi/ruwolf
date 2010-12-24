@@ -301,6 +301,9 @@ $(window).load(function(){
         var obj = $(this);
         hoverobj = obj;
 
+        // this is for debug
+        // in formal release, hover user info is only available when game is not commencing
+
         clearTimeout(t_hover);
         t_hover = setTimeout(function () {
             //$("#Utility #Util2").html($.dump(obj));
