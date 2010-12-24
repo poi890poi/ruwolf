@@ -395,6 +395,10 @@ def process_timeout(room):
         upd_user_status(username)
     check_vote(room)
 
+    if phase >= PHS_AFTERMATH:
+        dbcursor.execute("""update room set timeout=? where roomid=?""", \
+            (TIME_MAX, roomid))
+
 def get_string(rid, locale='cht'):
     if isinstance(lang[locale][rid], tuple):
         return random.choice(lang[locale][rid])
