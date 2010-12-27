@@ -363,11 +363,37 @@ def check_do_later():
         do_later_short = now + INTERVAL_SHORT
 
     if now > do_later_long:
-        # do something
+        # commit database
         if conn.total_changes > dbcomitted:
             conn.commit()
             my_logger.debug('commit database, '+str(conn.total_changes-dbcomitted))
             dbcomitted = conn.total_changes
+
+        # check ended games
+        dbcursor.execute("""select * from room where phase >= ?""", \
+            (0xffff,))
+        roomlist = dbcursor.fetchall()
+        for room in roomlist:
+            roomid = room[1]
+            description = room[2]
+            ruleset = room[3]
+            options = room[4]
+            phase = room[5]
+            timeout = room[6]
+            message = room[7]
+
+            dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
+            sqlcount = dbcursor.fetchall()
+            user_count = sqlcount[0][0]
+            if user_count == -1 or user_count == 0:
+                dbcursor.execute("""select * from message where roomid=? order by timestamp desc limit 1""", \
+                    (roomid,))
+                lastmsg = dbcursor.fetchone()
+                if lastmsg:
+                    timestamp = lastmsg[1]
+                    now = get_time_norm()
+                    if now-timestamp > INTERVAL_HOUR:
+                        my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp))
 
         do_later_long = now + INTERVAL_LONG
 
