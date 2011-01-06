@@ -1381,6 +1381,11 @@ class MyHandler(RequestHandler):
             phase = 0
             privilege = 0
             username = author
+            maskip = str(rndtable256[ip>>24]) + '.' + \
+                str(rndtable256[(ip&0xff0000)>>16]) + '.' + \
+                str(rndtable256[(ip&0xff00)>>8]) + '.' + \
+                str(rndtable256[ip&0xff])
+            displayname = maskip
             dosend = True
             ct = time.localtime(now)
             if auth:
