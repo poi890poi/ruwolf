@@ -155,9 +155,10 @@ $(window).load(function(){
 
         var targetname = "";
         var target = jQuery.parseJSON($(this).attr('data-json'));
-        if (target.length >= 4)
+        if (target.length >= 8)
         {
             targetname = target[3];
+            t_display = target[7];
         }
 
         // room (description, ruleset, options, phase, host, roomid, participant)
@@ -177,7 +178,7 @@ $(window).load(function(){
             $("#MnuVote").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuVote");
-            mitem.html("Vote for <b>" + layoutSafeStr(targetname) + "</b>");
+            mitem.html("Vote for <b>" + layoutSafeStr(t_display) + "</b>");
     		mitem.unbind("click");
     		mitem.click(function (e) {
                 send_text("/vote_rdy " + targetname);
@@ -192,7 +193,7 @@ $(window).load(function(){
                 $("#MnuVote").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuVote");
-                mitem.html("Attack <b>" + layoutSafeStr(targetname) + "</b>");
+                mitem.html("Attack <b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x1000, targetname);
@@ -201,7 +202,7 @@ $(window).load(function(){
                 $("#MnuVote").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuVote");
-                mitem.html("Vote <b>" + layoutSafeStr(targetname) + "</b>");
+                mitem.html("Vote <b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x100, targetname);
@@ -212,7 +213,7 @@ $(window).load(function(){
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
-                mitem.html("Seduce <b>" + layoutSafeStr(targetname) + "</b>");
+                mitem.html("Seduce <b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x2000, targetname);
@@ -221,7 +222,7 @@ $(window).load(function(){
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
-                mitem.html("See <b>" + layoutSafeStr(targetname) + "</b>");
+                mitem.html("See <b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x8000, targetname);
@@ -230,7 +231,7 @@ $(window).load(function(){
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
-                mitem.html("Heal <b>" + layoutSafeStr(targetname) + "</b>");
+                mitem.html("Heal <b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x4000, targetname);
@@ -242,7 +243,7 @@ $(window).load(function(){
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");
-            mitem.html("Kick <b>" + layoutSafeStr(targetname) + "</b>");
+            mitem.html("Kick <b>" + layoutSafeStr(t_display) + "</b>");
     		mitem.unbind("click");
     		mitem.click(function (e) {
                 send_text("/kick " + targetname);
@@ -251,7 +252,7 @@ $(window).load(function(){
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");
-            mitem.html("Report <b>" + layoutSafeStr(targetname) + "</b>");
+            mitem.html("Report <b>" + layoutSafeStr(t_display) + "</b>");
     		mitem.unbind("click");
     		mitem.click(function (e) {
                 send_text("/report " + targetname);
@@ -343,14 +344,14 @@ $(window).load(function(){
         t_hover = setTimeout(function () {
             // $("#Utility #Util2").html($.dump(obj));
             //resizeUI(0);
-            // user status (roomid, user_status[user], role, username, ip, hash, email)
+            // user status (roomid, user_status[user], role, username, ip, hash, email, displayname)
             if (!sessionkey)
             {
                 return true;
             }
 
             var data_json = jQuery.parseJSON(obj.attr("data-json"));
-            if (data_json.length >= 7)
+            if (data_json.length >= 8)
             {
                 var txt = "";
                 txt += "<b>" + data_json[3] + "</b><br/>";

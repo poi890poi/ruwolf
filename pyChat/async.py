@@ -490,6 +490,14 @@ def check_game_end(room):
         pass
 
     return is_end
+    
+def get_displayname(roomid, username):
+    dbcursor.execute("""select * from user where roomid=? and username=?""", \
+        (roomid, username))
+    rec = dbcursor.fetchone()
+    if rec:
+        return rec[9]
+    return '[err]'
 
 def check_vote_day(room):
     roomid = room[1]
@@ -523,7 +531,7 @@ def check_vote_day(room):
             max = len(value)
         if len(value) == max:
             elected[key] = timestamp[key]
-        msg += key
+        msg += get_displayname(roomid, key)
         msg += ': '
         msg += str(len(value))
         if value:
@@ -531,7 +539,7 @@ def check_vote_day(room):
             list = ''
             for voter in value:
                 list += ', '
-                list += voter
+                list += get_displayname(roomid, voter)
             msg += list.replace(', ', '', 1)
             msg += ')<br/>'
 
@@ -575,7 +583,7 @@ def check_vote_day(room):
         final = random.choice(elected.items())[0]
 
     if final:
-        msg += get_string('sys_lynched') % final
+        msg += get_string('sys_lynched') % get_displayname(roomid, final)
         kill_player(room, final, lynch=True)
         sys_msg(msg, roomid, phase)
     else:
@@ -672,7 +680,7 @@ def check_vote(room):
             userlist = dbcursor.fetchall()
             for user in userlist:
                 target = user[3]
-                msg = get_string('role_block') % target
+                msg = get_string('role_block') % get_displayname(roomid, target)
                 private_msg(user[2], msg, roomid, phase)
                 dbcursor.execute("""delete from action where roomid=? and username=?""", \
                     (roomid, target))
@@ -686,7 +694,7 @@ def check_vote(room):
             userlist = dbcursor.fetchall()
             for user in userlist:
                 target = user[3]
-                msg = get_string('role_heal') % target
+                msg = get_string('role_heal') % get_displayname(roomid, target)
                 private_msg(user[2], msg, roomid, phase)
                 if target in deadlist:
                     deadlist.remove(target)
@@ -704,11 +712,12 @@ def check_vote(room):
                 if target:
                     t_name = target[0]
                     t_role = target[5]
+                    t_display = target[9]
                     t_alignment = t_role & PVG_ALIGNMENT_MASK
                     result = get_string('role_villager')
                     if t_alignment:
                         result = get_string('role_wolf')
-                    msg = get_string('role_seer') % (t_name, result)
+                    msg = get_string('role_seer') % (t_display, result)
                     private_msg(user[2], msg, roomid, phase)
                     user_status[t_name] |= (USR_TARGET1 + seerindex)
                     seerindex += 1
@@ -721,7 +730,7 @@ def check_vote(room):
 
             for killed in deadlist:
                 my_logger.debug('killed: '+killed)
-                msg = get_string('sys_killed') % killed
+                msg = get_string('sys_killed') % get_displayname(roomid, killed)
                 kill_player(room, killed)
                 sys_msg(msg, roomid, phase)
 
