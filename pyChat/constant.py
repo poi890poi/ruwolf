@@ -1,4 +1,9 @@
-﻿# init variables
+﻿# core variables
+APPDATA_FOLDER = u'ruwolf'
+DB_FILENAME = u'system.db'
+HTTP_PORT = 80
+
+# init variables
 
 INTERVAL_SEC = 1000
 INTERVAL_MIN = 60 * INTERVAL_SEC

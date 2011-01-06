@@ -290,7 +290,7 @@
                         msgappend += msg;
                     }
                     else if (obj[i][0] == 1 || obj[i][0] == 0x4000 || obj[i][0] == 5 || obj[i][0] == 0x1000) {
-                        // user status (roomid, user_status[user], role, username, ip, hash, email)
+                        // user status (roomid, user_status[user], role, username, ip, hash, email, displayname)
 
                         var subobj = jQuery.parseJSON(obj[i][3]);
                         //if (obj[i][0] == 0x1000) alert(subobj[2]);
@@ -358,7 +358,7 @@
                         }
                         if (obj[i][0] == 0x4000) userhtml += "<u>";
                         userhtml += "<b>";
-                        userhtml += layoutSafeStr(subobj[3]);
+                        userhtml += layoutSafeStr(subobj[7]);
                         userhtml += "</b>";
                         if (obj[i][0] == 0x4000) userhtml += "</u>";
 

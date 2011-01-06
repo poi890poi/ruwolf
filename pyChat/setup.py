@@ -6,22 +6,22 @@ from constant import *
 
 # init database
 
-appdata = os.path.join(os.environ['APPDATA'], u'MyPythonApp')
+appdata = os.path.join(os.environ['APPDATA'], APPDATA_FOLDER)
 if not os.path.isdir(appdata):
     os.mkdir(appdata)
-dbf = os.path.join(appdata, u'pychat.db')
+dbf = os.path.join(appdata, DB_FILENAME)
 conn = sqlite3.connect(dbf)
 dbcursor = conn.cursor()
 
 # Create table
 dbcursor.execute('''create table if not exists message
 (roomid text, timestamp integer, privilege integer, username text,
-datetime text, message text, type integer, phase integer, receiver text, reserved1 integer, reserved2 text)''')
+datetime text, message text, type integer, phase integer, receiver text, displayname text, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists user
 (username text, password text, sessionkey text, ip integer, roomid text,
 role integer, status integer, privilege integer, lastactivity integer,
-registername text, email text, hashname text, mark integer, reserved1 integer, reserved2 text)''')
+displayname text, email text, hashname text, mark integer, reserved1 integer, reserved2 text)''')
 
 dbcursor.execute('''create table if not exists room
 (username text, roomid text, description text, ruleset text, options integer,

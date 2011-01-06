@@ -16,7 +16,7 @@ from constant import *
 from function import *
 from lang import *
 
-appdata = os.path.join(os.environ['APPDATA'], u'MyPythonApp')
+appdata = os.path.join(os.environ['APPDATA'], APPDATA_FOLDER)
 if not os.path.isdir(appdata):
     os.mkdir(appdata)
 
@@ -60,7 +60,7 @@ html_escape_table = {
 
 # init database
 
-dbf = os.path.join(appdata, u'pychat.db')
+dbf = os.path.join(appdata, DB_FILENAME)
 conn = sqlite3.connect(dbf)
 dbcursor = conn.cursor()
 dbcomitted = 0
@@ -99,12 +99,12 @@ def upd_room(roomid):
         roommessage = rec[7]
         json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, participant, roommessage)
         message = json.dumps(json_serial)
-        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-            ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', 0, ''))
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+            ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', '[dsp]', 0, ''))
         my_logger.debug('upd_room, room: '+roomid+', json: '+message)
 
-        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', 0, ''))
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', '[dsp]', 0, ''))
     do_later_mask |= DLTR_COMMIT_DB
 
 def upd_room_ingame(roomid):
@@ -126,8 +126,8 @@ def upd_room_ingame(roomid):
         json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, user_count, roommessage)
         message = json.dumps(json_serial)
 
-        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', 0, ''))
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', '[dsp]', 0, ''))
         my_logger.debug('upd_room_ingame, room: '+roomid+', json: '+message)
     do_later_mask |= DLTR_COMMIT_DB
 
@@ -156,6 +156,7 @@ def upd_user_status(user):
         ip = rec[3]
         roomid = rec[4]
         role = rec[5]
+        displayname = rec[9]
         email = rec[10]
         hashname = rec[11]
 
@@ -194,10 +195,10 @@ def upd_user_status(user):
         my_logger.debug('user_status: '+hex(status))
 
         # public information
-        json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user, maskip, hashname, email)
+        json_serial = (roomid, status&USR_PUBLIC_MASK, 0, user, maskip, hashname, email, displayname)
         message = json.dumps(json_serial)
-        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, '', 0, ''))
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp, 0, username, '', message, MSG_USER_STATUS, 0, '', '[dsp]', 0, ''))
         my_logger.debug('upd_user_status, public, user: '+user+', json: '+message)
 
         # alignment information
@@ -206,10 +207,10 @@ def upd_user_status(user):
             my_logger.debug('role: '+hex(role))
             my_logger.debug('PVG_ALIGNMENT_MASK: '+hex(PVG_ALIGNMENT_MASK))
             privilege = role & PVG_ALIGNMENT_MASK
-            json_serial = (roomid, status&USR_PUBLIC_MASK, role, user, maskip, hashname, email)
+            json_serial = (roomid, status&USR_PUBLIC_MASK, role, user, maskip, hashname, email, displayname)
             message = json.dumps(json_serial)
-            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-                (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, '', 0, ''))
+            dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+                (roomid, timestamp+1, privilege, username, '', message, MSG_USR_STA_ALIGNMENT, 0, '', '[dsp]', 0, ''))
             my_logger.debug('upd_user_status, alignment, user: '+user+', json: '+message+', privilege: '+hex(privilege))
 
         # information for seer
@@ -222,17 +223,17 @@ def upd_user_status(user):
                 seer_result = ROLE_VILLAGER
                 if role & PVG_ALIGNMENT_MASK:
                     seer_result = ROLE_WOLF
-                json_serial = (roomid, status&USR_PUBLIC_MASK, seer_result, user, maskip, hashname, email)
+                json_serial = (roomid, status&USR_PUBLIC_MASK, seer_result, user, maskip, hashname, email, displayname)
                 message = json.dumps(json_serial)
-                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-                    (roomid, timestamp+1, PVG_PRIVATE, username, '', message, MSG_SEER_RESULT, 0, seer[0], 0, ''))
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+                    (roomid, timestamp+1, PVG_PRIVATE, username, '', message, MSG_SEER_RESULT, 0, seer[0], '[dsp]', 0, ''))
                 my_logger.debug('upd_user_status, seer, user: '+seer[0]+', json: '+message+', privilege: '+hex(PVG_PRIVATE))
 
         # private information
-        json_serial = (roomid, status, role, user, maskip, hashname, email)
+        json_serial = (roomid, status, role, user, maskip, hashname, email, displayname)
         message = json.dumps(json_serial)
-        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, username, 0, ''))
+        dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+            (roomid, timestamp+2, PVG_PRIVATE, username, '', message, MSG_USR_STA_PRIVATE, 0, username, '[dsp]', 0, ''))
         my_logger.debug('upd_user_status, private, user: '+user+', json: '+message+', privilege: '+hex(PVG_PRIVATE))
 
         # privilege setup should only be done at game_start
@@ -275,8 +276,8 @@ def msg_onetime(roomid, username, type, argument):
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, PVG_PRIVATE, username, isoformat, argument, type, 0, username, 0, ''))
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, PVG_PRIVATE, username, isoformat, argument, type, 0, username, '[dsp]', 0, ''))
     my_logger.debug('msg_onetime, type: %s, username: %s' % (hex(type), username))
 
 def msg_command(roomid, type, argument):
@@ -284,8 +285,8 @@ def msg_command(roomid, type, argument):
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, 0, SYSTEM_USER, isoformat, argument, type, 0, '', 0, ''))
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, 0, SYSTEM_USER, isoformat, argument, type, 0, '', SYSTEM_USER, 0, ''))
     my_logger.debug('msg_command, type: %s, argument: %s' % (hex(type), argument))
 
 def dbg_msg(message):
@@ -293,8 +294,8 @@ def dbg_msg(message):
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-        ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, '', 0, ''))
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+        ('', timestamp, 0, SYSTEM_USER, isoformat, message, 0, 0, '', SYSTEM_USER, 0, ''))
 
 def sys_msg(message, roomid, phase = 0):
     my_logger.debug('sys_msg: '+message)
@@ -319,16 +320,16 @@ def sys_msg(message, roomid, phase = 0):
         else:
             privilege |= PVG_ROOMCHAT
 
-    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, phase, '', 0, ''))
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, phase, '', SYSTEM_USER, 0, ''))
 
 def private_msg(username, message, roomid, phase):
     now = time.time()
     timestamp = long(now*1000)
     ct = time.localtime(now)
     isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
-    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-        (roomid, timestamp, PVG_PRIVATE, username, isoformat, message, MSG_PRIVATE, phase, username, 0, ''))
+    dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, PVG_PRIVATE, username, isoformat, message, MSG_PRIVATE, phase, username, '[dsp]', 0, ''))
 
 def check_dltr_mask(mask_bit):
     global do_later_mask
@@ -990,17 +991,17 @@ class MyHandler(RequestHandler):
             my_logger.debug('post, command: '+self.path+', ip: '+self.client_address[0]+', value: '+self.rfile.getvalue())
 
         if self.path == '/login':
-            login = unicode(self.rfile.getvalue(), 'utf-8')
-            #login = self.rfile.getvalue()
+            #login = unicode(self.rfile.getvalue(), 'utf-8')
+            login = self.rfile.getvalue()
             login = login.splitlines()
             print 'login: ', login
-            username = u''
+            email = u''
             password = u''
             if login[0]:
-                username = html_escape(login[0])
+                email = login[0]
             if login[1]:
                 password = login[1]
-            print u'username: ', username
+            print u'email: ', email
             print u'password: ', password
 
             sessionkey = None
@@ -1009,9 +1010,9 @@ class MyHandler(RequestHandler):
             dbcursor.execute("""select * from user where ip=?""", (ip,))
             conflict = dbcursor.fetchone()
             if conflict:
-                my_logger.debug('double login, ip: '+hex(ip)+', user: '+username)
+                my_logger.debug('double login, ip: '+hex(ip)+', email: '+email)
 
-            dbcursor.execute("""select * from user where username=?""", (username,))
+            dbcursor.execute("""select * from user where email=?""", (email,))
             auth = dbcursor.fetchone()
             if auth:
                 print 'user exists'
@@ -1019,24 +1020,25 @@ class MyHandler(RequestHandler):
                 if auth[1] == password:
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
-                    dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where username=?""", (sessionkey, ip, '', username))
+                    dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where email=?""", (sessionkey, ip, '', email))
                 else:
                     print 'incorrect password'
             else:
                 print 'user register'
                 sessionkey = str(uuid.uuid4())
+                username = str(uuid.uuid4())
                 roomid = ''
                 role = 0
                 status = 0
                 privilege = 0
-                registername = username
-                email = ''
+                displayname = username[:8]
+                email = email
                 mark = 0
-                hashname = hashlib.sha1(username.encode('utf-8')).hexdigest()
+                hashname = hashlib.sha1(email).hexdigest()
                 lastactivity = get_time_norm()
                 dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
-                    role, status, privilege, lastactivity, registername, email, hashname, mark, 0, ''))
+                    role, status, privilege, lastactivity, displayname, email, hashname, mark, 0, ''))
 
             print 'sessionkey: ', sessionkey
 
@@ -1106,8 +1108,8 @@ class MyHandler(RequestHandler):
                 participant = 1
                 json_serial = (description, ruleset, options, phase, username, roomid, participant)
                 message = json.dumps(json_serial)
-                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', 0, ''))
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', '[dsp]', 0, ''))
 
                 sys_msg(get_string('sys_welcome') % description, roomid)
                 my_logger.debug('/host, room: '+roomid+', host: '+username)
@@ -1440,6 +1442,8 @@ class MyHandler(RequestHandler):
                 roomid = auth[4]
                 role = auth[5]
                 user_privilege = auth[7]
+                displayname = auth[9]
+                email = auth[10]
                 alignment = role & PVG_ALIGNMENT_MASK
 
                 # check if user has privilege to speak
@@ -1466,8 +1470,8 @@ class MyHandler(RequestHandler):
             if dosend:
                 isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
                 message = msgbody
-                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-                    (roomid, timestamp, privilege, username, isoformat, message, 0, phase, '', 0, ''))
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+                    (roomid, timestamp, privilege, username, isoformat, message, 0, phase, '', displayname, 0, ''))
                 do_later_mask |= DLTR_COMMIT_DB
 
             self.send_response(204)
@@ -1522,7 +1526,8 @@ class MyHandler(RequestHandler):
                 message = row[5]
                 type = row[6]
                 phase = row[7]
-                row_serial = (type, author, isoformat, message, timestamp, phase)
+                displayname = row[9]
+                row_serial = (type, displayname, isoformat, message, timestamp, phase)
                 json_serial.append(row_serial)
 
             dbcursor.execute("""delete from message \
@@ -1597,8 +1602,8 @@ class MyHandler(RequestHandler):
                 participant = 1
                 json_serial = (description, ruleset, options, phase, username, roomid, participant, message)
                 message = json.dumps(json_serial)
-                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?)', \
-                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', 0, ''))
+                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', '[dsp]', 0, ''))
 
                 sys_msg(get_string('sys_welcome') % description, roomid)
                 my_logger.debug('/hostex, room: '+roomid+', host: '+username)
@@ -1659,7 +1664,7 @@ if __name__=="__main__":
         user_status[user[0]] = user[6]
         upd_user_status(user[0])
 
-    port = 80
+    port = HTTP_PORT
     s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
     try:
