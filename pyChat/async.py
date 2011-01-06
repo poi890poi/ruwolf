@@ -100,11 +100,11 @@ def upd_room(roomid):
         json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, participant, roommessage)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
-            ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', '[dsp]', 0, ''))
+            ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', username, 0, ''))
         my_logger.debug('upd_room, room: '+roomid+', json: '+message)
 
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', '[dsp]', 0, ''))
+            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', username, 0, ''))
     do_later_mask |= DLTR_COMMIT_DB
 
 def upd_room_ingame(roomid):
@@ -127,7 +127,7 @@ def upd_room_ingame(roomid):
         message = json.dumps(json_serial)
 
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
-            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', '[dsp]', 0, ''))
+            (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', username, 0, ''))
         my_logger.debug('upd_room_ingame, room: '+roomid+', json: '+message)
     do_later_mask |= DLTR_COMMIT_DB
 
