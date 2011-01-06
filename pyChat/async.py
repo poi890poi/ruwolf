@@ -1072,60 +1072,6 @@ class MyHandler(RequestHandler):
             self.send_response(205)
             self.end_headers()
 
-        elif self.path == '/host':
-            auth = None
-            if 'Authorization' in self.headers:
-                sessionkey = self.headers['Authorization']
-                ip = get_ip_integer(self.client_address[0])
-                dbcursor.execute("""select * from user where
-                    sessionkey=? and ip=?""", (sessionkey, ip))
-                auth = dbcursor.fetchone()
-
-            if auth:
-                roomid = str(uuid.uuid4())
-                username = auth[0]
-                hashname = auth[11]
-                description = unicode(self.rfile.getvalue(), 'utf-8')
-                if description == '[rnd]':
-                    with open('gamename.txt') as hfile:
-                        lst = hfile.readlines()
-                        description = random.choice(lst).decode('utf-8')
-                        description = description.replace('\n', '')
-                if not description:
-                    description = roomid
-                description = html_escape(description)
-                ruleset = ''
-                options = 0
-                phase = 0
-                timeout = TIME_MAX
-                dbcursor.execute('insert into room values (?,?,?,?,?,?,?,?,?,?)', \
-                    (username, roomid, description, ruleset, options, phase, timeout, '', 0, ''))
-                dbcursor.execute("""update user set roomid=?, privilege=privilege|? where username=?""", \
-                    (roomid, PVG_ROOMCHAT, username))
-
-                timestamp = get_time_norm()
-                privilege = 0
-                participant = 1
-                json_serial = (description, ruleset, options, phase, username, roomid, participant)
-                message = json.dumps(json_serial)
-                dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
-                    ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', '[dsp]', 0, ''))
-
-                sys_msg(get_string('sys_welcome') % description, roomid)
-                my_logger.debug('/host, room: '+roomid+', host: '+username)
-                #user_status[username] |= USR_HOST
-
-                upd_room(roomid)
-                upd_user_status(username)
-                do_later_mask |= DLTR_COMMIT_DB
-                msg_command('', MSG_USERQUIT, hashname)
-
-                self.send_response(205)
-                self.end_headers()
-            else:
-                self.send_response(401)
-                self.end_headers()
-
         elif self.path == '/drop':
             auth = None
             room = None

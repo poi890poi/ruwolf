@@ -127,14 +127,6 @@
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(sessionkey);
-        } else if (trimmed.substring(0, 6) == "/host ") {
-            var arg = trimmed.split(" ", 2);
-            var description = "";
-            if (arg[1]) {description = arg[1];}
-            send_xmlhttp.open("POST", "/host", true);
-            send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Content-type", "text/plain");
-            send_xmlhttp.send(description);
         } else if (trimmed.substring(0, 10) == "/vote_rdy ") {
             var arg = trimmed.split(" ", 2);
             var target = "";
