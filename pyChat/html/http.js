@@ -151,6 +151,8 @@
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(roomid);
+        } else if (trimmed == "/slogout") {
+            $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085", "", { expires: -1 });
         } else {
             send_xmlhttp.open("POST", "/send_text", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
