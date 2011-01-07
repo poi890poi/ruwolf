@@ -1005,6 +1005,7 @@ class MyHandler(RequestHandler):
             login = login.splitlines()
             print 'login: ', login
             email = u''
+            username = u''
             password = u''
             if login[0]:
                 email = login[0]
@@ -1040,7 +1041,8 @@ class MyHandler(RequestHandler):
                 role = 0
                 status = 0
                 privilege = 0
-                displayname = username[:8]
+                email_split = email.split('@')
+                displayname = email_split[0]
                 email = email
                 mark = 0
                 hashname = hashlib.sha1(email).hexdigest()
