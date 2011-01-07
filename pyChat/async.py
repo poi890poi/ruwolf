@@ -1030,7 +1030,15 @@ class MyHandler(RequestHandler):
                 if auth[1] == password:
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
-                    dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where email=?""", (sessionkey, ip, '', email))
+                    roomid = auth[4]
+                    dbcursor.execute("""select * from room where roomid=?""", (roomid,))
+                    room = dbcursor.fetchone()
+                    if room:
+                        # to-do: user in room should stay in room
+                        # so user without cookie can back in game if he's disconnected
+                        dbcursor.execute("""update user set sessionkey=?, ip=? where email=?""", (sessionkey, ip, email))
+                    else:
+                        dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where email=?""", (sessionkey, ip, '', email))                    
                 else:
                     print 'incorrect password'
             else:
