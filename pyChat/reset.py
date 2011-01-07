@@ -18,3 +18,6 @@ dbcursor.execute('''drop table user''')
 dbcursor.execute('''drop table room''')
 dbcursor.execute('''drop table action''')
 dbcursor.execute('''drop table ruleset''')
+
+print '''Database reset done.
+Run setup.py to initialize database.'''

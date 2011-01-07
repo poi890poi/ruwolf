@@ -148,7 +148,7 @@ for vn in range(5, 6):
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 
-nightzero = 15 * INTERVAL_SEC
+nightzero = 30 * INTERVAL_SEC
 day = 6 * INTERVAL_MIN
 night = 2 * INTERVAL_MIN
 runoff = 30 * INTERVAL_SEC
@@ -156,6 +156,9 @@ dbcursor.execute('insert into ruleset values (?,?,?,?,?,?,?,?,?)', \
     (description, id, options, baseset, json.dumps(roles), nightzero, day, night, runoff))
 
 conn.commit()
+
+print '''Setup done.
+Run async.py to start the server.'''
 
 """with open('.//html//hosttemp.html') as hfile:
     content = unicode(hfile.read(), 'utf-8')
