@@ -52,11 +52,20 @@
         </tr>
         <tr>
             <td>Password:</td>
-            <td><input id="Password"></input></td>
+            <td>
+                <input id="Password" type="password"></input>&nbsp;&nbsp;
+                <input id="RegisterOrLogin" type="button" value="Register" disabled="true"></input>
+            </td>
         </tr>
         </table>
     </div>
         <script type="text/javascript">
+            $('#Username').keyup(function(event) {
+                check_credential();
+            });
+            $('#Password').keyup(function(event) {
+                check_credential();
+            });
             $('#Password').keydown(function(event) {
                 if (event.keyCode == '13') {
                     event.preventDefault();

@@ -44,6 +44,15 @@
         padding-top: 16px;
         display: none;
     }
+    #Username {
+        width: 180px;
+    }
+    #Password {
+        width: 180px;
+    }
+    #RegisterOrLogin {
+        width: 120px;
+    }
 
     #UserList {
         position: absolute;

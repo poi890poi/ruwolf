@@ -14,6 +14,7 @@
     var window_focus = true;
     var t_resizeui;
     var ondemand_xmlhttp = createXMLHttpRequest();
+    var credential_xmlhttp = createXMLHttpRequest();
     var t_hover;
     var latency = 0;
     var poll_sent = 0;
@@ -33,6 +34,53 @@
         strText = strText.replace(/ {2,}/g,' ');
 
         return strText;
+    }
+    
+    function handle_credentail_return()
+    {
+        if (credential_xmlhttp.readyState==4)
+        {
+            if (credential_xmlhttp.status==202) // username exist
+            {
+                $("#RegisterOrLogin").attr("value", "Login");
+            } else {
+                $("#RegisterOrLogin").attr("value", "Register");
+            }
+            $("#RegisterOrLogin").attr("disabled", false);
+
+            credential_xmlhttp.onreadystatechange = nill;
+            credential_xmlhttp.abort();
+        }
+    }
+    
+    function check_credential()
+    {
+        if (credential_xmlhttp.readyState != 0) {
+            return;
+        }
+        var username = $("#Username").val();
+        var password = $("#Password").val();
+        // to-do: add validation here, use regular expression maybe
+        if (username.length && password.length)
+        {
+            if (validate_email(username) )
+            {
+                credential_xmlhttp.onreadystatechange = handle_credentail_return;
+                credential_xmlhttp.open("POST", "/check_credential", true);
+                credential_xmlhttp.setRequestHeader("Authorization", sessionkey);
+                credential_xmlhttp.setRequestHeader("Content-type", "text/plain");
+                credential_xmlhttp.send(username);
+                return;
+            }
+        }
+        $("#RegisterOrLogin").attr("disabled", true);
+    }
+
+    function validate_email(str) {
+        if (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(str)){
+            return true;
+        }
+        return false;
     }
 
     function resetContent()

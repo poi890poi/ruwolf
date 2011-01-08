@@ -1071,6 +1071,18 @@ class MyHandler(RequestHandler):
                 self.send_response(401)
                 self.end_headers()
 
+        elif self.path == '/check_credential':
+            email = self.rfile.getvalue()
+            ip = get_ip_integer(self.client_address[0])
+            dbcursor.execute("""select * from user where email=?""", (email,) )
+            user = dbcursor.fetchone()
+            if user:
+                self.send_response(202)
+                self.end_headers()
+            else:
+                self.send_response(200)
+                self.end_headers()
+            
         elif self.path == '/logout':
             sessionkey = self.rfile.getvalue()
             ip = get_ip_integer(self.client_address[0])
