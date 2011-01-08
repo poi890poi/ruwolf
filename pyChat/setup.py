@@ -7,6 +7,7 @@ from constant import *
 # init database
 
 appdata = os.path.join(os.environ['APPDATA'], APPDATA_FOLDER)
+appdata = u'userdata'
 if not os.path.isdir(appdata):
     os.mkdir(appdata)
 dbf = os.path.join(appdata, DB_FILENAME)

@@ -17,10 +17,11 @@ from function import *
 from lang import *
 
 appdata = os.path.join(os.environ['APPDATA'], APPDATA_FOLDER)
+appdata = u'userdata'
 if not os.path.isdir(appdata):
     os.mkdir(appdata)
 
-logf = os.path.join(appdata, u'debug.log')
+logf = os.path.join(appdata, u'_debug.log')
 
 # Set up a specific logger with our desired output level
 my_logger = logging.getLogger('MyLogger')

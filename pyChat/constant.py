@@ -1,6 +1,6 @@
 ﻿# core variables
 APPDATA_FOLDER = u'ruwolf'
-DB_FILENAME = u'system.db'
+DB_FILENAME = u'_system.db'
 HTTP_PORT = 80
 
 # init variables
