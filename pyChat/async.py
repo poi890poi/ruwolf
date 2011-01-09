@@ -969,6 +969,7 @@ def get_ip_integer(ipstr):
 def get_timeout_msg(roomid):
     dbcursor.execute("""select * from room where roomid=?""", (roomid,))
     room = dbcursor.fetchone()
+    row_serial = None
     if room:
         description = room[2]
         ruleset = room[3]
