@@ -47,9 +47,8 @@ $(window).load(function(){
     $("#MnuHost").live("click", function(e) {
         if ($(this).hasClass("menudisable")) return;
 		$("div.contextmenu").hide();
-        //var description = "[rnd]";
-        //send_text("/host " + description);
-        window.location = "./host.html"
+        get_dcontent("/host.html");
+        //window.location = "./host.html"
     });
     $("#MnuReadyCheck").click(function(e) {
         if ($(this).hasClass("menudisable")) return;

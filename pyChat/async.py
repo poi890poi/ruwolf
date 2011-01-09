@@ -1071,6 +1071,26 @@ class MyHandler(RequestHandler):
             else:
                 self.send_response(401)
                 self.end_headers()
+                
+        elif self.path == '/dcontent':
+            params = self.rfile.getvalue()
+            path = 'html' + params
+            with open(path) as hfile:
+                dcontent = unicode(hfile.read(), 'utf-8')
+                self.send_response(200)
+                self.send_header(u'Content-type', u'text/plain')
+                self.end_headers()
+                subst = None
+                if params == "/host.html":
+                    dbcursor.execute("""select * from ruleset where baseset=?""", ('',))
+                    subst = u''
+                    reclist = dbcursor.fetchall()
+                    for rec in reclist:
+                        subst += u'<option value="%s">%s</option>' % (rec[1], rec[0])
+                if subst:
+                    dcontent = dcontent % subst
+                    
+                self.wfile.write(dcontent.encode('utf-8'))
 
         elif self.path == '/check_credential':
             email = self.rfile.getvalue()

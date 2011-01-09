@@ -88,6 +88,16 @@
         font-size: 48px;
     }
 
+    #D_Content td {
+        vertical-align: top;
+    }
+    #D_Content .host_right {
+        width: 300px;
+    }
+    #D_Content textarea {
+        height: 100px;
+    }
+    
     div .titlebar {
         text-align: center;
         background: #333399;

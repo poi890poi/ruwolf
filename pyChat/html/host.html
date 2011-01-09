@@ -1,89 +1,6 @@
-﻿<html>
-<head>
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<title>Host a new game</title>
-<style type="text/css">
-    #Options td {
-        vertical-align: top;
-    }
-    #Options .right {
-        width: 350px;
-    }
-    #Options textarea {
-        height: 100px;
-    }
-</style>
-<script type="text/javascript" src="jquery-1.4.4.min.js"></script>
-<script type="text/javascript" src="jquery.cookie.js"></script>
-<script type="text/javascript">
-    var xmlhttpobj = createXMLHttpRequest();
-
-    function createXMLHttpRequest()
-    {
-        var xmlhttp;
-        if (window.XMLHttpRequest)
-        {// code for IE7+, Firefox, Chrome, Opera, Safari
-            xmlhttp = new XMLHttpRequest();
-        }
-        else
-        {// code for IE6, IE5
-            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-        }
-        return xmlhttp;
-    }
-
-    function nill(){}
-
-    function handle_xmlhttp_return()
-    {
-        if (xmlhttpobj.readyState==4)
-        {
-            //alert(xmlhttpobj.status);
-            if (xmlhttpobj.status==200)
-            {
-                //alert("xmlhttpobj.responseText");
-                $("#Options #ruleset").html(xmlhttpobj.responseText);
-            }
-            if (xmlhttpobj.status==205)
-            {
-                window.location = "./"
-            }
-            if (xmlhttpobj.status==401)
-            {
-                alert("You cannot host a game.");
-            }
-
-            xmlhttpobj.onreadystatechange = nill;
-            xmlhttpobj.abort();
-        }
-    }
-
-    function xmlhttpq(params)
-    {
-        if (xmlhttpobj.readyState != 0) {
-            return;
-        }
-        xmlhttpobj.onreadystatechange = handle_xmlhttp_return;
-        xmlhttpobj.open("POST", params, true);
-        var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
-        xmlhttpobj.setRequestHeader("Authorization", sessionkey);
-        xmlhttpobj.setRequestHeader("Content-type", "text/plain");
-        if (params == "/hostex") {
-            var hostparams = "";
-            xmlhttpobj.setRequestHeader("X-RuleSet", $("#Options #ruleset").val());
-            xmlhttpobj.setRequestHeader("X-Description", $("#Options #gamename").val());
-            var msg = $("#Options #description").val();
-            if (!msg) msg = ".";
-            xmlhttpobj.send(msg);
-        } else {
-            xmlhttpobj.send(".");
-        }
-    }
-</script>
-</head>
-<body>
-    <div id="Options">
+﻿    <div id="D_Content">
         <table cellspacing='0'>
+        <tr><th class='left'></th><th></th></tr>
         <tr>
             <td colspan="2">
                 <b>Hosting a new game...</b><br/><br/>
@@ -92,26 +9,26 @@
         <tr>
             <td>Rule set:</td>
             <td>
-                <select id="ruleset" class="right"></select>
+                <select id="host_ruleset" class="host_right">%s</select>
             </td>
         </tr>
         <tr>
-            <td style="width: 120px">Game name:</td>
-            <td style="width: 420px"><input id="gamename" class="right"></input></td>
+            <td>Game name:</td>
+            <td><input id="host_gamename" class="host_right"></input></td>
         </tr>
         <tr>
             <td>Description:</td>
-            <td><textarea id="description" class="right"></textarea></td>
+            <td><textarea id="host_description" class="host_right"></textarea></td>
         </tr>
         <tr>
             <td></td>
-            <td></td>
+            <td><input id="host_dohost" type="button" value="Host" onclick="hostgame()"></input></td>
         </tr>
         </table>
     </div>
 
         <script type="text/javascript">
-            $("#Options #description").keydown(function(event) {
+            $("#D_Content #host_description").keydown(function(event) {
                 if (event.keyCode == '13') {
                     event.preventDefault();
                     if (event.ctrlKey) {
@@ -128,16 +45,46 @@
                             range.select();
                         }
                     } else {
-                        xmlhttpq("/hostex");
+                        hostgame();
                     }
                 }
             });
-        </script>
 
-    <script type="text/javascript">
-        $(window).load(function(){
-            xmlhttpq("/get_ruleset");
-        });
-    </script>
-</body>
-</html>
+            var dcontent_xmlhttp = createXMLHttpRequest();
+
+            function handle_hostgame_return()
+            {
+                if (dcontent_xmlhttp.readyState==4)
+                {
+                    if (dcontent_xmlhttp.status==205)
+                    {
+                        resetContent();
+                    }
+                    if (dcontent_xmlhttp.status==401)
+                    {
+                        alert("You cannot host a game.");
+                    }
+
+                    dcontent_xmlhttp.onreadystatechange = nill;
+                    dcontent_xmlhttp.abort();
+                }
+            }
+
+            function hostgame()
+            {
+                if (dcontent_xmlhttp.readyState != 0) {
+                    return;
+                }
+                dcontent_xmlhttp.onreadystatechange = handle_hostgame_return;
+                dcontent_xmlhttp.open("POST", "/hostex", true);
+                var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
+                dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
+                dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
+
+                dcontent_xmlhttp.setRequestHeader("X-RuleSet", $("#D_Content #host_ruleset").val());
+                dcontent_xmlhttp.setRequestHeader("X-Description", $("#D_Content #host_gamename").val());
+                var msg = $("#D_Content #host_description").val();
+                if (!msg) msg = ".";
+                dcontent_xmlhttp.send(msg);
+            }
+        </script>

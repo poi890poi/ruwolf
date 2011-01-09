@@ -15,6 +15,7 @@
     var t_resizeui;
     var ondemand_xmlhttp = createXMLHttpRequest();
     var credential_xmlhttp = createXMLHttpRequest();
+    var dcontent_xmlhttp = createXMLHttpRequest();
     var t_hover;
     var latency = 0;
     var poll_sent = 0;
@@ -278,6 +279,30 @@
 
     function join_room(roomid) {
         $("#EditMessage").val("/join "+roomid);
+    }
+    
+    function handle_dcontent_return() {
+        if (dcontent_xmlhttp.readyState==4)
+        {
+            if (dcontent_xmlhttp.status==200)
+            {
+                $("#MessageList").html(dcontent_xmlhttp.responseText);
+            }
+
+            dcontent_xmlhttp.onreadystatechange = nill;
+            dcontent_xmlhttp.abort();
+        }
+    }
+    
+    function get_dcontent(dcontent) {
+        // get dynamic content
+        if (dcontent_xmlhttp.readyState != 0) {
+            return;
+        }
+        dcontent_xmlhttp.onreadystatechange = handle_dcontent_return;
+        dcontent_xmlhttp.open("POST", "dcontent", true);
+        dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
+        dcontent_xmlhttp.send(dcontent);
     }
 
     function handle_poll_return()
