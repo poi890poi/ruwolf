@@ -256,6 +256,8 @@
 
             login_xmlhttp.onreadystatechange = nill;
             login_xmlhttp.abort();
+            
+            resetContent();
         }
     }
 
