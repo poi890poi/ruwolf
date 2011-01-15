@@ -22,7 +22,10 @@
         </tr>
         <tr>
             <td></td>
-            <td><input id="host_dohost" type="button" value="Host" onclick="hostgame()"></input></td>
+            <td>
+                <input id="host_dohost" type="button" value="Host" onclick="hostgame()"></input>
+                <input id="host_cancel" type="button" value="Cancel" onclick="resetContent()"></input>
+            </td>
         </tr>
         </table>
     </div>
@@ -77,7 +80,7 @@
                 }
                 dcontent_xmlhttp.onreadystatechange = handle_hostgame_return;
                 dcontent_xmlhttp.open("POST", "/hostex", true);
-                var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
+                //var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
                 dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
                 dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
 
