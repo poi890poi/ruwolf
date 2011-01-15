@@ -394,8 +394,36 @@ def check_do_later():
                 if lastmsg:
                     timestamp = lastmsg[1]
                     now = get_time_norm()
-                    if now-timestamp > INTERVAL_HOUR:
-                        my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp))
+                    if now-timestamp > INTERVAL_ARCHIVE:
+                        dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
+                        dbcursor.execute("""select * from user where roomid = ?""", \
+                            (roomid,) )
+                        userlist = dbcursor.fetchall()
+                        for user in userlist:
+                            msg_command(user[4], MSG_USERQUIT, user[11])
+                            dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
+                                ('', 0, user[0]))
+                            upd_user_status(user[0])
+                        msg_command(roomid, MSG_GAMEDROP_P, roomid)
+                        msg_command('', MSG_GAMEDROP, roomid)
+                        my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp) )
+        
+        # check idle users
+        dbcursor.execute("""select * from user where lastactivity < ?""", \
+            (now-INTERVAL_DROPUSER,) )
+        userlist = dbcursor.fetchall()
+        for user in userlist:
+            # user idle for too long
+            username = user[0]
+            roomid = user[4]
+            lastactivity = user[8]
+            hashname = user[11]
+            dbcursor.execute("""delete from message where username=? and (type=? or type=? or type=? or type=?)""", \
+                (username, MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT, MSG_SEER_RESULT) )
+            if username in user_status:
+                user_status.pop(username)
+            msg_command(roomid, MSG_USERQUIT, hashname)
+            my_logger.debug('drop user, username: %s, lastactivity: %d' % (username,lastactivity) )
 
         do_later_long = now + INTERVAL_LONG
 
@@ -1478,6 +1506,9 @@ class MyHandler(RequestHandler):
                     (roomid, timestamp, privilege, username, isoformat, message, 0, phase, '', displayname, 0, ''))
                 do_later_mask |= DLTR_COMMIT_DB
 
+                dbcursor.execute("""update user set lastactivity=? where username=?""", \
+                    (timestamp, username))
+
             self.send_response(204)
             self.end_headers()
 
@@ -1569,7 +1600,6 @@ class MyHandler(RequestHandler):
                 dbcursor.execute("""select * from user where
                     sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
-
 
             if auth:
                 ruleset = ''

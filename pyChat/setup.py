@@ -79,7 +79,7 @@ for vn in range(9, 12):
     for i in range(5): rset.append(wolf)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
-nightzero = 15 * INTERVAL_SEC
+nightzero = 30 * INTERVAL_SEC
 day = 6 * INTERVAL_MIN
 night = 2 * INTERVAL_MIN
 runoff = 30 * INTERVAL_SEC
