@@ -301,6 +301,7 @@
         }
         dcontent_xmlhttp.onreadystatechange = handle_dcontent_return;
         dcontent_xmlhttp.open("POST", "dcontent", true);
+        dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
         dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
         dcontent_xmlhttp.send(dcontent);
     }

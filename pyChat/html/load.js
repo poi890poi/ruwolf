@@ -50,6 +50,12 @@ $(window).load(function(){
         get_dcontent("/host.html");
         //window.location = "./host.html"
     });
+    $("#MnuUserProfile").live("click", function(e) {
+        if ($(this).hasClass("menudisable")) return;
+		$("div.contextmenu").hide();
+        get_dcontent("/profile.html");
+        //window.location = "./host.html"
+    });
     $("#MnuReadyCheck").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
 		$("div.contextmenu").hide();

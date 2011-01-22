@@ -1082,12 +1082,13 @@ class MyHandler(RequestHandler):
                 email_split = email.split('@')
                 displayname = email_split[0]
                 email = email
+                nickname = displayname
                 mark = 0
                 hashname = hashlib.sha1(email).hexdigest()
                 lastactivity = get_time_norm()
-                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+                dbcursor.execute('insert into user values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
                     (username, password, sessionkey, ip, roomid, \
-                    role, status, privilege, lastactivity, displayname, email, hashname, mark, 0, ''))
+                    role, status, privilege, lastactivity, displayname, email, hashname, mark, nickname, 0, ''))
 
             print 'sessionkey: ', sessionkey
 
@@ -1104,22 +1105,46 @@ class MyHandler(RequestHandler):
         elif self.path == '/dcontent':
             params = self.rfile.getvalue()
             path = 'html' + params
-            with open(path) as hfile:
-                dcontent = unicode(hfile.read(), 'utf-8')
+
+            auth = None
+            room = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey, ip))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                username = auth[0]
+                roomid = auth[4]
+                displayname = auth[9]
+                email = auth[10]
+                mark = auth[12]
+                nickname = auth[13]
+
+                with open(path) as hfile:
+                    dcontent = unicode(hfile.read(), 'utf-8')
+                    self.send_response(200)
+                    self.send_header(u'Content-type', u'text/plain')
+                    self.end_headers()
+                    subst = None
+                    if params == "/host.html":
+                        dbcursor.execute("""select * from ruleset where baseset=?""", ('',))
+                        subst = u''
+                        reclist = dbcursor.fetchall()
+                        for rec in reclist:
+                            subst += u'<option value="%s">%s</option>' % (rec[1], rec[0])
+                    elif params == "/profile.html":
+                        subst = (email, nickname)
+                    if subst:
+                        dcontent = dcontent % subst
+                        
+                    self.wfile.write(dcontent.encode('utf-8'))
+
+            else:
                 self.send_response(200)
-                self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
-                subst = None
-                if params == "/host.html":
-                    dbcursor.execute("""select * from ruleset where baseset=?""", ('',))
-                    subst = u''
-                    reclist = dbcursor.fetchall()
-                    for rec in reclist:
-                        subst += u'<option value="%s">%s</option>' % (rec[1], rec[0])
-                if subst:
-                    dcontent = dcontent % subst
-                    
-                self.wfile.write(dcontent.encode('utf-8'))
 
         elif self.path == '/check_credential':
             email = self.rfile.getvalue()
@@ -1131,6 +1156,29 @@ class MyHandler(RequestHandler):
                 self.end_headers()
             else:
                 self.send_response(200)
+                self.end_headers()
+        
+        elif self.path == '/profile':
+            auth = None
+            room = None
+            if 'Authorization' in self.headers:
+                sessionkey = self.headers['Authorization']
+                ip = get_ip_integer(self.client_address[0])
+                dbcursor.execute("""select * from user where
+                    sessionkey=? and ip=?""", (sessionkey, ip))
+                auth = dbcursor.fetchone()
+
+            if auth:
+                nickname = unicode(self.headers['X-Nickname'], 'utf-8')
+                username = auth[0]
+                roomid = auth[4]
+                displayname = nickname
+                email = auth[10]
+                mark = auth[12]
+                dbcursor.execute("""update user set nickname=?, displayname=? where sessionkey=?""", (nickname, displayname, sessionkey))
+                upd_user_status(username);
+
+                self.send_response(205)
                 self.end_headers()
             
         elif self.path == '/logout':
@@ -1554,7 +1602,7 @@ class MyHandler(RequestHandler):
             msglist = dbcursor.fetchall()
             json_serial = []
             for row in msglist:
-                print row
+                #print row
                 timestamp = row[1]
                 author = row[3]
                 isoformat = row[4]
