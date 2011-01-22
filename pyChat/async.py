@@ -409,8 +409,8 @@ def check_do_later():
                         my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp) )
         
         # check idle users
-        dbcursor.execute("""select * from user where lastactivity < ?""", \
-            (now-INTERVAL_DROPUSER,) )
+        dbcursor.execute("""select * from user where lastactivity < ? and status&?=0""", \
+            (now-INTERVAL_DROPUSER, USR_CONN) )
         userlist = dbcursor.fetchall()
         for user in userlist:
             # user idle for too long
