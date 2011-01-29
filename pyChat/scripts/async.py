@@ -1722,10 +1722,8 @@ class MyHandler(RequestHandler):
                 username = auth[0]
                 hashname = auth[11]
                 if not description:
-                    with open('gamename.txt') as hfile:
-                        lst = hfile.readlines()
-                        description = random.choice(lst).decode('utf-8')
-                        description = description.replace('\n', '')
+                    description = get_string('rnd_gamename')
+                    description = description.replace('\n', '')
                 if not description:
                     description = roomid
                 description = html_escape(description)

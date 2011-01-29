@@ -35,6 +35,8 @@ u'加冷筍', u'小波', u'海綿體寶寶', u'迪西', u'拉拉', u'丁丁', u'
 u'浪子蒼天有淚', u'當人小貓' \
 )
 
-cht['rnd_gamename'] = (u'', u'', u'', u'', u'', u'', u'', u'', u'', u'', u'', u'', u'', u'', u'', u'')
+cht['rnd_gamename'] = (u'不平衡抽籤', u'I Want To Play A Game', u'Miller\'s Hollow', u'全員逃走中', u'微笑Sparta', u'なにあ傳奇', u'救救冒險野狼', u'大桃殺', u'阿婆喀哩耶逃', u'Ferocity', u'占卜師了沒', u'杜王町', u'東方快車', u'And Then There Were None', u'一個都不能少', u'Murder Is Easy', \
+u'Lynch Me If You Can', u'Kill Me Softly', u'Yes人生', u'抓狂管訓班', u'龍門客棧', u'你今天人狼了嗎？', u'CSI犯賤現場', u'Die Another Day', u'We Come In Piece', u'陰森幼幼台', u'Smooth Criminal', u'511幼兒之家', u'真。人狼無雙', u'霍格花枝', u'無間道', \
+)
 
 lang['cht'] = cht
