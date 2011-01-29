@@ -43,18 +43,18 @@
         <table cellspacing='0'>
         <tr>
             <td colspan="2">
-                <b>Please provide login information to get full access.</b>
+                <b>請輸入帳密...</b>
             </td>
         </tr>
         <tr>
-            <td style="width: 80px">Email:</td>
+            <td style="width: 80px">Email：</td>
             <td style="width: 420px"><input id="Username"></input></td>
         </tr>
         <tr>
-            <td>Password:</td>
+            <td>密碼：</td>
             <td>
                 <input id="Password" type="password"></input>&nbsp;&nbsp;
-                <input id="RegisterOrLogin" type="button" value="Register" disabled="true"></input>
+                <input id="RegisterOrLogin" type="button" value="登入/註冊" disabled="true"></input>
             </td>
         </tr>
         </table>
@@ -81,7 +81,7 @@
 
     <div id="UserList">
         <div class="titlebar">
-            User List
+            使用者/遊戲列表
         </div>
         <div id="UserListContainer">
         </div>
@@ -89,7 +89,7 @@
 
     <div id="Utility">
         <div class="titlebar">
-            Utility
+            提示資訊
         </div>
         <div id="UtilityContainer">
             <div id="Util0" class="inactive"></div>
@@ -106,38 +106,37 @@
     </div>
 
     <div class="contextmenu" id="MenuContainerGeneral">
-        <div class="menuitem" id="MnuHelp">Help</div>
-        <div class="menuitem" id="MnuHost">Host Game</div>
+        <div class="menuitem" id="MnuHelp">說明文件</div>
+        <div class="menuitem" id="MnuHost">開新遊戲</div>
+        <div class="menuitem" id="MnuQuit">離開遊戲</div>
+        <div class="menuitem" id="MnuUserProfile">編輯個人資料</div>
         <hr/>
-        <div class="menuitem" id="MnuQuit">Leave Game</div>
-        <div class="menuitem" id="MnuUserProfile">My Profile</div>
-        <div class="menuitem" id="MnuLogout">Logout</div>
+        <div class="menuitem" id="MnuLogout">登出</div>
     </div>
 
     <div class="contextmenu" id="MenuContainerHost">
-        <div class="menuitem" id="MnuHostHelp">Help</div>
+        <div class="menuitem" id="MnuHostHelp">說明文件</div>
+        <div class="menuitem" id="MnuReadyCheck">確認開始</div>
         <hr/>
-        <div class="menuitem" id="MnuReadyCheck">Ready Check</div>
-        <hr/>
-        <div class="menuitem" id="MnuDrop">Drop Game</div>
+        <div class="menuitem" id="MnuDrop">取消遊戲</div>
     </div>
 
     <div class="contextmenu" id="MenuContainerTarget">
-        <div class="menuitem" id="MnuVote">Vote</div>
+        <div class="menuitem" id="MnuVote">投票</div>
         <hr/>
-        <div class="menuitem" id="MnuNightAction">Night Action</div>
+        <div class="menuitem" id="MnuNightAction">夜間行動</div>
         <hr/>
-        <div class="menuitem" id="MnuReport">Report</div>
+        <div class="menuitem" id="MnuReport">舉發</div>
     </div>
 
     <div class="contextmenu" id="MenuContainerDoubleTarget">
-        <div class="menuitem" id="MnuTarget1">Vote</div>
+        <div class="menuitem" id="MnuTarget1">投票</div>
         <hr/>
-        <div class="menuitem" id="MnuTarget2">Vote</div>
+        <div class="menuitem" id="MnuTarget2">投票</div>
     </div>
 
     <div class="contextmenu" id="MenuContainerRoom">
-        <div class="menuitem" id="MnuJoin">Join</div>
+        <div class="menuitem" id="MnuJoin">加入遊戲</div>
     </div>
 
     <div id="dbg"></div>

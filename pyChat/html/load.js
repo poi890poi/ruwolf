@@ -1,4 +1,4 @@
-$(window).load(function(){
+﻿$(window).load(function(){
     var isIE = (navigator.appName == "Microsoft Internet Explorer");
     if (isIE) {
     } else {
@@ -127,9 +127,9 @@ $(window).load(function(){
                     $("#MnuReadyCheck").addClass("menuitem")
                         .removeClass("menudisable");
                     if (roomobj[3] > 0) {
-                        $("#MnuReadyCheck").html("Open Game");
+                        $("#MnuReadyCheck").html("開新遊戲");
                     } else {
-                        $("#MnuReadyCheck").html("Ready Check");
+                        $("#MnuReadyCheck").html("確認開始");
                     }
                 }
         		menu.css("left", e.pageX+"px");
@@ -183,7 +183,7 @@ $(window).load(function(){
             $("#MnuVote").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuVote");
-            mitem.html("Vote for <b>" + layoutSafeStr(t_display) + "</b>");
+            mitem.html("選擇<b>" + layoutSafeStr(t_display) + "</b>");
     		mitem.unbind("click");
     		mitem.click(function (e) {
                 send_text("/vote_rdy " + targetname);
@@ -198,7 +198,7 @@ $(window).load(function(){
                 $("#MnuVote").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuVote");
-                mitem.html("Attack <b>" + layoutSafeStr(t_display) + "</b>");
+                mitem.html("選擇咬<b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x1000, targetname);
@@ -207,7 +207,7 @@ $(window).load(function(){
                 $("#MnuVote").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuVote");
-                mitem.html("Vote <b>" + layoutSafeStr(t_display) + "</b>");
+                mitem.html("選擇吊死<b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x100, targetname);
@@ -218,7 +218,7 @@ $(window).load(function(){
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
-                mitem.html("Seduce <b>" + layoutSafeStr(t_display) + "</b>");
+                mitem.html("魅惑<b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x2000, targetname);
@@ -227,7 +227,7 @@ $(window).load(function(){
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
-                mitem.html("See <b>" + layoutSafeStr(t_display) + "</b>");
+                mitem.html("占卜<b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x8000, targetname);
@@ -236,7 +236,7 @@ $(window).load(function(){
                 $("#MnuNightAction").removeClass("menudisable")
                     .addClass("menuitem");
         		var mitem = $("#MnuNightAction");
-                mitem.html("Heal <b>" + layoutSafeStr(t_display) + "</b>");
+                mitem.html("治療<b>" + layoutSafeStr(t_display) + "</b>");
         		mitem.unbind("click");
         		mitem.click(function (e) {
                     send_text_ex("/target", 0x4000, targetname);
@@ -248,7 +248,7 @@ $(window).load(function(){
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");
-            mitem.html("Kick <b>" + layoutSafeStr(t_display) + "</b>");
+            mitem.html("踢除<b>" + layoutSafeStr(t_display) + "</b>");
     		mitem.unbind("click");
     		mitem.click(function (e) {
                 send_text("/kick " + targetname);
@@ -257,7 +257,7 @@ $(window).load(function(){
             $("#MnuReport").removeClass("menudisable")
                 .addClass("menuitem");
     		var mitem = $("#MnuReport");
-            mitem.html("Report <b>" + layoutSafeStr(t_display) + "</b>");
+            mitem.html("舉發<b>" + layoutSafeStr(t_display) + "</b>");
     		mitem.unbind("click");
     		mitem.click(function (e) {
                 send_text("/report " + targetname);
@@ -291,7 +291,7 @@ $(window).load(function(){
         }
 
 		var join = $("#MnuJoin");
-        join.html("Join <b>" + layoutSafeStr(data_json[0]) + "</b>");
+        join.html("加入遊戲<b>" + layoutSafeStr(data_json[0]) + "</b>");
 		join.unbind("click");
 		join.click(function (e) {
             send_text("/join " + roomid);
@@ -325,9 +325,9 @@ $(window).load(function(){
             {
                 var txt = "";
                 txt += "<b>" + data_json[0] + "</b><br/>";
-                txt += "Host: " + data_json[4] + "<br/>";
-                txt += "Rule-set: " + data_json[1] + "<br/>";
-                txt += "Participant: " + data_json[6] + "<br/><br/>";
+                txt += "主持人：" + data_json[4] + "<br/>";
+                txt += "規則：" + data_json[1] + "<br/>";
+                txt += "人數：" + data_json[6] + "<br/><br/>";
                 txt += data_json[7];
                 $("#Utility #Util2").html(txt);
                 //$("#Utility #Util2").html(obj.attr("data-json"));
@@ -427,7 +427,7 @@ function general_info()
             if (wait_action)
             {
                 txt += "<br/>";
-                txt += "You must act!";
+                txt += "回合將結束！";
             }
             //$("#Utility #Util2").css("font-size", "48px");
         }

@@ -1,4 +1,4 @@
-    var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
+﻿    var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
     var ALIGNMENT_MASK = 0xffffff
 
     var timestamp = 0;
@@ -43,9 +43,9 @@
         {
             if (credential_xmlhttp.status==202) // username exist
             {
-                $("#RegisterOrLogin").attr("value", "Login");
+                $("#RegisterOrLogin").attr("value", "登入");
             } else {
-                $("#RegisterOrLogin").attr("value", "Register");
+                $("#RegisterOrLogin").attr("value", "註冊");
             }
             $("#RegisterOrLogin").attr("disabled", false);
 
@@ -250,7 +250,7 @@
             }
             else if (login_xmlhttp.status==401)
             {
-                alert("password incorrect");
+                alert("密碼錯誤！");
                 $("#Login").fadeIn();
                 resizeUI(0);
             }
@@ -367,7 +367,7 @@
 
                         if (obj[i][0] == 0x4000) { // user status private
                             if (subobj[1] & 16) { // kicked, USR_KICKED
-                                alert("You have been INVITED to the lobby.");
+                                alert("你被邀請到大廳了！");
                                 send_text("/drop_confirm");
                             }
                             userjson = obj[i][3];

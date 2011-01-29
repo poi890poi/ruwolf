@@ -3,7 +3,7 @@
         <tr><th class='left'></th><th></th></tr>
         <tr>
             <td colspan="2">
-                <b>Hosting a new game...</b><br/><br/>
+                <b>開一場新遊戲...</b><br/><br/>
             </td>
         </tr>
         <tr>
@@ -13,18 +13,18 @@
             </td>
         </tr>
         <tr>
-            <td>Game name:</td>
+            <td>遊戲名稱：</td>
             <td><input id="host_gamename" class="right"></input></td>
         </tr>
         <tr>
-            <td>Description:</td>
+            <td>備註：</td>
             <td><textarea id="host_description" class="right"></textarea></td>
         </tr>
         <tr>
             <td></td>
             <td>
-                <input id="host_dohost" type="button" value="Host" onclick="hostgame()"></input>
-                <input id="host_cancel" type="button" value="Cancel" onclick="resetContent()"></input>
+                <input id="host_dohost" type="button" value="開場" onclick="hostgame()"></input>
+                <input id="host_cancel" type="button" value="取消" onclick="resetContent()"></input>
             </td>
         </tr>
         </table>
@@ -66,7 +66,7 @@
                     }
                     if (dcontent_xmlhttp.status==401)
                     {
-                        alert("You cannot host a game.");
+                        alert("無法建立遊戲，請先登入");
                     }
 
                     dcontent_xmlhttp.onreadystatechange = nill;

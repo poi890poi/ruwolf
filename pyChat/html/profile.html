@@ -3,30 +3,30 @@
         <tr><th class='left'></th><th></th></tr>
         <tr>
             <td colspan="2">
-                <b>User profile...</b><br/><br/>
+                <b>使用者資料...</b><br/><br/>
             </td>
         </tr>
         <tr>
-            <td>Email:</td>
+            <td>Email：</td>
             <td><input id="profile_email" class="right" value="%s" disabled="true"></input></td>
         </tr>
         <tr>
-            <td>Nickname:</td>
+            <td>暱稱：</td>
             <td><input id="profile_nickname" class="right" value="%s"></input></td>
         </tr>
         <tr>
-            <td>Change Password:</td>
+            <td>設定新密碼：</td>
             <td><input id="profile_password" class="right" disabled="true"></input></td>
         </tr>
         <tr>
-            <td>Confirm Password:</td>
+            <td>確認新密碼：</td>
             <td><input id="profile_confirmpassword" class="right" disabled="true"></input></td>
         </tr>
         <tr>
             <td></td>
             <td>
-                <input id="profile_apply" type="button" value="Apply" onclick="profile_apply()"></input>
-                <input id="profile_cancel" type="button" value="Cancel" onclick="resetContent()"></input>
+                <input id="profile_apply" type="button" value="確認" onclick="profile_apply()"></input>
+                <input id="profile_cancel" type="button" value="取消" onclick="resetContent()"></input>
             </td>
         </tr>
         </table>
@@ -35,7 +35,7 @@
         <script type="text/javascript">
             var dcontent_xmlhttp = createXMLHttpRequest();
 
-            function handle_hostgame_return()
+            function handle_profile_return()
             {
                 if (dcontent_xmlhttp.readyState==4)
                 {
@@ -45,7 +45,7 @@
                     }
                     if (dcontent_xmlhttp.status==401)
                     {
-                        alert("You cannot host a game.");
+                        alert("無法修改，請先登入。");
                     }
 
                     dcontent_xmlhttp.onreadystatechange = nill;
@@ -58,7 +58,7 @@
                 if (dcontent_xmlhttp.readyState != 0) {
                     return;
                 }
-                dcontent_xmlhttp.onreadystatechange = handle_hostgame_return;
+                dcontent_xmlhttp.onreadystatechange = handle_profile_return;
                 dcontent_xmlhttp.open("POST", "/profile", true);
                 dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
                 dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
