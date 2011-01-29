@@ -34,7 +34,8 @@
             $("#D_Content #host_description").keydown(function(event) {
                 if (event.keyCode == '13') {
                     event.preventDefault();
-                    if (event.ctrlKey) {
+                    //if (event.ctrlKey) {
+                    if (true) {
                         var val = this.value;
                         if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
                             var start = this.selectionStart;
@@ -48,7 +49,7 @@
                             range.select();
                         }
                     } else {
-                        hostgame();
+                        //hostgame();
                     }
                 }
             });

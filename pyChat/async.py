@@ -993,6 +993,52 @@ def phase_advance(room):
 def get_ip_integer(ipstr):
     ipsplit = ipstr.split('.')
     return (int(ipsplit[0]) << 24) + (int(ipsplit[1]) << 16) + (int(ipsplit[2]) << 8) + int(ipsplit[3])
+    
+def scan_ip_conflict():
+    dbcursor.execute("""select * from user where status&?""", (USR_CONN,) )
+    userlist = dbcursor.fetchall()
+    for user in userlist: 
+        if user[0] in user_status:
+            check_ip_conflict(user)
+    
+def check_ip_conflict_username(username):
+    dbcursor.execute("""select * from user where username=?""", (username,))
+    user = dbcursor.fetchone()
+    check_ip_conflict(user)
+    
+def check_ip_conflict(user):
+    global user_status
+    ip = user[3]
+    roomid = user[4]
+    displayname = user[9]
+    email = user[10]
+    hashname = user[11]
+    
+    oldstatus = user_status[user[0]] & USR_IPCONFLICT
+    user_status[user[0]] &= ~USR_IPCONFLICT
+    
+    print 'roomid: ', roomid
+    print 'ip: ', ip
+    print 'email: ', email
+    
+    dbcursor.execute("""select * from user where roomid=? and ip&?=? and email!=?""", (roomid, 0xffffff00, ip&0xffffff00, email) )
+    conflict = dbcursor.fetchone()
+    if conflict:
+        print 'conflict0'
+        # subnet match
+        user_status[user[0]] |= USR_IPCONFLICT
+        my_logger.debug('ip partial conflict, ip: '+hex(ip&0xffffff00)+', email: '+email)
+
+    dbcursor.execute("""select * from user where roomid=? and ip=? and email!=?""", (roomid, ip, email) )
+    conflict = dbcursor.fetchone()
+    if conflict:
+        print 'conflict1'
+        # exact match
+        user_status[user[0]] |= USR_IPCONFLICT
+        my_logger.debug('ip conflict, ip: '+hex(ip)+', email: '+email)
+        
+    if (user_status[user[0]]&USR_IPCONFLICT) != oldstatus:
+        upd_user_status(user[0])
 
 def get_timeout_msg(roomid):
     dbcursor.execute("""select * from room where roomid=?""", (roomid,))
@@ -1047,11 +1093,6 @@ class MyHandler(RequestHandler):
             sessionkey = None
             ip = get_ip_integer(self.client_address[0])
 
-            dbcursor.execute("""select * from user where ip=?""", (ip,))
-            conflict = dbcursor.fetchone()
-            if conflict:
-                my_logger.debug('double login, ip: '+hex(ip)+', email: '+email)
-
             dbcursor.execute("""select * from user where email=?""", (email,))
             auth = dbcursor.fetchone()
             if auth:
@@ -1061,14 +1102,14 @@ class MyHandler(RequestHandler):
                     print 'user login'
                     sessionkey = str(uuid.uuid4())
                     roomid = auth[4]
-                    dbcursor.execute("""select * from room where roomid=?""", (roomid,))
+                    dbcursor.execute("""select * from room where roomid=?""", (roomid,) )
                     room = dbcursor.fetchone()
                     if room:
                         # to-do: user in room should stay in room
                         # so user without cookie can back in game if he's disconnected
-                        dbcursor.execute("""update user set sessionkey=?, ip=? where email=?""", (sessionkey, ip, email))
+                        dbcursor.execute("""update user set sessionkey=?, ip=? where email=?""", (sessionkey, ip, email) )
                     else:
-                        dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where email=?""", (sessionkey, ip, '', email))                    
+                        dbcursor.execute("""update user set sessionkey=?, ip=?, roomid=? where email=?""", (sessionkey, ip, '', email) )
                 else:
                     print 'incorrect password'
             else:
@@ -1093,6 +1134,10 @@ class MyHandler(RequestHandler):
             print 'sessionkey: ', sessionkey
 
             if sessionkey:
+                dbcursor.execute("""select * from user where sessionkey=?""", (sessionkey,))
+                user = dbcursor.fetchone()
+                # check_ip_conflict(user)
+                
                 self.send_response(200)
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
@@ -1231,6 +1276,8 @@ class MyHandler(RequestHandler):
 
                 dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
                     ('', 0, username))
+                #check_ip_conflict_username(username)
+                scan_ip_conflict()
                 #user_status[username] &= ~USR_HOST
                 upd_user_status(username)
 
@@ -1378,14 +1425,19 @@ class MyHandler(RequestHandler):
                 roomid = auth[4]
                 if user_status[username] & USR_HOST:
                     targetname = self.rfile.getvalue().decode('utf-8')
+                    print 'targetname: ', targetname
+                    print 'roomid: ', roomid
                     dbcursor.execute("""select * from user where
                         username=? and roomid=?""", (targetname, roomid))
                     target = dbcursor.fetchone()
                     if target:
+                        print 'check3'
                         targethash = target[11]
                         dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
                             ('', 0, targetname))
                         user_status[targetname] |= USR_KICKED
+                        #check_ip_conflict_username(username)
+                        scan_ip_conflict()
                         upd_user_status(targetname)
                         upd_room(roomid)
 
@@ -1432,6 +1484,8 @@ class MyHandler(RequestHandler):
                 msg_command(auth[4], MSG_USERQUIT, auth[11])
                 dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
                     ('', 0, auth[0]))
+                #check_ip_conflict_username(auth[0])
+                scan_ip_conflict()
                 upd_user_status(auth[0])
                 do_later_mask |= DLTR_COMMIT_DB
 
@@ -1467,6 +1521,8 @@ class MyHandler(RequestHandler):
                         msg_command(auth[4], MSG_USERQUIT, auth[11])
                         dbcursor.execute("""update user set roomid=? where username=?""", \
                             (roomid, auth[0]))
+                        #check_ip_conflict_username(auth[0])
+                        scan_ip_conflict()
                         user_status[auth[0]] &= ~USR_ACT_MASK
                         upd_user_status(auth[0])
                         do_later_mask |= DLTR_COMMIT_DB
@@ -1579,6 +1635,8 @@ class MyHandler(RequestHandler):
                     if not user_status[auth[0]] & USR_CONN:
                         # user connected
                         user_status[auth[0]] |= USR_CONN
+                        #check_ip_conflict(auth)
+                        scan_ip_conflict()
                         upd_user_status(auth[0])
                         my_logger.debug('user connected, user: '+auth[0])
 
@@ -1692,6 +1750,8 @@ class MyHandler(RequestHandler):
                 #user_status[username] |= USR_HOST
 
                 upd_room(roomid)
+                #check_ip_conflict_username(auth[0])
+                scan_ip_conflict()
                 user_status[username] &= ~USR_ACT_MASK
                 upd_user_status(username)
                 do_later_mask |= DLTR_COMMIT_DB
@@ -1744,6 +1804,8 @@ if __name__=="__main__":
     userlist = dbcursor.fetchall()
     for user in userlist:
         user_status[user[0]] = user[6]
+        #check_ip_conflict(user)
+        scan_ip_conflict()
         upd_user_status(user[0])
 
     port = HTTP_PORT

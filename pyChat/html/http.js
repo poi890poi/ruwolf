@@ -417,10 +417,12 @@
                             } else {
                                 if ((subobj[1] & 256) && subobj[0]) { // waiting for ready check
                                     userhtml += "<img class='usericon' src='images/error.png'></img>";
-                                } else if ((subobj[1] & 4) && (phase < 10)) { // host
+                                } else if (subobj[1] & 2) { // ipconflict
+                                    userhtml += "<img class='usericon' src='images/possession.png'></img>";
+                                } else if (subobj[1] & 4) { // host
                                     userhtml += "<img class='usericon' src='images/mod.png'></img>";
                                 } else {
-                                    userhtml += "<img class='usericon' src='images/unknown.png'></img>";
+                                    userhtml += "<img class='usericon' src='images/villager.png'></img>";
                                 }
                             }
                         } else {
