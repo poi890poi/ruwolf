@@ -21,6 +21,7 @@
     var poll_sent = 0;
     var hoverobj = 0;
     var phase_timeout = 9999999999999;
+    var isdcontent = false;
 
     function trim(strText) {
         // this will get rid of leading spaces
@@ -86,6 +87,7 @@
 
     function resetContent()
     {
+        isdcontent = false;
         $("#MessageList").empty();
         $("#UserListContainer").empty();
         userjson = "[]";
@@ -286,7 +288,10 @@
         {
             if (dcontent_xmlhttp.status==200)
             {
+                isdcontent = true;
                 $("#MessageList").html(dcontent_xmlhttp.responseText);
+                // scroll to top
+                $("#MessageList").attr({scrollTop: 0});
             }
 
             dcontent_xmlhttp.onreadystatechange = nill;
@@ -556,8 +561,11 @@
                     tbdom.append(lstappend);
                 }
 
-                // is scroll is at bottom, scroll to bottom
-                if (scr_to_bottom >= 0) {
+                if (isdcontent)
+                {
+                }
+                else if (scr_to_bottom >= 0) {
+                    // if scroll is not at bottom, scroll to bottom
                     $("#MessageList").attr({scrollTop: $("#MessageList").attr("scrollHeight")});
                 }
             }

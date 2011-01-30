@@ -927,7 +927,7 @@ def phase_advance(room):
     elif daynight == 1: # night
         sys_msg(get_string('sys_nightfall'), roomid, phase)
 
-        if phase > 0x20: # check this only if "night zero no kill" rle is applied
+        if phase > 0x20: # check this only if "night zero no kill" rule is applied
             dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BITE_MASK))
             userlist = dbcursor.fetchall()
             for row in userlist:
@@ -935,26 +935,27 @@ def phase_advance(room):
                 user_status[row[0]] |= USR_NIGHT_VOTE
                 upd_user_status(row[0])
 
-        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BLOCKER))
-        userlist = dbcursor.fetchall()
-        for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_BLOCK vote to blocker: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_BLOCK
-            upd_user_status(row[0])
+        if phase > 0x20: # check this only if "night zero no action" rule is applied
+            dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BLOCKER))
+            userlist = dbcursor.fetchall()
+            for row in userlist:
+                my_logger.debug('issue a USR_NIGHT_BLOCK vote to blocker: '+row[0])
+                user_status[row[0]] |= USR_NIGHT_BLOCK
+                upd_user_status(row[0])
 
-        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_SEER))
-        userlist = dbcursor.fetchall()
-        for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_SEER vote to blocker: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_SEER
-            upd_user_status(row[0])
+            dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_SEER))
+            userlist = dbcursor.fetchall()
+            for row in userlist:
+                my_logger.debug('issue a USR_NIGHT_SEER vote to blocker: '+row[0])
+                user_status[row[0]] |= USR_NIGHT_SEER
+                upd_user_status(row[0])
 
-        dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_HEALER))
-        userlist = dbcursor.fetchall()
-        for row in userlist:
-            my_logger.debug('issue a USR_NIGHT_HEAL vote to blocker: '+row[0])
-            user_status[row[0]] |= USR_NIGHT_HEAL
-            upd_user_status(row[0])
+            dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_HEALER))
+            userlist = dbcursor.fetchall()
+            for row in userlist:
+                my_logger.debug('issue a USR_NIGHT_HEAL vote to blocker: '+row[0])
+                user_status[row[0]] |= USR_NIGHT_HEAL
+                upd_user_status(row[0])
 
     elif phase > 0xffff: # end
         sys_msg('Game ended.', roomid, phase)
@@ -1016,10 +1017,6 @@ def check_ip_conflict(user):
     
     oldstatus = user_status[user[0]] & USR_IPCONFLICT
     user_status[user[0]] &= ~USR_IPCONFLICT
-    
-    print 'roomid: ', roomid
-    print 'ip: ', ip
-    print 'email: ', email
     
     dbcursor.execute("""select * from user where roomid=? and ip&?=? and email!=?""", (roomid, 0xffffff00, ip&0xffffff00, email) )
     conflict = dbcursor.fetchone()

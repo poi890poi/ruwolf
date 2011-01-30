@@ -33,6 +33,7 @@
     $("#MnuHelp").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
 		$("div.contextmenu").hide();
+        get_dcontent("/help.html");
     });
     $("#MnuQuit").click(function(e) {
         if ($(this).hasClass("menudisable")) return;
