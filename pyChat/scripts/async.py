@@ -387,8 +387,10 @@ def check_do_later():
             dbcomitted = conn.total_changes
 
         # check ended games
-        dbcursor.execute("""select * from room where phase >= ?""", \
-            (0xffff,))
+        #dbcursor.execute("""select * from room where phase >= ?""", \
+        #    (0xffff,))
+        # any empty room should be archived, whether it's finished or not
+        dbcursor.execute("""select * from room""")
         roomlist = dbcursor.fetchall()
         for room in roomlist:
             roomid = room[1]
@@ -406,22 +408,31 @@ def check_do_later():
                 dbcursor.execute("""select * from message where roomid=? order by timestamp desc limit 1""", \
                     (roomid,))
                 lastmsg = dbcursor.fetchone()
+                archive = False;
+                now = 0
+                timestamp = 0
                 if lastmsg:
                     timestamp = lastmsg[1]
                     now = get_time_norm()
                     if now-timestamp > INTERVAL_ARCHIVE:
-                        dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
-                        dbcursor.execute("""select * from user where roomid = ?""", \
-                            (roomid,) )
-                        userlist = dbcursor.fetchall()
-                        for user in userlist:
-                            msg_command(user[4], MSG_USERQUIT, user[11])
-                            dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
-                                ('', 0, user[0]))
-                            upd_user_status(user[0])
-                        msg_command(roomid, MSG_GAMEDROP_P, roomid)
-                        msg_command('', MSG_GAMEDROP, roomid)
-                        my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp) )
+                        archive = True;
+                else:
+                    archive = True;
+                if archive:
+                    dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
+                    dbcursor.execute("""select * from user where roomid = ?""", \
+                        (roomid,) )
+                    userlist = dbcursor.fetchall()
+                    for user in userlist:
+                        msg_command(user[4], MSG_USERQUIT, user[11])
+                        dbcursor.execute("""update user set roomid=?, privilege=? where username=?""", \
+                            ('', 0, user[0]))
+                        upd_user_status(user[0])
+                    msg_command(roomid, MSG_GAMEDROP_P, roomid)
+                    msg_command('', MSG_GAMEDROP, roomid)
+                    # to do: room entry should be deleted, or moved to another database
+                    # otherwise, archived room is archived again every time when server is booted
+                    my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp) )
         
         # check idle users
         dbcursor.execute("""select * from user where lastactivity < ? and status&?=0""", \
