@@ -60,21 +60,25 @@ for vn in range(3, 5):
     roles.append(rset)
 
 for vn in range(4, 6):
+    # 2 wolves, 4~5 villagers
     rset = []
     for i in range(2): rset.append(wolf)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(5, 8):
+    # 3 wolves, 5~7 villagers
     rset = []
     for i in range(3): rset.append(wolf)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(7, 10):
+    # 4 wolves, 7~9 villagers
     rset = []
     for i in range(4): rset.append(wolf)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(9, 12):
+    # 5 wolves, 9~11 villagers
     rset = []
     for i in range(5): rset.append(wolf)
     for i in range(vn): rset.append(ROLE_VILLAGER)
@@ -91,6 +95,7 @@ id = 'zarf_classic'
 options = RLE_VOTE_RUNOFF | RLE_NIGHTZERO | RLE_NIGHTTALK
 baseset = ''
 roles = []
+
 # 1 wolf is for test only
 for vn in range(1, 5):
     rset = []
@@ -98,13 +103,16 @@ for vn in range(1, 5):
     for i in range(1): rset.append(ROLE_SEER)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
+
 for vn in range(4, 14):
+    # 2 wolves, 1 seer, 4~13 villagers
     rset = []
     for i in range(2): rset.append(wolf)
     for i in range(1): rset.append(ROLE_SEER)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(13, 22):
+    # 3 wolves, 1 seer, 13~21 villagers
     rset = []
     for i in range(3): rset.append(wolf)
     for i in range(1): rset.append(ROLE_SEER)
@@ -123,6 +131,7 @@ options = RLE_VOTE_RUNOFF | RLE_NIGHTZERO | RLE_NIGHTTALK
 baseset = ''
 roles = []
 for vn in range(5, 6):
+    # wolf, blocker, healer, 5 villagers
     rset = []
     for i in range(1): rset.append(wolf)
     for i in range(1): rset.append(blocker)
@@ -131,18 +140,21 @@ for vn in range(5, 6):
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(7, 8):
+    # wolf, blocker, 7 villagers
     rset = []
     for i in range(1): rset.append(wolf)
     for i in range(1): rset.append(blocker)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(6, 7):
+    # 2 wolves, seer, 6 villagers
     rset = []
     for i in range(2): rset.append(wolf)
     for i in range(1): rset.append(ROLE_SEER)
     for i in range(vn): rset.append(ROLE_VILLAGER)
     roles.append(rset)
 for vn in range(5, 6):
+    # 2 wolves, healer, 5 villagers
     rset = []
     for i in range(2): rset.append(wolf)
     for i in range(1): rset.append(ROLE_HEALER)
