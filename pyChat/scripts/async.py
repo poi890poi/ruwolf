@@ -1838,6 +1838,26 @@ if __name__=="__main__":
         scan_ip_conflict()
         upd_user_status(user[0])
 
+    dbcursor.execute("""select * from room""")
+    roomlist = dbcursor.fetchall()
+    for room in roomlist:
+        roomid = room[1]
+        description = room[2]
+        ruleset = room[3]
+        options = room[4]
+        phase = room[5]
+        timeout = room[6]
+        message = room[7]
+
+        dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
+        sqlcount = dbcursor.fetchall()
+        user_count = sqlcount[0][0]
+        if user_count > 0:
+            if phase >= 0x10:
+                upd_room_ingame(roomid)
+            else:
+                upd_room(roomid)
+
     port = HTTP_PORT
     s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
