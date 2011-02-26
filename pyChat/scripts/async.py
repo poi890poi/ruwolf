@@ -817,7 +817,7 @@ def copy_ruleset(ruleset, roomid):
         dbcursor.execute('insert into ruleset values (?,?,?,?,?,?,?,?,?)', \
             (rec[0], roomid, rec[2], ruleset, rec[4], rec[5], rec[6], rec[7], rec[8]))
         do_later_mask |= DLTR_COMMIT_DB
-
+        
 def game_start(room):
     global user_status, user_role
 

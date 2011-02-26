@@ -490,6 +490,7 @@
                         }
                     }
                     else if (obj[i][0] == 8) {
+                        // MSG_ROOM_DETAIL
                         // room (description, ruleset, options, phase, host, roomid, participant, message)
                         // in game
                         var subobj = jQuery.parseJSON(obj[i][3]);
