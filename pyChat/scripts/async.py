@@ -81,6 +81,8 @@ def get_time_norm():
 def upd_room(roomid):
     """Room status is a special message type with a single instance per room.
     Later status overwrites earlier one.
+    MSG_ROOM is post in lobby
+    MSG_ROOM_DETAIL is post in private room
     """
     global do_later_mask
     dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
@@ -98,7 +100,17 @@ def upd_room(roomid):
         username = roomid
         participant = user_count
         roommessage = rec[7]
-        json_serial = (rec[2], rec[3], rec[4], rec[5], rec[0], roomid, participant, roommessage)
+        
+        host = rec[0]
+        dbcursor.execute("""select * from user where username=?""", (rec[0],) )
+        auth = dbcursor.fetchone()
+        if auth:
+            if auth[9]:
+                host = auth[9]
+            elif rec[10]:
+                host = auth[10]
+            
+        json_serial = (rec[2], rec[3], rec[4], rec[5], host, roomid, participant, roommessage)
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
             ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', username, 0, ''))
@@ -109,6 +121,9 @@ def upd_room(roomid):
     do_later_mask |= DLTR_COMMIT_DB
 
 def upd_room_ingame(roomid):
+    """When game is comencing, lobby no longer receives room status.
+    Room status is only post in private room.
+    """
     global do_later_mask
     dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
 
@@ -1717,6 +1732,8 @@ class MyHandler(RequestHandler):
 
                 roomid = str(uuid.uuid4())
                 username = auth[0]
+                displayname = auth[9]
+                email = auth[10]
                 hashname = auth[11]
                 if not description:
                     description = get_string('rnd_gamename')
@@ -1735,7 +1752,12 @@ class MyHandler(RequestHandler):
                 timestamp = get_time_norm()
                 privilege = 0
                 participant = 1
-                json_serial = (description, ruleset, options, phase, username, roomid, participant, message)
+                host = displayname
+                if not host:
+                    host = email
+                if not host:
+                    host = username
+                json_serial = (description, ruleset, options, phase, host, roomid, participant, message)
                 message = json.dumps(json_serial)
                 dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
                     ('', timestamp, 0, roomid, '', message, MSG_ROOM, 0, '', '[dsp]', 0, ''))
