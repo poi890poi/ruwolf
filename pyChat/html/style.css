@@ -98,6 +98,10 @@
         height: 100px;
     }
     
+    .BtnStd {
+        width: 148px;
+    }
+    
     div .titlebar {
         text-align: center;
         background: #333399;
