@@ -85,7 +85,7 @@ def upd_room(roomid):
     MSG_ROOM_DETAIL is post in private room
     """
     global do_later_mask
-    dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
+    dbcursor.execute("""delete from message where username=? and (type=? or type=?)""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
     dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
     sqlcount = dbcursor.fetchall()
     user_count = sqlcount[0][0]
@@ -114,10 +114,9 @@ def upd_room(roomid):
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
             ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', username, 0, ''))
-        my_logger.debug('upd_room, room: '+roomid+', json: '+message)
-
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
             (roomid, timestamp, 0, username, '', message, MSG_ROOM_DETAIL, 0, '', username, 0, ''))
+        my_logger.debug('upd_room, room: '+roomid+', json: '+message)
     do_later_mask |= DLTR_COMMIT_DB
 
 def upd_room_ingame(roomid):
@@ -125,7 +124,7 @@ def upd_room_ingame(roomid):
     Room status is only post in private room.
     """
     global do_later_mask
-    dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
+    dbcursor.execute("""delete from message where username=? and (type=? or type=?)""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
 
     dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
     sqlcount = dbcursor.fetchall()
@@ -430,8 +429,8 @@ def check_do_later():
                         upd_user_status(user[0])
                     msg_command(roomid, MSG_GAMEDROP_P, roomid)
                     msg_command('', MSG_GAMEDROP, roomid)
-                    # to do: room entry should be deleted, or moved to another database
-                    # otherwise, archived room is archived again every time when server is booted
+                    # to do: actually archive messages and room entry
+                    dbcursor.execute("""delete from room where roomid=?""", (roomid,) )
                     my_logger.debug('archive, roomid: %s, silent: %d' % (roomid,now-timestamp) )
         
         # check idle users
