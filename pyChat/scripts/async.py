@@ -418,7 +418,7 @@ def check_do_later():
                 else:
                     archive = True;
                 if archive:
-                    dbcursor.execute("""delete from message where username=? and type=? or type=?""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
+                    dbcursor.execute("""delete from message where username=? and (type=? or type=?)""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
                     dbcursor.execute("""select * from user where roomid = ?""", \
                         (roomid,) )
                     userlist = dbcursor.fetchall()
@@ -1827,7 +1827,7 @@ if __name__=="__main__":
     # clear temp states
     dbcursor.execute("""delete from message where roomid='' and (type=? or type=? or type=?)""", \
         (MSG_USER_STATUS, MSG_USR_STA_PRIVATE, MSG_USR_STA_ALIGNMENT) )
-    dbcursor.execute("""delete from message where type=? or type=? or type=?""", \
+    dbcursor.execute("""delete from message where (type=? or type=? or type=?)""", \
         (MSG_USERQUIT, MSG_GAMEDROP, MSG_GAMEDROP_P) )
     dbcursor.execute("""select * from user where status&?""", (USR_CONN, ))
     userlist = dbcursor.fetchall()
