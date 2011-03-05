@@ -35,6 +35,27 @@ dbcursor.execute('''create table if not exists ruleset
 (description text, id text, options integer, baseset text, roles text,
 nightzero integer, day integer, night integer, runoff integer)''')
 
+parse_state = 0
+index = 0
+with open(u'scripts\setup.py') as hfile:
+    for line in hfile.readlines():
+        if parse_state == 0:
+            # initial
+            if line.find(u"('''create table if not exists") != -1 and line.find(u'line.find(') == -1:
+                parse_state = 1
+                index = 0
+                print line
+        elif parse_state == 1:
+            # get columns
+            line = line.replace(u'(', u'')
+            for col in line.split(u','):
+                if col.strip():
+                    print index, col.lstrip()
+                    index += 1
+            if line.find(u")''')") != -1:
+                parse_state = 0
+                print   
+
 # init rule sets
 
 wolf = (0x1 << ROLE_ALIGNMENT_SHIFT) | ROLE_WOLF
