@@ -35,16 +35,17 @@ dbcursor.execute('''create table if not exists ruleset
 (description text, id text, options integer, baseset text, roles text,
 nightzero integer, day integer, night integer, runoff integer)''')
 
+# print column index/name
 parse_state = 0
 index = 0
-with open(u'scripts\setup.py') as hfile:
+with open(u'scripts//setup.py') as hfile:
     for line in hfile.readlines():
         if parse_state == 0:
             # initial
             if line.find(u"('''create table if not exists") != -1 and line.find(u'line.find(') == -1:
                 parse_state = 1
                 index = 0
-                print line
+                print line,
         elif parse_state == 1:
             # get columns
             line = line.replace(u'(', u'')
@@ -55,6 +56,22 @@ with open(u'scripts\setup.py') as hfile:
             if line.find(u")''')") != -1:
                 parse_state = 0
                 print   
+
+# print function name
+with open(u'scripts//async.py') as hfile:
+    for line in hfile.readlines():
+        if line.find('def ') != -1:
+            print line.lstrip(),
+
+print
+
+# print http commands
+with open(u'scripts//async.py') as hfile:
+    for line in hfile.readlines():
+        if line.find('self.path == ') != -1:
+            print line.lstrip(),
+
+print
 
 # init rule sets
 
