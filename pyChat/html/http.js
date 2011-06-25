@@ -1,7 +1,4 @@
-﻿    var SYSTEM_USER = 'aaedddbf-13a9-402b-8ab2-8b0073b3ebf3'
-    var ALIGNMENT_MASK = 0xffffff
-
-    var timestamp = 0;
+﻿    var timestamp = 0;
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
     //var sessionkey = ""; //for testing
     var userjson = "[]";
@@ -587,7 +584,7 @@
 
             poll_xmlhttp.onreadystatechange = nill;
             poll_xmlhttp.abort();
-            poll_timer = setTimeout(poll, 500);
+            poll_timer = setTimeout(poll, INTERVAL_POLL);
         }
     }
 
