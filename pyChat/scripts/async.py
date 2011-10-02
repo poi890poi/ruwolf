@@ -452,6 +452,21 @@ def check_do_later():
             my_logger.debug('drop user, username: %s, lastactivity: %d' % (username,lastactivity) )
 
         do_later_long = now + INTERVAL_LONG
+        
+def safe_user_status(username):
+    """Prevent KeyError when accessing user_status[username]
+    """
+    if username in user_status:
+        pass
+    else:
+        dbcursor.execute("""select * from user where username=?""", (username, ))
+        user = dbcursor.fetchone()
+        if user:
+            print 'user: ', user
+            user_status[user[0]] = user[6]
+            scan_ip_conflict()
+            upd_user_status(user[0])
+    
 
 def process_timeout(room):
     roomid = room[1]
@@ -462,7 +477,7 @@ def process_timeout(room):
     timeout = room[6]
     message = room[7]
 
-    my_logger.debug('process timeout, roomid: %s, timeout: %d, now: %d, phase: %s' % (roomid,timeout,get_time_norm(),hex(phase)))
+    my_logger.debug('process timeout, roomid: %s, timeout: %d, now: %d, phase: %s' % (roomid,timeout,get_time_norm(),hex(phase)) )
 
     # check untaken actions
     dbcursor.execute("""select * from user where roomid=? and status&?""", \
@@ -471,6 +486,7 @@ def process_timeout(room):
     for user in userlist:
         username = user[0]
         role = user[5]
+        safe_user_status(username)
         status = user_status[username]
         # to-do: check specific actions and process one by one
         user_status[username] &= ~USR_ACT_MASK
@@ -1845,6 +1861,7 @@ if __name__=="__main__":
     userlist = dbcursor.fetchall()
     for user in userlist:
         user_status[user[0]] = user[6]
+    for user in userlist: # 2 steps to avoid KeyError when accesing user_status[username]
         #check_ip_conflict(user)
         scan_ip_conflict()
         upd_user_status(user[0])
