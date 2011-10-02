@@ -1,6 +1,6 @@
 ﻿    var timestamp = 0;
     var sessionkey = $.cookie("702CCBC8-F4A3-11DF-8EFE-4405DFD72085");
-    //var sessionkey = ""; //for testing
+    //var sessionkey = ""; // disable cookie so multiple log-in is allowed, for testing
     var userjson = "[]";
     var wait_action = false;
     var roomjson = "[]";
@@ -378,7 +378,7 @@
 
                         if (obj[i][0] == 0x4000) { // user status private
                             if (subobj[1] & 16) { // kicked, USR_KICKED
-                                alert("你被邀請到大廳了！");
+                                alert("你被邀請加入大廳！");
                                 send_text("/drop_confirm");
                             }
                             userjson = obj[i][3];
