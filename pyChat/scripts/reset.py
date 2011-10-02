@@ -15,6 +15,7 @@ dbcursor = conn.cursor()
 
 # Create table
 dbcursor.execute('''drop table message''')
+dbcursor.execute('''drop table delaymsg''')
 dbcursor.execute('''drop table user''')
 dbcursor.execute('''drop table room''')
 dbcursor.execute('''drop table action''')

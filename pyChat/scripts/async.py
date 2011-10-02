@@ -339,6 +339,53 @@ def sys_msg(message, roomid, phase = 0):
     dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
         (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, phase, '', SYSTEM_USER, 0, ''))
 
+def report_msg(message, roomid, phase = 0):
+    my_logger.debug('sys_msg: '+message)
+
+    now = time.time()
+    timestamp = long(now*1000)
+    ct = time.localtime(now)
+    isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+
+    dbcursor.execute("""select * from delaymsg where roomid=?""", (roomid, ))
+    exist = dbcursor.fetchone()
+    if exist:
+        message = exist[5] + message + '<br/>'
+
+    dbcursor.execute("""delete from delaymsg where roomid=?""", (roomid, ))
+
+    privilege = 0
+    dbcursor.execute("""select * from room where roomid=?""", (roomid, ))
+    room = dbcursor.fetchone()
+    if room:
+        phase = room[5]
+        my_logger.debug('phase: '+hex(phase))
+        daynight = get_day_night(phase)
+        my_logger.debug('daynight: '+str(daynight))
+        if daynight == 0: # day
+            privilege |= PVG_DAYCHAT
+        elif daynight == 1: # night
+            privilege |= PVG_DAYCHAT
+        else:
+            privilege |= PVG_ROOMCHAT
+
+    dbcursor.execute('insert into delaymsg values (?,?,?,?,?,?,?,?,?,?,?,?)', \
+        (roomid, timestamp, privilege, SYSTEM_USER, isoformat, message, 0, phase, '', SYSTEM_USER, 0, ''))
+
+def report_msg_commit(roomid, phase = 0):
+    now = time.time()
+    timestamp = long(now*1000)
+    ct = time.localtime(now)
+    isoformat = datetime.time(ct.tm_hour,ct.tm_min,ct.tm_sec).isoformat()
+
+    dbcursor.execute("""select * from delaymsg where roomid=?""", (roomid, ))
+    exist = dbcursor.fetchone()
+    if exist:
+        my_logger.debug('report_msg_commit: '+exist[5])
+        sys_msg(exist[5], roomid, phase)
+
+    dbcursor.execute("""delete from delaymsg where roomid=?""", (roomid, ))
+
 def private_msg(username, message, roomid, phase):
     now = time.time()
     timestamp = long(now*1000)
@@ -556,6 +603,7 @@ def check_game_end(room):
         is_end = True
 
     if is_end:
+        report_msg_commit(roomid, phase)
         dbcursor.execute("""update room set timeout=? where roomid=?""", \
             (TIME_MAX, roomid))
         pass
@@ -657,6 +705,8 @@ def check_vote_day(room):
         msg += get_string('sys_lynched') % get_displayname(roomid, final)
         kill_player(room, final, lynch=True)
         sys_msg(msg, roomid, phase)
+        report = get_string('report_lynched') % (get_day_count(phase), get_displayname(roomid, final) )
+        report_msg(report, roomid, phase)
     else:
         # no one is hanged
         pass
@@ -804,6 +854,8 @@ def check_vote(room):
                 msg = get_string('sys_killed') % get_displayname(roomid, killed)
                 kill_player(room, killed)
                 sys_msg(msg, roomid, phase)
+                report = get_string('report_killed') % (get_day_count(phase), get_displayname(roomid, killed) )
+                report_msg(report, roomid, phase)
 
             if check_game_end(room):
                 phase = PHS_AFTERMATH
@@ -932,6 +984,11 @@ def get_subphase(phase):
     """
     return phase & 0xf
 
+def get_day_count(phase):
+    if ((phase >> 4) == 0) or (phase > 0xffff):
+        return -1
+    return (phase >> 4)/2
+
 def phase_advance(room):
     roomid = room[1]
     description = room[2]
@@ -956,7 +1013,7 @@ def phase_advance(room):
     # assign actions to players
     daynight = get_day_night(phase)
     if daynight == 0: # day
-        sys_msg(get_string('sys_sunrise'), roomid, phase)
+        sys_msg(get_string('sys_sunrise') % get_day_count(phase), roomid, phase)
 
         dbcursor.execute("""select * from user where roomid=? and status&?""", (roomid, USR_SURVIVE))
         userlist = dbcursor.fetchall()
@@ -976,6 +1033,9 @@ def phase_advance(room):
                 my_logger.debug('issue a USR_NIGHT_VOTE vote to wolf: '+row[0])
                 user_status[row[0]] |= USR_NIGHT_VOTE
                 upd_user_status(row[0])
+        else:
+            #Night zero, RLE_NIGHTZERO
+            sys_msg(get_string('sys_nightzero'), roomid, phase)
 
         if phase > 0x20: # check this only if "night zero no action" rule is applied
             dbcursor.execute("""select * from user where roomid=? and status&? and role&?""", (roomid, USR_SURVIVE, ROLE_BLOCKER))
@@ -1840,6 +1900,7 @@ class MyHandler(RequestHandler):
             self.handle_post()
 
 if __name__=="__main__":
+    # init other modules
     # init other modules
     random.seed()
 

@@ -11,20 +11,28 @@ cht['help_possession'] = u'你是附身的邪靈，人狼的同夥。外表與�
 
 cht['sys_voteready'] = u'請用滑鼠點擊任何使用者，投票以開始進行遊戲。'
 cht['sys_welcome'] = u'歡迎來到<b>%s</b>，這是一個沒有暴力、溫馨的地方。'
-cht['sys_sunrise'] = (u'天亮了，早起的蟲兒有鳥吃。', u'公雞啼，洨鳥叫，太陽出來了。', u'藍天藍，白雲白，太陽出來了。')
+cht['sys_sunrise'] = (u'第%s天，天亮了，早起的蟲兒有鳥吃。', u'第%s天，公雞啼，洨鳥叫，太陽出來了。', u'第%s天，藍天藍，白雲白，太陽出來了。')
 cht['sys_nightfall'] = (u'夜幕低垂，狼群蠢蠢欲動。', u'夜深了，趕快回家吧！', u'天黑了，深夜問題多，平安回家最好！', u'夜幕低垂，月黑風高，殺人夜。')
+cht['sys_nightzero'] = (u'預備回合，能力者與人狼不能行動，狼人請認識你的伙伴，村民與能力者可點擊右鍵閱讀規則。')
 cht['sys_killed'] = (u'<b>%s</b>陳屍家中，李組長眉頭一皺，發覺案情並不單純！', u'<b>%s</b>手握遙控器，陳屍於馬桶上！', u'<b>%s</b>被發現陳屍家中，死狀淒慘！', u'<b>%s</b>被發現陳屍家中！面露微笑。')
 cht['sys_lynched'] = (u'<b>%s</b>被吊死，歹路不可行！', u'<b>%s</b>被吊死，法網恢恢，疏而不漏！')
 cht['sys_deadlocked'] = u'這是一場不公平的選舉，請重新投票！'
 cht['sys_dead'] = u'你已經死了！'
-cht['sys_wolf_win'] = u'人狼勝利'
-cht['sys_villager_win'] = u'村民勝利'
+cht['sys_wolf_win'] = u'遊戲結束，人狼勝利'
+cht['sys_villager_win'] = u'遊戲結束，村民勝利'
 
 cht['role_seer'] = u'<b>%s</b>是%s'
 cht['role_wolf'] = u'狼'
 cht['role_villager'] = u'村民'
 cht['role_heal'] = u'<b>%s</b>被你治愈了'
 cht['role_block'] = u'<b>%s</b>被你迷惑，忘了他的工作。'
+
+cht['report_killed'] = u'第%s天，<b>%s</b>被殺身亡。'
+cht['report_lynched'] = u'第%s天，<b>%s</b>被吊死。'
+cht['report_seer'] = u'第%s天，<b>%s</b>發現<b>%s</b>是%s。'
+cht['report_heal'] = u'第%s天，<b>%s</b>治愈<b>%s</b>。'
+cht['report_block'] = u'第%s天，<b>%s</b>魅惑<b>%s</b>。'
+cht['report_survive'] = u'<b>%s</b>存活。'
 
 cht['rnd_username'] = (u'送七粒', u'哈哈波特', u'灣家阿幹', u'綠巨人浩呆', u'呻吟少女', u'每日吸', u'皮卡撐', u'蘆洲小刀', u'世貿爽哥', u'蘇澳薩克娘', u'冬瓜標', u'師父救我啊', u'衝車大將軍', u'呷麵超人', u'屌面人', u'ERO-MAN', \
 u'曾豪孝', u'莊孝維', u'媽呀我不想死', u'非常親切的人', u'水車姑娘', u'褲落魔法使', u'高達八成', u'莊孝皇后', u'塞魯', u'盧塞', u'盧塞', u'肛鐵人', u'塚鬼丸', u'榴蓮終結者', u'腎堂教父', u'一個好人', \
