@@ -1314,7 +1314,7 @@ class MyHandler(RequestHandler):
                 auth = dbcursor.fetchone()
 
             if auth:
-                nickname = unicode(self.headers['X-Nickname'], 'utf-8')
+                nickname = unicode(self.headers['From'], 'utf-8')
                 username = auth[0]
                 roomid = auth[4]
                 displayname = nickname
