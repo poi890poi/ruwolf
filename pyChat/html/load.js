@@ -97,6 +97,7 @@
             }
 
             // room (description, ruleset, options, phase, host, roomid, participant, message)
+            // user status (roomid, user_status[user], role, username, ip, hash, email, displayname)
             //$("#Utility #Util2").html(roomjson);
             //resizeUI(0);
 
@@ -111,9 +112,12 @@
                     $("#MnuQuit").removeClass("menuitem")
                         .addClass("menudisable");
                 }
-                if (roomobj[4] == userobj[3] && roomobj[3] < 0x10) {
+                if (userobj[1] & 4) { // host
                     ishost = true;
                 }
+                //if (roomobj[4] == userobj[3] && roomobj[3] < 0x10) // do NOT use this checking, host in roomobj is for display only
+                //    ishost = true;
+                //}
             } else {
                 $("#MnuQuit").removeClass("menuitem")
                     .addClass("menudisable");
