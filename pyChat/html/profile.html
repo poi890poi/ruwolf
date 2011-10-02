@@ -63,8 +63,8 @@
                 dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
                 dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
 
-                dcontent_xmlhttp.setRequestHeader("X-Nickname", $("#D_Content #profile_nickname").val());
-                dcontent_xmlhttp.setRequestHeader("X-Password", $("#D_Content #profile_password").val());
+                dcontent_xmlhttp.setRequestHeader("From", $("#D_Content #profile_nickname").val()); //Custom HTTP header X- does not work in IE
+                dcontent_xmlhttp.setRequestHeader("Pragma", $("#D_Content #profile_password").val());
                 var param = ".";
                 dcontent_xmlhttp.send(param);
             }

@@ -235,7 +235,7 @@
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
             send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
-            send_xmlhttp.setRequestHeader("X-Action", action);
+            send_xmlhttp.setRequestHeader("From", action.toString() ); //From is used as Action, sincs custom header X-Action does not work in IE
             send_xmlhttp.send(content);
         }
     }

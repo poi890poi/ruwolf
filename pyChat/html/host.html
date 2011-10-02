@@ -85,8 +85,8 @@
                 dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
                 dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
 
-                dcontent_xmlhttp.setRequestHeader("X-RuleSet", $("#D_Content #host_ruleset").val());
-                dcontent_xmlhttp.setRequestHeader("X-Description", $("#D_Content #host_gamename").val());
+                dcontent_xmlhttp.setRequestHeader("Pragma", $("#D_Content #host_ruleset").val()); //Custom HTTP header X- does not work in IE
+                dcontent_xmlhttp.setRequestHeader("From", $("#D_Content #host_gamename").val());
                 var msg = $("#D_Content #host_description").val();
                 if (!msg) msg = ".";
                 dcontent_xmlhttp.send(msg);

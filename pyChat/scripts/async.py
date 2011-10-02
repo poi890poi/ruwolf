@@ -1404,8 +1404,8 @@ class MyHandler(RequestHandler):
                 dbcursor.execute("""select * from user where
                     sessionkey=? and ip=?""", (sessionkey, ip))
                 auth = dbcursor.fetchone()
-            if 'X-Action' in self.headers:
-                action = int(self.headers['X-Action'])
+            if 'From' in self.headers: # From is used as Action, sincs custom header X-Action does not work in IE
+                action = int(self.headers['From'])
 
             if auth:
                 username = auth[0]
@@ -1740,10 +1740,10 @@ class MyHandler(RequestHandler):
                 description = ''
                 message = unicode(self.rfile.getvalue(), 'utf-8')
                 message = html_escape(message)
-                if 'X-RuleSet' in self.headers:
-                    ruleset = self.headers['X-RuleSet']
-                if 'X-Description' in self.headers:
-                    description = unicode(self.headers['X-Description'], 'utf-8')
+                if 'Pragma' in self.headers: #Custom HTTP header X- does not work in IE
+                    ruleset = self.headers['Pragma']
+                if 'From' in self.headers:
+                    description = unicode(self.headers['From'], 'utf-8')
                     description = html_escape(description)
 
                 roomid = str(uuid.uuid4())
