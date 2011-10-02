@@ -11,7 +11,8 @@ import hashlib
 import logging
 import logging.handlers
 
-from recipe440665 import *
+#from recipe440665 import *
+from asynchttp import *
 from constant import *
 from function import *
 from lang import *
@@ -1161,10 +1162,11 @@ class MyHandler(RequestHandler):
                 # check_ip_conflict(user)
                 
                 self.send_response(200)
+                self.send_header(u'Connection', u'Keep-Alive')
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 ret = json.dumps((sessionkey,username))
-                self.wfile.write(ret)
+                self.outgoing.append(ret)
             else:
                 self.send_response(401)
                 self.end_headers()
@@ -1193,6 +1195,7 @@ class MyHandler(RequestHandler):
                 with open(path) as hfile:
                     dcontent = unicode(hfile.read(), 'utf-8')
                     self.send_response(200)
+                    self.send_header(u'Connection', u'Keep-Alive')
                     self.send_header(u'Content-type', u'text/plain')
                     self.end_headers()
                     subst = None
@@ -1206,8 +1209,7 @@ class MyHandler(RequestHandler):
                         subst = (email, nickname)
                     if subst:
                         dcontent = dcontent % subst
-                        
-                    self.wfile.write(dcontent.encode('utf-8'))
+                    self.outgoing.append(dcontent.encode('utf-8'))
 
             else:
                 self.send_response(200)
@@ -1708,16 +1710,20 @@ class MyHandler(RequestHandler):
                 #my_logger.debug('/check_update, username: '+username+', content: '+ret)
 
                 self.send_response(200)
+                self.send_header(u'Connection', u'Keep-Alive')
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
-                self.wfile.write(ret)
+                self.outgoing.append(ret)
             elif auth:
                 self.send_response(204)
+                #self.send_header(u'Connection', u'Keep-Alive')
+                #self.send_header(u'Content-Length', u'0')
                 self.end_headers()
             else:
                 self.send_response(401)
+                self.send_header(u'Connection', u'Keep-Alive')
+                self.send_header(u'Content-Length', u'0')
                 self.end_headers()
-
             check_do_later()
 
         elif self.path == '/hostex':
@@ -1798,12 +1804,18 @@ class MyHandler(RequestHandler):
 
             if ret:
                 self.send_response(200)
+                self.send_header(u'Connection', u'Keep-Alive')
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
-                self.wfile.write(ret)
+                self.outgoing.append(ret)
             else:
                 self.send_response(204)
+                self.send_header(u'Connection', u'Keep-Alive')
+                self.send_header(u'Content-Length', u'0')
                 self.end_headers()
+
+        # signal the end of this request
+        self.outgoing.append(None)
 
     def handle_data(self):
         if self.command == 'GET':
@@ -1861,7 +1873,7 @@ if __name__=="__main__":
     s = Server('', port, MyHandler)
     print "SimpleAsyncHTTPServer running on port %s" % port
     try:
-        asyncore.loop(timeout=2)
+        asyncore.loop()
     except KeyboardInterrupt:
         conn.commit()
         conn.close()

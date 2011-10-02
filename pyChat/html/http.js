@@ -67,6 +67,7 @@
                 credential_xmlhttp.onreadystatechange = handle_credentail_return;
                 credential_xmlhttp.open("POST", "/check_credential", true);
                 credential_xmlhttp.setRequestHeader("Authorization", sessionkey);
+                credential_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
                 credential_xmlhttp.setRequestHeader("Content-type", "text/plain");
                 credential_xmlhttp.send(username);
                 return;
@@ -173,6 +174,7 @@
             trimmed == "/drop") {
             send_xmlhttp.open("POST", trimmed, true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(sessionkey);
         } else if (trimmed.substring(0, 10) == "/vote_rdy ") {
@@ -181,6 +183,7 @@
             if (arg[1]) {target = arg[1];}
             send_xmlhttp.open("POST", "/vote_rdy", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(target);
         } else if (trimmed.substring(0, 6) == "/kick ") {
@@ -189,6 +192,7 @@
             if (arg[1]) {target = arg[1];}
             send_xmlhttp.open("POST", "/kick", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(target);
         } else if (trimmed.substring(0, 6) == "/join ") {
@@ -197,6 +201,7 @@
             if (arg[1]) {roomid = arg[1];}
             send_xmlhttp.open("POST", "/join", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(roomid);
         } else if (trimmed == "/slogout") {
@@ -204,6 +209,7 @@
         } else {
             send_xmlhttp.open("POST", "/send_text", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(params);
         }
@@ -227,6 +233,7 @@
         if (trimmed == "/target") {
             send_xmlhttp.open("POST", trimmed, true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
+            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.setRequestHeader("X-Action", action);
             send_xmlhttp.send(content);
@@ -272,6 +279,7 @@
         params += "\r\n";
         params += $("#Password").val();
         login_xmlhttp.open("POST", "/login", true);
+        login_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
         login_xmlhttp.setRequestHeader("Content-type", "text/plain");
         login_xmlhttp.send(params);
     }
@@ -304,6 +312,7 @@
         dcontent_xmlhttp.onreadystatechange = handle_dcontent_return;
         dcontent_xmlhttp.open("POST", "dcontent", true);
         dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
+        dcontent_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
         dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
         dcontent_xmlhttp.send(dcontent);
     }
@@ -584,6 +593,7 @@
 
             poll_xmlhttp.onreadystatechange = nill;
             poll_xmlhttp.abort();
+            poll_sent = 0;
             poll_timer = setTimeout(poll, INTERVAL_POLL);
         }
     }
@@ -593,13 +603,16 @@
     function poll()
     {
         if (poll_xmlhttp.readyState != 0) {
+        //if (poll_sent != 0) {
             return;
         }
         var my_JSON_object = {};
         poll_xmlhttp.onreadystatechange = handle_poll_return;
         var params = timestamp + "";
+        //if (poll_xmlhttp.readyState == 0) poll_xmlhttp.open("POST", "/check_update", true);
         poll_xmlhttp.open("POST", "/check_update", true);
         poll_xmlhttp.setRequestHeader("Authorization", sessionkey);
+        poll_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
         poll_xmlhttp.setRequestHeader("Content-type", "text/plain");
         poll_xmlhttp.send(params);
 
