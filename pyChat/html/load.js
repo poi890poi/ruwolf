@@ -112,7 +112,7 @@
                     $("#MnuQuit").removeClass("menuitem")
                         .addClass("menudisable");
                 }
-                if (userobj[1] & 4) { // host
+                if (userobj[1]&4 && roomobj[3] < 0x10) { // host
                     ishost = true;
                 }
                 //if (roomobj[4] == userobj[3] && roomobj[3] < 0x10) // do NOT use this checking, host in roomobj is for display only
