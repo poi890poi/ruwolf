@@ -108,8 +108,12 @@
                 if (roomobj[3] == 0 || roomobj[3] >= 0xffff || !(userobj[1] & 0x2)) {
                     $("#MnuQuit").addClass("menuitem")
                         .removeClass("menudisable");
+                    $("#MnuUserProfile").addClass("menuitem")
+                        .removeClass("menudisable");
                 } else {
                     $("#MnuQuit").removeClass("menuitem")
+                        .addClass("menudisable");
+                    $("#MnuUserProfile").removeClass("menuitem")
                         .addClass("menudisable");
                 }
                 if (userobj[1]&4 && roomobj[3] < 0x10) { // host
