@@ -87,7 +87,7 @@ def upd_room(roomid):
     """
     global do_later_mask
     dbcursor.execute("""delete from message where username=? and (type=? or type=?)""", (roomid, MSG_ROOM, MSG_ROOM_DETAIL))
-    dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
+    dbcursor.execute("""select count(*) from user where roomid=? and status&?""", (roomid, USR_CONN) )
     sqlcount = dbcursor.fetchall()
     user_count = sqlcount[0][0]
     if user_count == -1: user_count = 0
@@ -401,7 +401,7 @@ def check_do_later():
             timeout = room[6]
             message = room[7]
 
-            dbcursor.execute("""select count(*) from user where roomid=?""", (roomid, ))
+            dbcursor.execute("""select count(*) from user where roomid=? and status&?""", (roomid, USR_CONN) )
             sqlcount = dbcursor.fetchall()
             user_count = sqlcount[0][0]
             if user_count == -1 or user_count == 0:
