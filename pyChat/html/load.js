@@ -300,7 +300,7 @@
         }
 
 		var join = $("#MnuJoin");
-        join.html("加入遊戲<b>" + layoutSafeStr(data_json[0]) + "</b>");
+        join.html("加入遊戲<b>" + layoutSafeStr(data_json[0].escapeHTML()) + "</b>");
 		join.unbind("click");
 		join.click(function (e) {
             send_text("/join " + roomid);
@@ -330,10 +330,11 @@
             }
 
             var data_json = jQuery.parseJSON(obj.attr("data-json"));
+            //alert(obj.attr("data-json"));
             if (data_json.length >= 8)
             {
                 var txt = "";
-                txt += "<b>" + data_json[0] + "</b><br/>";
+                txt += "<b>" + data_json[0].escapeHTML() + "</b><br/>";
                 txt += "主持人：" + data_json[4] + "<br/>";
                 txt += "規則：" + data_json[1] + "<br/>";
                 txt += "人數：" + data_json[6] + "<br/><br/>";

@@ -111,7 +111,7 @@ def upd_room(roomid):
             elif rec[10]:
                 host = auth[10]
             
-        json_serial = (rec[2], rec[3], rec[4], rec[5], host, roomid, participant, roommessage)
+        json_serial = (rec[2], rec[3], rec[4], rec[5], host, roomid, participant, html_escape(roommessage) )
         message = json.dumps(json_serial)
         dbcursor.execute('insert into message values (?,?,?,?,?,?,?,?,?,?,?,?)', \
             ('', timestamp, 0, username, '', message, MSG_ROOM, 0, '', username, 0, ''))
@@ -1238,7 +1238,7 @@ class MyHandler(RequestHandler):
                 # check_ip_conflict(user)
                 
                 self.send_response(200)
-                self.send_header(u'Connection', u'Keep-Alive')
+                #self.send_header(u'Connection', u'Keep-Alive') #Google Chrome error: Refused to set unsafe header "Connection"
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 ret = json.dumps((sessionkey,username))
@@ -1271,7 +1271,7 @@ class MyHandler(RequestHandler):
                 with open(path) as hfile:
                     dcontent = unicode(hfile.read(), 'utf-8')
                     self.send_response(200)
-                    self.send_header(u'Connection', u'Keep-Alive')
+                    #self.send_header(u'Connection', u'Keep-Alive') #Google Chrome error: Refused to set unsafe header "Connection"
                     self.send_header(u'Content-type', u'text/plain')
                     self.end_headers()
                     subst = None
@@ -1317,7 +1317,7 @@ class MyHandler(RequestHandler):
                 nickname = unicode(self.headers['From'], 'utf-8')
                 username = auth[0]
                 roomid = auth[4]
-                displayname = nickname
+                displayname = html_escape(nickname)
                 email = auth[10]
                 mark = auth[12]
                 dbcursor.execute("""update user set nickname=?, displayname=? where sessionkey=?""", (nickname, displayname, sessionkey))
@@ -1786,7 +1786,7 @@ class MyHandler(RequestHandler):
                 #my_logger.debug('/check_update, username: '+username+', content: '+ret)
 
                 self.send_response(200)
-                self.send_header(u'Connection', u'Keep-Alive')
+                #self.send_header(u'Connection', u'Keep-Alive') #Google Chrome error: Refused to set unsafe header "Connection"
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 self.outgoing.append(ret)
@@ -1797,7 +1797,7 @@ class MyHandler(RequestHandler):
                 self.end_headers()
             else:
                 self.send_response(401)
-                self.send_header(u'Connection', u'Keep-Alive')
+                #self.send_header(u'Connection', u'Keep-Alive') #Google Chrome error: Refused to set unsafe header "Connection"
                 self.send_header(u'Content-Length', u'0')
                 self.end_headers()
             check_do_later()
@@ -1814,13 +1814,16 @@ class MyHandler(RequestHandler):
             if auth:
                 ruleset = ''
                 description = ''
-                message = unicode(self.rfile.getvalue(), 'utf-8')
-                message = html_escape(message)
-                if 'Pragma' in self.headers: #Custom HTTP header X- does not work in IE
+                print 'json: ', self.rfile.getvalue()
+                contentjson = json.loads(self.rfile.getvalue() )
+                ruleset = contentjson[0]
+                description = contentjson[1]
+                message = html_escape(contentjson[2])
+                """if 'Pragma' in self.headers: #Header 'Pragma' is modified by Firefox
                     ruleset = self.headers['Pragma']
                 if 'From' in self.headers:
                     description = unicode(self.headers['From'], 'utf-8')
-                    description = html_escape(description)
+                    description = html_escape(description)"""
 
                 roomid = str(uuid.uuid4())
                 username = auth[0]
@@ -1880,13 +1883,13 @@ class MyHandler(RequestHandler):
 
             if ret:
                 self.send_response(200)
-                self.send_header(u'Connection', u'Keep-Alive')
+                #self.send_header(u'Connection', u'Keep-Alive') #Google Chrome error: Refused to set unsafe header "Connection"
                 self.send_header(u'Content-type', u'text/plain')
                 self.end_headers()
                 self.outgoing.append(ret)
             else:
                 self.send_response(204)
-                self.send_header(u'Connection', u'Keep-Alive')
+                #self.send_header(u'Connection', u'Keep-Alive') #Google Chrome error: Refused to set unsafe header "Connection"
                 self.send_header(u'Content-Length', u'0')
                 self.end_headers()
 

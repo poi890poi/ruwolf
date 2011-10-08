@@ -35,6 +35,18 @@
         return strText;
     }
     
+    String.prototype.escapeHTML = function () {
+        return(
+            this.replace(/&/g,'&amp;').
+                replace(/'/g,'&#39;').
+                replace(/>/g,'&gt;').
+                replace(/</g,'&lt;').
+                replace(/=/g,'&#61').
+                replace(/,/g,'&#44;').
+                replace(/"/g,'&quot;')
+        );
+    };
+    
     function handle_credentail_return()
     {
         if (credential_xmlhttp.readyState==4)
@@ -67,7 +79,7 @@
                 credential_xmlhttp.onreadystatechange = handle_credentail_return;
                 credential_xmlhttp.open("POST", "/check_credential", true);
                 credential_xmlhttp.setRequestHeader("Authorization", sessionkey);
-                credential_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+                //credential_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
                 credential_xmlhttp.setRequestHeader("Content-type", "text/plain");
                 credential_xmlhttp.send(username);
                 return;
@@ -174,7 +186,7 @@
             trimmed == "/drop") {
             send_xmlhttp.open("POST", trimmed, true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+            //send_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(sessionkey);
         } else if (trimmed.substring(0, 10) == "/vote_rdy ") {
@@ -183,7 +195,7 @@
             if (arg[1]) {target = arg[1];}
             send_xmlhttp.open("POST", "/vote_rdy", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+            //send_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(target);
         } else if (trimmed.substring(0, 6) == "/kick ") {
@@ -192,7 +204,7 @@
             if (arg[1]) {target = arg[1];}
             send_xmlhttp.open("POST", "/kick", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+            //send_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(target);
         } else if (trimmed.substring(0, 6) == "/join ") {
@@ -201,7 +213,7 @@
             if (arg[1]) {roomid = arg[1];}
             send_xmlhttp.open("POST", "/join", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+            //send_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(roomid);
         } else if (trimmed == "/slogout") {
@@ -209,7 +221,7 @@
         } else {
             send_xmlhttp.open("POST", "/send_text", true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+            //send_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.send(params);
         }
@@ -233,7 +245,7 @@
         if (trimmed == "/target") {
             send_xmlhttp.open("POST", trimmed, true);
             send_xmlhttp.setRequestHeader("Authorization", sessionkey);
-            send_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+            //send_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
             send_xmlhttp.setRequestHeader("Content-type", "text/plain");
             send_xmlhttp.setRequestHeader("From", action.toString() ); //From is used as Action, sincs custom header X-Action does not work in IE
             send_xmlhttp.send(content);
@@ -279,7 +291,7 @@
         params += "\r\n";
         params += $("#Password").val();
         login_xmlhttp.open("POST", "/login", true);
-        login_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+        //login_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
         login_xmlhttp.setRequestHeader("Content-type", "text/plain");
         login_xmlhttp.send(params);
     }
@@ -312,7 +324,7 @@
         dcontent_xmlhttp.onreadystatechange = handle_dcontent_return;
         dcontent_xmlhttp.open("POST", "dcontent", true);
         dcontent_xmlhttp.setRequestHeader("Authorization", sessionkey);
-        dcontent_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+        //dcontent_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
         dcontent_xmlhttp.setRequestHeader("Content-type", "text/plain");
         dcontent_xmlhttp.send(dcontent);
     }
@@ -492,6 +504,7 @@
                                 roomspan += "<div id='81D995F6" + roomid + "' class='clk_room clkable' data-json='" + obj[i][3] + "'>"
                                 roomspan += roomhtml + "</div>";
                                 lstappend += roomspan;
+                                //alert(obj[i][3]);
                             }
                         }
                     }
@@ -612,7 +625,7 @@
         //if (poll_xmlhttp.readyState == 0) poll_xmlhttp.open("POST", "/check_update", true);
         poll_xmlhttp.open("POST", "/check_update", true);
         poll_xmlhttp.setRequestHeader("Authorization", sessionkey);
-        poll_xmlhttp.setRequestHeader("Connection", "Keep-Alive");
+        //poll_xmlhttp.setRequestHeader("Connection", "Keep-Alive"); //Google Chrome error: Refused to set unsafe header "Connection"
         poll_xmlhttp.setRequestHeader("Content-type", "text/plain");
         poll_xmlhttp.send(params);
 
